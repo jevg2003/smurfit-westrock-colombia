@@ -3,7 +3,8 @@ import { dirname, join, relative, resolve, sep } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const CORE_DIR = __dirname;
-const FORBIDDEN_PACKAGES = ["react", "next", "zustand"];
+const FORBIDDEN_PACKAGES = ["react", "react-dom", "next", "next-themes", "zustand"];
+const FORBIDDEN_SCOPES = ["@tanstack/react-"];
 const FORBIDDEN_ALIASES = ["@/infrastructure", "@/features", "@/stores", "@/app"];
 
 function listTsFiles(dir: string): string[] {
@@ -22,6 +23,7 @@ function importsOf(source: string): string[] {
 
 function violation(specifier: string, file: string): string | null {
   const matches = (name: string) => specifier === name || specifier.startsWith(`${name}/`);
+  if (FORBIDDEN_SCOPES.some((scope) => specifier.startsWith(scope))) return `forbidden package "${specifier}"`;
   if (FORBIDDEN_PACKAGES.some(matches)) return `forbidden package "${specifier}"`;
   if (FORBIDDEN_ALIASES.some(matches)) return `forbidden layer "${specifier}"`;
   if (specifier.startsWith(".")) {
@@ -55,9 +57,14 @@ describe("src/core architecture", () => {
       'import x from "@/stores/a";',
       'export * from "next/link";',
       'const m = await import("zustand");',
+      'import { createRoot } from "react-dom/client";',
+      'import { useTheme } from "next-themes";',
+      'import { useQuery } from "@tanstack/react-query";',
+      'import { create } from "zustand/middleware";',
+      'import { jsx } from "react/jsx-runtime";',
     ].join("\n");
     const found = importsOf(sample).map((specifier) => violation(specifier, join(CORE_DIR, "x.ts")));
-    expect(found).toHaveLength(4);
+    expect(found).toHaveLength(9);
     expect(found.every((reason) => reason !== null)).toBe(true);
   });
 });

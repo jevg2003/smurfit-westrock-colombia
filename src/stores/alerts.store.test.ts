@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ALERTS_STORAGE_KEY, createAlertsStore } from "./alerts.store";
+import { ALERTS_STORAGE_KEY, MAX_ALERTS, createAlertsStore } from "./alerts.store";
 import { createFakeClock, createMemoryStorage, makeSignal } from "./test-utils";
 
 function setup() {
@@ -90,13 +90,37 @@ describe("alerts store", () => {
     expect(store.getState().alerts).toEqual([]);
   });
 
-  it("keeps only the 500 most recent alerts", () => {
+  it("prunes dismissed alerts first when the cap is reached", () => {
     const { store } = setup();
-    for (let index = 0; index < 502; index += 1) store.getState().createFromSignal(makeSignal(`s${index}`));
+    for (let index = 0; index < MAX_ALERTS; index += 1) store.getState().createFromSignal(makeSignal(`s${index}`));
+    store.getState().dismiss("s3", "not relevant");
+    store.getState().dismiss("s7", "not relevant");
+    store.getState().createFromSignal(makeSignal("fresh"));
     const ids = store.getState().alerts.map((alert) => alert.signalId);
-    expect(ids).toHaveLength(500);
-    expect(ids).not.toContain("s0");
-    expect(ids).toContain("s501");
+    expect(ids).toHaveLength(MAX_ALERTS);
+    expect(ids).not.toContain("s3");
+    expect(ids).toContain("s7");
+    expect(ids).toContain("fresh");
+  });
+
+  it("prunes the oldest reviewed alert when nothing is dismissed", () => {
+    const { store } = setup();
+    for (let index = 0; index < MAX_ALERTS; index += 1) store.getState().createFromSignal(makeSignal(`s${index}`));
+    store.getState().review("s5");
+    store.getState().review("s9");
+    store.getState().createFromSignal(makeSignal("fresh"));
+    const ids = store.getState().alerts.map((alert) => alert.signalId);
+    expect(ids).toHaveLength(MAX_ALERTS);
+    expect(ids).not.toContain("s5");
+    expect(ids).toContain("s9");
+  });
+
+  it("never drops new alerts, even above the cap", () => {
+    const { store } = setup();
+    for (let index = 0; index < MAX_ALERTS + 2; index += 1) store.getState().createFromSignal(makeSignal(`s${index}`));
+    const ids = store.getState().alerts.map((alert) => alert.signalId);
+    expect(ids).toHaveLength(MAX_ALERTS + 2);
+    expect(ids).toContain("s0");
   });
 
   it("persists under a versioned key and rehydrates on demand", async () => {

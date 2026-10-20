@@ -79,7 +79,7 @@ with verifiable sources and explicit rules.
   - hydrator.
 
 ### R1 — Radar + contracts
-- [ ] T4b R0 follow-ups from the review advisory and the verifier:
+- [x] T4b R0 follow-ups from the review advisory and the verifier:
   - add a catch and logging to the hydrator, plus a `hasHydrated` gate;
   - make eviction at the 500 cap visible or prune by state;
   - clarify the toggle;
@@ -128,6 +128,7 @@ with verifiable sources and explicit rules.
 | T2 | delegated | same | 1d030e1 | characterization tests green before and after extraction (19 tests); lint, typecheck, build ok | medium |
 | T3 | delegated | same | 0a18d3e | architecture test + self-check (22 tests); lint, typecheck, build ok | medium |
 | T4 | delegated | same | b222572 | RED: stores/rules suites failed with missing modules (`alerts.store`, `preferences.store`, `trmDaySignalId`), then GREEN 49 tests; lint, typecheck, build ok | medium |
+| T4b | delegated | R1 logic writer (2+ non-trivial files) | PENDING_T4B | RED: hydrate-stores, toggle-saved-day suites failed with missing modules and 3 cap tests failed; GREEN 59 tests; lint, typecheck, build ok. (d) is a refactor with no new behavior, so no RED. | medium |
 
 ### R0 review
 - First review attempt (base 0aeb1f7, which included docs): declined, then `lens_context_budget_exceeded`.

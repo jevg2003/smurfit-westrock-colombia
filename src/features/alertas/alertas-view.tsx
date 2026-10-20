@@ -10,13 +10,16 @@ import Link from "next/link";
 import { useAlertas } from "./use-alertas";
 
 export function AlertasView() {
-  const { ids, estaGuardado, alternar } = useAlertas();
+  const { ids, estaGuardado, alternar, hasHydrated } = useAlertas();
 
   return (
     <TrmData
       loading={<Skeleton role="status" aria-label="Consultando la TRM en datos.gov.co" className="h-96 rounded-xl" />}
     >
       {(datos) => {
+        if (!hasHydrated) {
+          return <Skeleton role="status" aria-label="Cargando tus alertas guardadas" className="h-96 rounded-xl" />;
+        }
         const guardados = datos.filter((punto) => ids.includes(punto.fecha));
 
         return guardados.length === 0 ? (

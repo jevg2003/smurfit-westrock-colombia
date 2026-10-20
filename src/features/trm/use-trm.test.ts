@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { DEFAULT_THRESHOLDS } from "@/content/config/empresa";
+import { DEFAULT_TRM_DAILY_MOVE_PCT } from "@/core/rules/trm-daily-move";
 import { UMBRAL_ATIPICO_PCT, procesar } from "./use-trm";
 import type { TrmRegistro } from "./types";
 
@@ -9,6 +11,11 @@ function registro(fecha: string, valor: string): TrmRegistro {
 describe("procesar (characterization)", () => {
   it("uses a 1% threshold", () => {
     expect(UMBRAL_ATIPICO_PCT).toBe(1);
+  });
+
+  it("takes its default threshold from the company config", () => {
+    expect(UMBRAL_ATIPICO_PCT).toBe(DEFAULT_THRESHOLDS.trmDailyMovePct);
+    expect(DEFAULT_TRM_DAILY_MOVE_PCT).toBe(DEFAULT_THRESHOLDS.trmDailyMovePct);
   });
 
   it("returns an empty list for no records", () => {

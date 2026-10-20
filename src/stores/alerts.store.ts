@@ -10,6 +10,27 @@ import { systemClock } from "./system-clock";
 export const ALERTS_STORAGE_KEY = "swc:alerts:v1";
 export const MAX_ALERTS = 500;
 
+/**
+ * Keeps the list within `MAX_ALERTS` by dropping `dismissed` alerts first, then the oldest
+ * `reviewed` ones. `new` alerts are never dropped, so the list may exceed the cap if only
+ * `new` alerts remain.
+ */
+export function pruneAlerts(alerts: Alert[], max: number = MAX_ALERTS): Alert[] {
+  let excess = alerts.length - max;
+  if (excess <= 0) return alerts;
+  const drop = new Set<Alert>();
+  for (const state of ["dismissed", "reviewed"] as const) {
+    for (const alert of alerts) {
+      if (excess === 0) break;
+      if (alert.state === state) {
+        drop.add(alert);
+        excess -= 1;
+      }
+    }
+  }
+  return alerts.filter((alert) => !drop.has(alert));
+}
+
 export interface AlertError {
   kind: "not_found" | "note_required" | "invalid_transition";
   message: string;
@@ -70,7 +91,7 @@ export function createAlertsStore({ storage, clock = systemClock }: AlertsStoreO
               updatedAt: now,
               signalSnapshot: signal,
             };
-            set({ alerts: [...get().alerts, alert].slice(-MAX_ALERTS) });
+            set({ alerts: pruneAlerts([...get().alerts, alert]) });
             return alert;
           },
           review: (signalId, note) => transition(signalId, "reviewed", note),
