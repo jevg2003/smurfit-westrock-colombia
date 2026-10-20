@@ -23,6 +23,11 @@ Inline (single writer, parent holds full context; cold subagent would re-read ev
 - [x] T3 App Router routes (login, resumen, dias, alertas) + providers + features ported
 - [x] T4 README/components.json/.gitignore cleanup, build + lint verification
 
+## Superseded decision
+The `/login` route and the auth/login code mentioned in T3 and in the verification below were removed
+in a later change ("sin login"; see README). The app is public: no login, no authentication. Routes now:
+`/`, `/dias`, `/alertas`. The text below is kept as the historical record of the migration.
+
 ## Progress / evidence
 (see below)
 

@@ -24,8 +24,14 @@ al Estado — una hipótesis de trabajo. Cuando se confirmó que la empresa real
 Colombia** (papel, cartón corrugado y empaques, antes Smurfit Kappa Cartón de Colombia), se verificó
 en vivo contra la API de `datos.gov.co` cuánto volumen real de contratación pública existe en
 categorías de papel/cartón/empaques: resultó ser casi todo papelería de oficina (resmas, útiles
-escolares) y cajas industriales con conteos de un dígito — **no es una señal útil para esta empresa**.
-Se descartó en lugar de forzarla.
+escolares) y cajas industriales con conteos de un dígito — **buscar por categoría de producto no es
+una señal útil para esta empresa**. Se descartó esa vía en lugar de forzarla.
+
+> **Corrección (2026-10-20):** una verificación posterior mostró que SECOP II **sí** sirve si se filtra
+> por el NIT del proveedor (`documento_proveedor`) y no por categoría. Cartón de Colombia
+> (890300406) y competidores como Cartones América (860026759), Carvajal Empaques (890319047) y
+> Papeles y Cartones (890925108) aparecen con contratos reales. Evitar filtros `LIKE` sobre texto
+> (tardan 12–48 s). Ver `docs/propuesta-mvp/propuesta-mvp.md`, sección 2.6.
 
 Como alternativa se probó **GDELT** (noticias globales, sin clave) para monitorear menciones de la
 empresa y el sector. La API respondió con límite de tasa (`"Please limit requests to one every 5
@@ -33,9 +39,9 @@ seconds…"`) de forma persistente, incluso con esperas de 15 segundos y desde e
 pudo verificar como confiable para una demo, así que se descartó también, siguiendo la regla de no
 prometer integraciones que no se pueden demostrar funcionando.
 
-Se verificó entonces el dataset de **TRM histórica de datos.gov.co** (`mcec-87by`, Banco de la
-República publicado como dato abierto): responde con datos diarios reales, hasta el día de hoy, sin
-clave. Es además la señal de entorno más directamente relevante para una empresa que importa insumos
+Se verificó entonces el dataset de **TRM histórica de datos.gov.co** (`mcec-87by`, publicado por la
+Superintendencia Financiera de Colombia como dato abierto, CC BY-SA 4.0): responde con datos diarios
+reales, hasta el día de hoy, sin clave. Es además la señal de entorno más directamente relevante para una empresa que importa insumos
 y exporta en dólares. Se construyó el MVP sobre esa base.
 
 ## Qué hace
@@ -69,7 +75,8 @@ la variación, leyenda nunca solo por color).
 
 ## Próximos pasos sugeridos
 
-1. Sumar una segunda fuente verificada (ej. IPC de datos.gov.co, validando antes el formato real
-   como se hizo con la TRM) para no depender de una sola variable.
+1. Sumar una segunda fuente verificada (ej. SECOP II por NIT de proveedor, o PIB/IPC anuales del
+   Banco Mundial; datos.gov.co no tiene un IPC nacional vigente), validando antes el formato real
+   como se hizo con la TRM, para no depender de una sola variable.
 2. Resumen ejecutivo con IA (Vercel AI Gateway) sobre los días atípicos, citando siempre la fuente.
 3. Autenticación real si esto deja de ser un prototipo de demostración.
