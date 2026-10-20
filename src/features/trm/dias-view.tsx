@@ -1,29 +1,26 @@
 "use client";
 
-import { DownloadIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ListOrderedIcon } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAlertas } from "@/features/alertas/use-alertas";
-import { exportarCsv } from "@/lib/csv";
 import { TrmData } from "./trm-data";
-import { TrmTable } from "./trm-table";
+import { TrmGrid } from "./trm-grid";
 
 export function DiasView() {
   const { estaGuardado, alternar } = useAlertas();
 
   return (
-    <TrmData>
+    <TrmData
+      loading={<Skeleton role="status" aria-label="Consultando la TRM en datos.gov.co" className="h-120 rounded-xl" />}
+    >
       {(datos) => (
-        <>
-          <div className="flex shrink-0 justify-end">
-            <Button variant="outline" size="sm" onClick={() => exportarCsv(datos, "trm-smurfit-westrock.csv")}>
-              <DownloadIcon aria-hidden="true" />
-              Exportar CSV
-            </Button>
-          </div>
-          <div className="min-h-0 flex-1">
-            <TrmTable datos={datos} estaGuardado={estaGuardado} onAlternarAlerta={alternar} />
-          </div>
-        </>
+        <TrmGrid
+          title="Días y variaciones"
+          icon={<ListOrderedIcon aria-hidden="true" />}
+          datos={datos}
+          estaGuardado={estaGuardado}
+          onAlternarAlerta={alternar}
+        />
       )}
     </TrmData>
   );
