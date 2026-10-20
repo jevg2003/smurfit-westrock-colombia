@@ -1,0 +1,3 @@
+packages: []
+minimumReleaseAgeExclude:
+  - lucide-react@1.60.0
