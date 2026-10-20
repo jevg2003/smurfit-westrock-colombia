@@ -6,7 +6,7 @@ const formatterCop = new Intl.NumberFormat("es-CO", {
 
 export function formatCop(valor?: string | number): string {
   const numero = typeof valor === "string" ? Number(valor) : valor;
-  if (!numero || Number.isNaN(numero)) return "—";
+  if (!numero || Number.isNaN(numero)) return "Sin dato";
   return formatterCop.format(numero);
 }
 

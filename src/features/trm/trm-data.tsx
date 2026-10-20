@@ -2,22 +2,27 @@
 
 import type { ReactNode } from "react";
 import { ErrorState } from "@/components/states/error-state";
-import { LoadingState } from "@/components/states/loading-state";
 import { usePeriodo } from "./periodo";
 import type { PuntoTrm } from "./types";
 import { useTrm } from "./use-trm";
 
-/** Resolves the TRM series for the selected period and renders loading/error states around it. */
-export function TrmData({ children }: { children: (datos: PuntoTrm[]) => ReactNode }) {
+interface Props {
+  /** Skeleton that mirrors the layout of `children`, shown while the series loads. */
+  loading: ReactNode;
+  children: (datos: PuntoTrm[]) => ReactNode;
+}
+
+/** Resolves the TRM series for the selected period and owns the loading and error states of a page. */
+export function TrmData({ loading, children }: Props) {
   const { dias } = usePeriodo();
   const { data, isPending, isError, error, refetch } = useTrm(dias);
 
-  if (isPending) return <LoadingState message="Consultando la TRM en datos.gov.co…" />;
+  if (isPending) return loading;
 
   if (isError) {
     return (
       <ErrorState
-        message={error instanceof Error ? error.message : "error desconocido"}
+        message={error instanceof Error ? error.message : "Error desconocido al consultar la TRM"}
         onRetry={() => refetch()}
       />
     );
