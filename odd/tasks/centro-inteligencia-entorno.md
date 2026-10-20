@@ -79,6 +79,12 @@ with verifiable sources and explicit rules.
   - hydrator.
 
 ### R1 — Radar + contracts
+- [ ] T4b R0 follow-ups from the review advisory and the verifier:
+  - add a catch and logging to the hydrator, plus a `hasHydrated` gate;
+  - make eviction at the 500 cap visible or prune by state;
+  - clarify the toggle;
+  - use a single threshold source;
+  - widen the forbidden imports in the architecture test.
 - [ ] T5 SECOP II contracts adapter: filter by NIT, Zod, a real fixture; confirm the end-date field.
 - [ ] T6 Rules `secop.expiring-contract` and `secop.competitor-new-contract`, plus dedupe and severity,
       with an injected Clock and thresholds from preferences.
@@ -123,5 +129,19 @@ with verifiable sources and explicit rules.
 | T3 | delegated | same | 0a18d3e | architecture test + self-check (22 tests); lint, typecheck, build ok | medium |
 | T4 | delegated | same | b222572 | RED: stores/rules suites failed with missing modules (`alerts.store`, `preferences.store`, `trmDaySignalId`), then GREEN 49 tests; lint, typecheck, build ok | medium |
 
+### R0 review
+- First review attempt (base 0aeb1f7, which included docs): declined, then `lens_context_budget_exceeded`.
+- Reduced candidate (base 9b336f7, R0 code only, 44 files / 2,943 lines, high risk because of ci.yml):
+  consent granted. All 4 lenses ran and the review was **approved**. Lineage `review-c42b5f222e2643c9`
+  is acknowledged and its authority burned. Independent verifier: PASS.
+- Reviewed boundary is now `40e7c45`.
+- Non-blocking advisory findings, folded into T4b:
+  - store-hydrator has no rejection handler; legacy migration is skipped silently.
+  - alerts store evicts silently at the cap of 500.
+  - `use-alertas` toggle flow is unclear.
+  - duplicated threshold constant in `use-trm.ts`.
+  - architecture test misses `react-dom`, `next-themes`, `@tanstack/react-*`.
+  - hydration flash on `/alertas` (no `hasHydrated` gate).
+
 ## Next step
-R0 done. Next: R1 (T5–T8).
+R1: T4b (R0 follow-ups), then T5–T8.
