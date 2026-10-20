@@ -4,37 +4,88 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  --background: #f7f7f5;
+  --foreground: #1c1c1a;
+  --card: #fdfdfc;
+  --card-foreground: #1c1c1a;
+  --popover: #fdfdfc;
+  --popover-foreground: #1c1c1a;
+  --primary: #2563c4;
+  --primary-foreground: #ffffff;
+  --secondary: #eeeeeb;
+  --secondary-foreground: #1c1c1a;
+  --muted: #eeeeeb;
+  --muted-foreground: #6b6a64;
+  --accent: #eeeeeb;
+  --accent-foreground: #1c1c1a;
+  --destructive: #c93c3c;
+  --destructive-foreground: #a82a2a;
+  --success: #13805a;
+  --success-foreground: #0f6b4c;
+  --info: #2563c4;
+  --info-foreground: #1d4fa0;
+  --warning: #d99a00;
+  --warning-foreground: #8a5a00;
+  --invert: #1c1c1a;
+  --invert-foreground: #f7f7f5;
+  --border: rgba(0, 0, 0, 0.1);
+  --input: rgba(0, 0, 0, 0.14);
+  --ring: #2563c4;
+  --chart-1: #2563c4;
+  --chart-2: #13805a;
+  --chart-3: #b07200;
+  --chart-4: #6b5fd6;
+  --chart-5: #c94f4f;
+  --radius: 0.625rem;
+  --sidebar: #f7f7f5;
+  --sidebar-foreground: #1c1c1a;
+  --sidebar-primary: #2563c4;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: color-mix(in oklab, #2563c4 8%, transparent);
+  --sidebar-accent-foreground: #1d4fa0;
+  --sidebar-border: rgba(0, 0, 0, 0.1);
+  --sidebar-ring: #2563c4;
+}
+
+.dark {
   --background: #0d0d0d;
-  --foreground: #ffffff;
+  --foreground: #f5f5f4;
   --card: #1a1a19;
-  --card-foreground: #ffffff;
+  --card-foreground: #f5f5f4;
   --popover: #1a1a19;
-  --popover-foreground: #ffffff;
+  --popover-foreground: #f5f5f4;
   --primary: #3987e5;
   --primary-foreground: #ffffff;
   --secondary: #222221;
-  --secondary-foreground: #ffffff;
+  --secondary-foreground: #f5f5f4;
   --muted: #222221;
-  --muted-foreground: #898781;
+  --muted-foreground: #a3a29b;
   --accent: #222221;
-  --accent-foreground: #ffffff;
-  --destructive: #d03b3b;
+  --accent-foreground: #f5f5f4;
+  --destructive: #e05252;
+  --destructive-foreground: #f08a8a;
+  --success: #199e70;
+  --success-foreground: #3fd0a0;
+  --info: #3987e5;
+  --info-foreground: #7db2f0;
   --warning: #fab219;
+  --warning-foreground: #fbc54f;
+  --invert: #e7e5e4;
+  --invert-foreground: #1a1a19;
   --border: rgba(255, 255, 255, 0.1);
-  --input: rgba(255, 255, 255, 0.1);
+  --input: rgba(255, 255, 255, 0.12);
   --ring: #3987e5;
   --chart-1: #3987e5;
   --chart-2: #199e70;
   --chart-3: #c98500;
   --chart-4: #9085e9;
   --chart-5: #e66767;
-  --radius: 0.625rem;
-  --sidebar: #1a1a19;
-  --sidebar-foreground: #ffffff;
+  --sidebar: #0d0d0d;
+  --sidebar-foreground: #f5f5f4;
   --sidebar-primary: #3987e5;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #222221;
-  --sidebar-accent-foreground: #ffffff;
+  --sidebar-accent: color-mix(in oklab, #3987e5 8%, transparent);
+  --sidebar-accent-foreground: #7db2f0;
   --sidebar-border: rgba(255, 255, 255, 0.1);
   --sidebar-ring: #3987e5;
 }
@@ -57,7 +108,15 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
   --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-invert: var(--invert);
+  --color-invert-foreground: var(--invert-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -89,6 +148,9 @@
   }
   html {
     @apply font-sans antialiased;
+    color-scheme: light;
+  }
+  .dark {
     color-scheme: dark;
   }
   body {

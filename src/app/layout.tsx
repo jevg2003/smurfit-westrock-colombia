@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import type { ReactNode } from "react";
+import { AppShell } from "@/components/shell/app-shell";
+import { PeriodoProvider, PeriodoSelect } from "@/features/trm/periodo";
 import { Providers } from "./providers";
 import "./globals.css";
 
@@ -14,9 +16,13 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="es" className={`${geist.variable} dark`}>
+    <html lang="es" className={geist.variable} suppressHydrationWarning>
       <body>
-        <Providers>{children}</Providers>
+        <Providers>
+          <PeriodoProvider>
+            <AppShell actions={<PeriodoSelect />}>{children}</AppShell>
+          </PeriodoProvider>
+        </Providers>
       </body>
     </html>
   );
