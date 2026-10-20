@@ -1,28 +1,33 @@
 "use client";
 
-import { LayoutDashboardIcon, LineChartIcon, ListOrderedIcon, LogOutIcon, StarIcon } from "lucide-react";
+import { LayoutDashboardIcon, LineChartIcon, ListOrderedIcon, PanelLeftIcon, StarIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
+import type { CSSProperties, ReactNode } from "react";
+import { ThemeTogglerButton } from "@/components/animate-ui/components/buttons/theme-toggler";
+import { Button } from "@/components/ui/button";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
-  SidebarRail,
-  SidebarTrigger,
+  useSidebar,
 } from "@/components/ui/sidebar";
-import { useAuth } from "@/features/auth/use-auth";
 
 const NAV = [
   { href: "/", label: "Resumen", icon: LayoutDashboardIcon },
@@ -30,45 +35,64 @@ const NAV = [
   { href: "/alertas", label: "Alertas guardadas", icon: StarIcon },
 ];
 
+function Logo() {
+  return (
+    <Button
+      size="icon"
+      nativeButton={false}
+      render={<Link href="/" aria-label="Smurfit Westrock Colombia, inicio" />}
+      className="size-7"
+    >
+      <LineChartIcon aria-hidden="true" className="size-3.5" />
+    </Button>
+  );
+}
+
+function MobileTrigger() {
+  const { toggleSidebar } = useSidebar();
+
+  return (
+    <Button variant="ghost" size="icon" className="md:hidden" onClick={toggleSidebar}>
+      <PanelLeftIcon aria-hidden="true" />
+      <span className="sr-only">Abrir navegación</span>
+    </Button>
+  );
+}
+
 interface Props {
   actions?: ReactNode;
   children: ReactNode;
 }
 
 export function AppShell({ actions, children }: Props) {
-  const { cerrarSesion } = useAuth();
   const pathname = usePathname();
   const title = NAV.find((item) => item.href === pathname)?.label ?? "Monitor de entorno";
 
   return (
-    <SidebarProvider className="relative h-dvh min-h-0 w-full overflow-hidden">
-      <Sidebar collapsible="icon" className="absolute h-full">
-        <SidebarHeader>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton size="lg" tooltip="Smurfit Westrock Colombia">
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                  <LineChartIcon className="size-4" aria-hidden="true" />
-                </span>
-                <span className="grid min-w-0 flex-1 text-left leading-tight group-data-[collapsible=icon]:sr-only">
-                  <span className="truncate text-sm font-medium">Smurfit Westrock</span>
-                  <span className="truncate text-xs text-sidebar-foreground/70">Monitor de entorno</span>
-                </span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
+    <SidebarProvider
+      defaultOpen={false}
+      className="h-dvh [--header-height:50px]"
+      style={{ "--sidebar-width-icon": "3rem" } as CSSProperties}
+    >
+      <Sidebar variant="inset" collapsible="icon">
+        <SidebarHeader className="items-center justify-center py-3 in-data-[mobile=true]:items-start in-data-[mobile=true]:px-4">
+          <Logo />
         </SidebarHeader>
 
-        <SidebarContent role="navigation" aria-label="Principal">
+        <SidebarContent>
           <SidebarGroup>
-            <SidebarGroupLabel>Navegación</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {NAV.map(({ href, label, icon: Icon }) => (
                   <SidebarMenuItem key={href}>
-                    <SidebarMenuButton isActive={pathname === href} tooltip={label} render={<Link href={href} />}>
+                    <SidebarMenuButton
+                      isActive={pathname === href}
+                      tooltip={label}
+                      aria-label={label}
+                      render={<Link href={href} />}
+                    >
                       <Icon aria-hidden="true" />
-                      <span>{label}</span>
+                      <span className="group-data-[collapsible=icon]:sr-only">{label}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}
@@ -77,35 +101,37 @@ export function AppShell({ actions, children }: Props) {
           </SidebarGroup>
         </SidebarContent>
 
-        <SidebarFooter>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton size="lg" tooltip="Cerrar sesión" onClick={cerrarSesion}>
-                <Avatar className="size-8">
-                  <AvatarFallback>AN</AvatarFallback>
-                </Avatar>
-                <span className="grid min-w-0 flex-1 text-left leading-tight group-data-[collapsible=icon]:sr-only">
-                  <span className="truncate text-sm font-medium">analista</span>
-                  <span className="truncate text-xs text-sidebar-foreground/70">Cerrar sesión</span>
-                </span>
-                <LogOutIcon className="ml-auto size-4 shrink-0 group-data-[collapsible=icon]:hidden" aria-hidden="true" />
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
+        <SidebarFooter className="items-center justify-center py-3 in-data-[mobile=true]:items-start in-data-[mobile=true]:px-4">
+          <ThemeTogglerButton variant="ghost" size="icon-sm" direction="ltr" modes={["light", "dark"]} aria-label="Cambiar tema" />
         </SidebarFooter>
-
-        <SidebarRail />
       </Sidebar>
 
-      <SidebarInset className="min-w-0 overflow-hidden">
-        <header className="flex h-14 shrink-0 items-center gap-3 border-b px-4">
-          <SidebarTrigger />
-          <Separator orientation="vertical" className="h-5" />
-          <h1 className="truncate text-sm font-semibold">{title}</h1>
-          <div className="ml-auto flex items-center gap-2">{actions}</div>
+      <SidebarInset className="overflow-hidden border border-border shadow-none md:peer-data-[variant=inset]:shadow-none">
+        <header className="sticky top-0 z-10 flex h-(--header-height) w-full shrink-0 items-center gap-2 border-b border-border bg-background ps-3 pe-2">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
+            <MobileTrigger />
+            <Breadcrumb className="min-w-0">
+              <BreadcrumbList className="flex-nowrap">
+                <BreadcrumbItem className="hidden sm:inline-flex">
+                  <BreadcrumbLink render={<Link href="/" />}>Smurfit Westrock Colombia</BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator className="hidden sm:block" />
+                <BreadcrumbItem className="min-w-0">
+                  <BreadcrumbPage className="truncate">{title}</BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
+          </div>
+          <div className="ml-auto flex shrink-0 items-center gap-2">{actions}</div>
         </header>
 
-        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden p-4">{children}</div>
+        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
+          <div className="flex flex-1 flex-col gap-4">{children}</div>
+          <p className="max-w-prose text-xs text-muted-foreground">
+            Prototipo no oficial construido sobre el perfil público de Smurfit Westrock Colombia. Sin relación ni aval
+            de la empresa. Fuente de datos: datos.gov.co, serie histórica de la TRM.
+          </p>
+        </div>
       </SidebarInset>
     </SidebarProvider>
   );
