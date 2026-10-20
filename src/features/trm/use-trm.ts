@@ -1,33 +1,29 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { DEFAULT_TRM_DAILY_MOVE_PCT, computeTrmDailyMoves } from "@/core/rules/trm-daily-move";
 import { fetchTrm } from "./api";
 import type { PuntoTrm, TrmRegistro } from "./types";
 
-export const UMBRAL_ATIPICO_PCT = 1;
+export const UMBRAL_ATIPICO_PCT = DEFAULT_TRM_DAILY_MOVE_PCT;
 
-function procesar(registros: TrmRegistro[]): PuntoTrm[] {
-  const ascendente = [...registros].sort((a, b) => a.vigenciadesde.localeCompare(b.vigenciadesde));
-
-  return ascendente.map((registro, indice) => {
-    const valor = Number(registro.valor);
-    const anterior = indice > 0 ? Number(ascendente[indice - 1].valor) : null;
-    const variacionPct = anterior ? ((valor - anterior) / anterior) * 100 : null;
-
-    return {
-      fecha: registro.vigenciadesde,
-      valor,
-      variacionPct,
-      atipico: variacionPct !== null && Math.abs(variacionPct) >= UMBRAL_ATIPICO_PCT,
-    };
-  });
+export function procesar(registros: TrmRegistro[], umbralPct: number = UMBRAL_ATIPICO_PCT): PuntoTrm[] {
+  return computeTrmDailyMoves(
+    registros.map((registro) => ({ validFrom: registro.vigenciadesde, value: registro.valor })),
+    umbralPct,
+  ).map((move) => ({
+    fecha: move.date,
+    valor: move.value,
+    variacionPct: move.changePct,
+    atipico: move.isAtypical,
+  }));
 }
 
 export function useTrm(dias: number) {
   return useQuery({
     queryKey: ["trm", dias],
     queryFn: () => fetchTrm(dias),
-    select: procesar,
+    select: (registros) => procesar(registros),
     staleTime: 60 * 60 * 1000,
   });
 }
