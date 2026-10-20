@@ -21,13 +21,6 @@ function read(key: string): string | null {
   }
 }
 
-const noopSubscribe = () => () => {};
-
-/** `false` on the server and during hydration, `true` once the client can read localStorage. */
-export function useHydrated(): boolean {
-  return useSyncExternalStore(noopSubscribe, () => true, () => false);
-}
-
 /** JSON value persisted in localStorage. `initial` must be a stable reference. */
 export function useLocalStorage<T>(key: string, initial: T) {
   const raw = useSyncExternalStore(
