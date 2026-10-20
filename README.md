@@ -10,12 +10,12 @@ sobre el perfil público de la empresa como ejercicio de diseño de producto.
 ## Cómo correrlo
 
 ```bash
-npm install
-npm run dev
+pnpm install
+pnpm dev        # http://localhost:3000
+pnpm build      # build de producción
+pnpm lint       # oxlint
 ```
 
-Login demo: usuario `analista`, contraseña `smurfit2026` (no es autenticación real, la sesión vive
-solo en `localStorage` del navegador).
 
 ## Por qué TRM y no otra cosa (la historia real de las decisiones)
 
@@ -54,15 +54,15 @@ y exporta en dólares. Se construyó el MVP sobre esa base.
 
 - IA / resúmenes automáticos — decisión tuya en la entrevista de alcance, se dejó el hueco libre para
   sumar Vercel AI Gateway después sin rearquitecturar.
-- Multi-empresa, roles múltiples, autenticación real.
+- Multi-empresa, roles múltiples, autenticación.
 - Noticias/señales cualitativas (GDELT no fue viable hoy — ver sección anterior).
-- Persistencia en servidor: todo vive en el navegador (sesión y alertas en `localStorage`).
+- Persistencia en servidor: todo vive en el navegador (las alertas en `localStorage`).
 
 ## Stack
 
 Next.js 16 (App Router) + React 19 + TypeScript + Tailwind v4. UI con shadcn/ReUI (estilo base-nova).
 TanStack Query para datos, TanStack Table para la tabla, Recharts para los gráficos. Un solo archivo de
-estilos: `src/app/globals.css`. La sesión demo y las alertas viven en `localStorage` (cliente), por eso las
+estilos: `src/app/globals.css`. Las alertas viven en `localStorage` (cliente), por eso las
 vistas son componentes de cliente.
 Paleta y especificaciones de marcas/ejes siguen la skill `dataviz` (un solo eje, color por el signo de
 la variación, leyenda nunca solo por color).
