@@ -60,8 +60,10 @@ y exporta en dólares. Se construyó el MVP sobre esa base.
 
 ## Stack
 
-Vite + React 19 + TypeScript (SPA, sin SSR — es una herramienta interna detrás de login, no hay SEO
-que ganar). TanStack Query para datos, TanStack Table para la tabla, Recharts para los gráficos.
+Next.js 16 (App Router) + React 19 + TypeScript + Tailwind v4. UI con shadcn/ReUI (estilo base-nova).
+TanStack Query para datos, TanStack Table para la tabla, Recharts para los gráficos. Un solo archivo de
+estilos: `src/app/globals.css`. La sesión demo y las alertas viven en `localStorage` (cliente), por eso las
+vistas son componentes de cliente.
 Paleta y especificaciones de marcas/ejes siguen la skill `dataviz` (un solo eje, color por el signo de
 la variación, leyenda nunca solo por color).
 
