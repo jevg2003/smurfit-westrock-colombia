@@ -1,0 +1,72 @@
+.login-pantalla {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-2);
+}
+
+.login-tarjeta {
+  width: min(360px, 90vw);
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.login-tarjeta h1 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.login-subtitulo {
+  margin: 0 0 8px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.login-tarjeta label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.login-tarjeta input {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-2);
+}
+
+.login-tarjeta button {
+  margin-top: 4px;
+  padding: 10px;
+  border: none;
+  border-radius: 6px;
+  background: var(--series-1);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.login-error {
+  color: var(--critical);
+  font-size: 12px;
+  margin: 0;
+}
+
+.login-demo {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.login-demo code {
+  font-family: var(--mono);
+}
