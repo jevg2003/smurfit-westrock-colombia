@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_NEWS_TERMS, LEGACY_NEWS_TERM_GROUPS, NEWS_TERM_GROUPS } from "@/content/config/empresa";
-import { createPreferencesStore } from "./preferences.store";
+import { DEFAULT_NEWS_CONTEXT, DEFAULT_NEWS_TERMS, LEGACY_NEWS_TERM_GROUPS, NEWS_TERM_GROUPS } from "@/content/config/empresa";
+import { buildNewsTermGroups, createPreferencesStore } from "./preferences.store";
 import { createMemoryStorage } from "./test-utils";
 
 describe("preferences news term groups", () => {
@@ -92,5 +92,48 @@ describe("preferences news term defaults migration", () => {
     const second = createPreferencesStore({ storage });
     await second.persist.rehydrate();
     expect(second.getState().newsTermGroups.sector).toEqual(["papel"]);
+  });
+});
+
+describe("preferences news context rules", () => {
+  const persisted = (state: object, version: number) => createMemoryStorage({ "swc:preferences:v1": JSON.stringify({ state, version }) });
+
+  it("starts with the default context and exclusion words", () => {
+    const { newsContext } = createPreferencesStore({ storage: createMemoryStorage() }).getState();
+    expect(newsContext.company.requireAny).toContain("Colombia");
+    expect(newsContext.sector.requireAny).toEqual([]);
+    for (const group of NEWS_TERM_GROUPS) expect(newsContext[group.id].excludeAny).toEqual(DEFAULT_NEWS_CONTEXT[group.id].excludeAny);
+  });
+
+  it("gives data saved before the context rules existed the default rules, keeping its terms", async () => {
+    const store = createPreferencesStore({ storage: persisted({ newsTermGroups: { sector: ["kraft"] } }, 2) });
+    await store.persist.rehydrate();
+    expect(store.getState().newsContext.company.requireAny).toContain("Yumbo");
+    expect(store.getState().newsTermGroups.sector).toEqual(["kraft"]);
+  });
+
+  it("edits one group's words, cleaned and without duplicates, and persists them", async () => {
+    const storage = createMemoryStorage();
+    createPreferencesStore({ storage }).getState().setNewsContext("company", { requireAny: [" Colombia ", "Colombia", ""], excludeAny: ["fútbol"] });
+    const fresh = createPreferencesStore({ storage });
+    await fresh.persist.rehydrate();
+    expect(fresh.getState().newsContext.company).toEqual({ requireAny: ["Colombia"], excludeAny: ["fútbol"] });
+    expect(fresh.getState().newsContext.sector.excludeAny.length).toBeGreaterThan(0);
+  });
+
+  it("builds the matcher groups from the saved terms and words", () => {
+    const store = createPreferencesStore({ storage: createMemoryStorage() });
+    store.getState().setNewsContext("company", { requireAny: ["Yumbo"], excludeAny: ["fútbol"] });
+    const [company] = buildNewsTermGroups(store.getState());
+    expect(company.excludeAny).toEqual(["fútbol"]);
+    expect(company.terms).toContainEqual({ term: "Smurfit Westrock", requireAny: ["Yumbo"] });
+    expect(company.terms).toContain("Cartones América");
+  });
+
+  it("restores the default words on reset", () => {
+    const store = createPreferencesStore({ storage: createMemoryStorage() });
+    store.getState().setNewsContext("company", { requireAny: [], excludeAny: [] });
+    store.getState().reset();
+    expect(store.getState().newsContext.company.requireAny).toContain("Colombia");
   });
 });

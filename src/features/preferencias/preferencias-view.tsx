@@ -14,7 +14,7 @@ import { NEWS_TERM_GROUPS, type Thresholds } from "@/content/config/empresa";
 import { useHydrationStore } from "@/stores/hydration.store";
 import { type NewsTermGroupId, usePreferencesStore } from "@/stores/preferences.store";
 import { activeRuleTexts } from "./rule-texts";
-import { parseTerms, termsSchema, thresholdsSchema, validateThresholds, type ThresholdFields, type ThresholdKey } from "./validate";
+import { parseTerms, parseWords, termsSchema, thresholdsSchema, validateThresholds, wordsSchema, type ThresholdFields, type ThresholdKey } from "./validate";
 
 interface FieldSpec {
   key: ThresholdKey;
@@ -270,18 +270,25 @@ function RulesCard() {
 }
 
 const TERM_GROUP_IDS = NEWS_TERM_GROUPS.map((group) => group.id);
-const termsFormSchema = termsSchema(TERM_GROUP_IDS);
+const GROUPS_WITH_CONTEXT = NEWS_TERM_GROUPS.filter((group) => group.contextTerms.length > 0);
+const contextKey = (id: NewsTermGroupId) => `${id}Context`;
+const excludeKey = (id: NewsTermGroupId) => `${id}Exclude`;
+const WORD_KEYS = [...GROUPS_WITH_CONTEXT.map((group) => contextKey(group.id)), ...NEWS_TERM_GROUPS.map((group) => excludeKey(group.id))];
+const termsFormSchema = termsSchema(TERM_GROUP_IDS).extend(wordsSchema(WORD_KEYS).shape);
 
 function TermsCard() {
   const groups = usePreferencesStore((state) => state.newsTermGroups);
   const setGroup = usePreferencesStore((state) => state.setNewsTermGroup);
+  const context = usePreferencesStore((state) => state.newsContext);
+  const setContext = usePreferencesStore((state) => state.setNewsContext);
   const [message, setMessage] = useState<string | null>(null);
   const baseId = useId();
 
-  const defaultValues = Object.fromEntries(NEWS_TERM_GROUPS.map((group) => [group.id, groups[group.id].join("\n")])) as Record<
-    NewsTermGroupId,
-    string
-  >;
+  const defaultValues: Record<string, string> = {
+    ...Object.fromEntries(NEWS_TERM_GROUPS.map((group) => [group.id, groups[group.id].join("\n")])),
+    ...Object.fromEntries(GROUPS_WITH_CONTEXT.map((group) => [contextKey(group.id), context[group.id].requireAny.join("\n")])),
+    ...Object.fromEntries(NEWS_TERM_GROUPS.map((group) => [excludeKey(group.id), context[group.id].excludeAny.join("\n")])),
+  };
   const form = useForm({
     defaultValues,
     validationLogic: revalidateLogic(),
@@ -290,8 +297,11 @@ function TermsCard() {
       for (const group of NEWS_TERM_GROUPS) {
         const parsed = parseTerms(value[group.id]);
         if (parsed.ok) setGroup(group.id, parsed.value);
+        const requireAny = parseWords(value[contextKey(group.id)] ?? context[group.id].requireAny.join("\n"));
+        const excludeAny = parseWords(value[excludeKey(group.id)]);
+        if (requireAny.ok && excludeAny.ok) setContext(group.id, { requireAny: requireAny.value, excludeAny: excludeAny.value });
       }
-      setMessage("Términos guardados. Se usarán cuando se conecten las noticias.");
+      setMessage("Términos guardados. Se usan en las noticias y en las señales.");
     },
   });
 
@@ -307,37 +317,36 @@ function TermsCard() {
       >
         <CardHeader className="border-b px-4 py-3 [.border-b]:pb-3">
           <CardTitle className="text-sm font-semibold">Términos para noticias</CardTitle>
-          <CardDescription>Un término por línea. Las noticias llegan en una próxima versión.</CardDescription>
+          <CardDescription>Un término o palabra por línea. El contexto y las exclusiones acotan las noticias a Colombia.</CardDescription>
         </CardHeader>
         <CardContent className="py-4">
           <FieldGroup className="gap-4">
-            {NEWS_TERM_GROUPS.map((group) => {
-              const id = `${baseId}-${group.id}`;
-              return (
-                <form.Field key={group.id} name={group.id}>
-                  {(field) => {
-                    const invalid = !field.state.meta.isValid;
-                    return (
-                      <Field data-invalid={invalid}>
-                        <FieldLabel htmlFor={id}>{group.label}</FieldLabel>
-                        <Textarea
-                          id={id}
-                          rows={4}
-                          value={field.state.value}
-                          aria-invalid={invalid || undefined}
-                          onBlur={field.handleBlur}
-                          onChange={(event) => {
-                            field.handleChange(event.target.value);
-                            setMessage(null);
-                          }}
-                        />
-                        {invalid && <FieldError errors={field.state.meta.errors} />}
-                      </Field>
-                    );
-                  }}
-                </form.Field>
-              );
-            })}
+            {NEWS_TERM_GROUPS.map((group) => (
+              <FieldSet key={group.id} className="gap-3">
+                <FieldLegend variant="label">{group.label}</FieldLegend>
+                <WordsField form={form} name={group.id} label={group.label} baseId={baseId} rows={4} onEdit={() => setMessage(null)} />
+                {group.contextTerms.length > 0 && (
+                  <WordsField
+                    form={form}
+                    name={contextKey(group.id)}
+                    label={`Palabras de contexto (${group.label})`}
+                    help={`${group.contextTerms.join(" y ")} solo cuenta si el titular trae una de estas palabras.`}
+                    baseId={baseId}
+                    rows={3}
+                    onEdit={() => setMessage(null)}
+                  />
+                )}
+                <WordsField
+                  form={form}
+                  name={excludeKey(group.id)}
+                  label={`Palabras a excluir (${group.label})`}
+                  help="Si el titular trae una de estas palabras, se descarta."
+                  baseId={baseId}
+                  rows={2}
+                  onEdit={() => setMessage(null)}
+                />
+              </FieldSet>
+            ))}
           </FieldGroup>
         </CardContent>
         <CardFooter className="flex-wrap gap-3 border-t bg-muted/50 px-4 py-3">
@@ -352,5 +361,45 @@ function TermsCard() {
         </CardFooter>
       </form>
     </Card>
+  );
+}
+
+interface WordsFieldProps {
+  form: { Field: React.ComponentType<any> };
+  name: string;
+  label: string;
+  help?: string;
+  baseId: string;
+  rows: number;
+  onEdit: () => void;
+}
+
+/** A textarea with one entry per line, bound to a field of the terms form. */
+function WordsField({ form, name, label, help, baseId, rows, onEdit }: WordsFieldProps) {
+  const id = `${baseId}-${name}`;
+  return (
+    <form.Field name={name}>
+      {(field: any) => {
+        const invalid = !field.state.meta.isValid;
+        return (
+          <Field data-invalid={invalid}>
+            <FieldLabel htmlFor={id}>{label}</FieldLabel>
+            <Textarea
+              id={id}
+              rows={rows}
+              value={field.state.value}
+              aria-invalid={invalid || undefined}
+              onBlur={field.handleBlur}
+              onChange={(event) => {
+                field.handleChange(event.target.value);
+                onEdit();
+              }}
+            />
+            {help && <FieldDescription>{help}</FieldDescription>}
+            {invalid && <FieldError errors={field.state.meta.errors} />}
+          </Field>
+        );
+      }}
+    </form.Field>
   );
 }

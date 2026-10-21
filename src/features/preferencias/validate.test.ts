@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_THRESHOLDS } from "@/content/config/empresa";
-import { parseTerms, termsSchema, thresholdsSchema, validateThresholds, type ThresholdFields } from "./validate";
+import { parseTerms, parseWords, termsSchema, wordsSchema, thresholdsSchema, validateThresholds, type ThresholdFields } from "./validate";
 
 const fields = (overrides: Partial<ThresholdFields> = {}): ThresholdFields => ({
   trmDailyMovePct: "1",
@@ -102,5 +102,23 @@ describe("termsSchema", () => {
   it("names the group whose terms are too long", () => {
     const result = schema.safeParse({ company: "ok", sector: "a".repeat(81) });
     expect(issueMap(result)).toEqual({ sector: "Cada término puede tener hasta 80 caracteres." });
+  });
+});
+
+describe("parseWords", () => {
+  it("takes one word or phrase per line, dropping blanks and repeats", () => {
+    expect(parseWords(" Colombia \n\nYumbo\nColombia")).toEqual({ ok: true, value: ["Colombia", "Yumbo"] });
+  });
+
+  it("refuses words that are too long or too many", () => {
+    expect(parseWords("a".repeat(81))).toEqual({ ok: false, errors: "Cada palabra puede tener hasta 80 caracteres." });
+    expect(parseWords(Array.from({ length: 31 }, (_, i) => `p${i}`).join("\n"))).toEqual({ ok: false, errors: "Usa hasta 30 palabras por grupo." });
+  });
+});
+
+describe("wordsSchema", () => {
+  it("names the field whose words are invalid", () => {
+    const result = wordsSchema(["companyContext", "companyExclude"]).safeParse({ companyContext: "ok", companyExclude: "a".repeat(81) });
+    expect(issueMap(result)).toEqual({ companyExclude: "Cada palabra puede tener hasta 80 caracteres." });
   });
 });

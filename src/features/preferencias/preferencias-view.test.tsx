@@ -66,7 +66,7 @@ describe("PreferenciasView", () => {
     render(<PreferenciasView />);
     const before = usePreferencesStore.getState().newsTermGroups.sector;
 
-    const sector = screen.getByLabelText(/Sector/);
+    const sector = screen.getByLabelText("Sector");
     await user.clear(sector);
     await user.click(sector);
     await user.paste("a".repeat(81));
@@ -91,11 +91,48 @@ describe("PreferenciasView", () => {
     const user = userEvent.setup();
     render(<PreferenciasView />);
 
-    const sector = screen.getByLabelText(/Sector/);
+    const sector = screen.getByLabelText("Sector");
     await user.clear(sector);
     await user.type(sector, "kraft{Enter}cartón");
     await user.click(screen.getByRole("button", { name: "Guardar términos" }));
 
     expect(usePreferencesStore.getState().newsTermGroups.sector).toEqual(["kraft", "cartón"]);
+  });
+
+  it("edits the context and excluded words of a group", async () => {
+    const user = userEvent.setup();
+    render(<PreferenciasView />);
+
+    const context = screen.getByLabelText("Palabras de contexto (Empresa y competidores)");
+    await user.clear(context);
+    await user.type(context, "Yumbo");
+    const exclude = screen.getByLabelText("Palabras a excluir (Sector)");
+    await user.clear(exclude);
+    await user.type(exclude, "fútbol");
+    await user.click(screen.getByRole("button", { name: "Guardar términos" }));
+
+    expect(usePreferencesStore.getState().newsContext.company.requireAny).toEqual(["Yumbo"]);
+    expect(usePreferencesStore.getState().newsContext.sector.excludeAny).toEqual(["fútbol"]);
+  });
+
+  it("only offers context words for the groups that have terms needing context", () => {
+    render(<PreferenciasView />);
+    expect(screen.queryByLabelText("Palabras de contexto (Sector)")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Palabras a excluir (Empresa y competidores)")).toBeInTheDocument();
+  });
+
+  it("refuses a context word that is too long and keeps the saved words", async () => {
+    const user = userEvent.setup();
+    render(<PreferenciasView />);
+    const before = usePreferencesStore.getState().newsContext.company;
+
+    const context = screen.getByLabelText("Palabras de contexto (Empresa y competidores)");
+    await user.clear(context);
+    await user.click(context);
+    await user.paste("a".repeat(81));
+    await user.click(screen.getByRole("button", { name: "Guardar términos" }));
+
+    expect(await screen.findByText("Cada palabra puede tener hasta 80 caracteres.")).toBeInTheDocument();
+    expect(usePreferencesStore.getState().newsContext.company).toEqual(before);
   });
 });

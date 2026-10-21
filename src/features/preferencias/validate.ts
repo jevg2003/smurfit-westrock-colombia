@@ -115,3 +115,24 @@ export function termsSchema<Id extends string>(groupIds: readonly Id[]) {
   });
   return z.object(Object.fromEntries(groupIds.map((id) => [id, group])) as Record<Id, typeof group>);
 }
+
+/** Context and excluded words: one word or phrase per line. Blank lines and repeats are dropped. */
+export function parseWords(text: string): Validation<string[], string> {
+  const words = [...new Set(text.split(/\r?\n/).map((line) => line.trim()).filter((line) => line.length > 0))];
+  if (words.some((word) => word.length > MAX_TERM_LENGTH)) {
+    return { ok: false, errors: `Cada palabra puede tener hasta ${MAX_TERM_LENGTH} caracteres.` };
+  }
+  if (words.length > MAX_TERMS_PER_GROUP) {
+    return { ok: false, errors: `Usa hasta ${MAX_TERMS_PER_GROUP} palabras por grupo.` };
+  }
+  return { ok: true, value: words };
+}
+
+/** One schema entry per words field (context or exclusions of a group), each checked with `parseWords`. */
+export function wordsSchema<Key extends string>(keys: readonly Key[]) {
+  const field = z.string().superRefine((text, ctx) => {
+    const result = parseWords(text);
+    if (!result.ok) ctx.addIssue({ code: "custom", message: result.errors });
+  });
+  return z.object(Object.fromEntries(keys.map((key) => [key, field])) as Record<Key, typeof field>);
+}
