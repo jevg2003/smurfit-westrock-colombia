@@ -1,6 +1,8 @@
 "use client";
 
 import { ExternalLinkIcon } from "lucide-react";
+import { useRegisterPageContext } from "@/features/asistente/page-context";
+import { timelineContext } from "@/features/asistente/screen-contexts";
 import { useMemo, useState } from "react";
 import { Badge } from "@/components/reui/badge";
 import { createFilterQuery } from "@/components/reui/filters/filters-query";
@@ -120,6 +122,7 @@ export function TimelineView() {
 
   const shown = filtered.slice(0, visible);
   const isFiltering = filtered.length !== events.length;
+  useRegisterPageContext(timelineContext(filtered, events.length, { "solo mis seguimientos": onlyFollowed ? "sí" : undefined }));
 
   return (
     <div className="flex min-w-0 flex-col gap-4">

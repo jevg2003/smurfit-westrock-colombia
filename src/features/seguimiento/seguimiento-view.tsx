@@ -1,6 +1,8 @@
 "use client";
 
 import { CheckIcon, PlusIcon } from "lucide-react";
+import { useRegisterPageContext } from "@/features/asistente/page-context";
+import { followContext } from "@/features/asistente/screen-contexts";
 import { Badge } from "@/components/reui/badge";
 import { PageIntro } from "@/components/shell/page-intro";
 import { Button } from "@/components/ui/button";
@@ -67,6 +69,7 @@ export function SeguimientoView() {
   const indicators = useWatchlistStore((state) => state.indicators);
   const toggleCompetitor = useWatchlistStore((state) => state.toggleCompetitor);
   const toggleIndicator = useWatchlistStore((state) => state.toggleIndicator);
+  useRegisterPageContext(followContext(competitorNits, indicators));
 
   return (
     <div className="flex min-w-0 flex-col gap-4">

@@ -1,6 +1,8 @@
 "use client";
 
 import { BellRingIcon, CircleDollarSignIcon, FileClockIcon, InboxIcon, UsersIcon } from "lucide-react";
+import { useRegisterPageContext } from "@/features/asistente/page-context";
+import { signalsContext } from "@/features/asistente/screen-contexts";
 import { useCallback, useMemo, useState } from "react";
 import { StatCard } from "@/components/shell/stat-card";
 import { PageIntro } from "@/components/shell/page-intro";
@@ -78,6 +80,12 @@ export function RadarView() {
   const hiddenByFilter = onlyFollowed && newRows.length === 0 && allNewCount > 0;
   const secopReady = data.secop.status === "ready";
   const trmReady = data.trm.status === "ready";
+  useRegisterPageContext(
+    signalsContext("/", "Radar", newRows.map((row) => row.signal), {
+      filters: { "solo mis seguimientos": onlyFollowed ? "sí" : undefined },
+      keyNumbers: today ? [{ label: `TRM del ${today.fecha.slice(0, 10)} (COP por USD)`, value: String(today.valor) }] : [],
+    }),
+  );
 
   return (
     <div className="flex min-w-0 flex-col gap-4">

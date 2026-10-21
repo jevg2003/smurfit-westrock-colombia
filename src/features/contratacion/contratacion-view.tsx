@@ -1,6 +1,8 @@
 "use client";
 
 import type { ColumnDef } from "@tanstack/react-table";
+import { useRegisterPageContext } from "@/features/asistente/page-context";
+import { contractsContext } from "@/features/asistente/screen-contexts";
 import { DownloadIcon, ExternalLinkIcon, LandmarkIcon } from "lucide-react";
 import { useMemo } from "react";
 import { Badge } from "@/components/reui/badge";
@@ -49,6 +51,7 @@ export function ContratacionView() {
     () => (data?.contracts ?? []).filter((contract) => contract.supplierNit === COMPANY.nit),
     [data],
   );
+  useRegisterPageContext(contractsContext("/contratacion", "Contratación", rows));
 
   const columns = useMemo<ColumnDef<DataGridFeatures, PublicContract>[]>(
     () => [

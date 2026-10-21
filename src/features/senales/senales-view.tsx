@@ -1,6 +1,8 @@
 "use client";
 
 import { DownloadIcon, ZapIcon } from "lucide-react";
+import { useRegisterPageContext } from "@/features/asistente/page-context";
+import { signalsContext } from "@/features/asistente/screen-contexts";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useMemo, useState } from "react";
@@ -47,6 +49,7 @@ function SenalesContent() {
 
   const filters = useRowFilters(rows, { withState: true });
   const ready = data.hasHydrated && !data.isPending;
+  useRegisterPageContext(signalsContext("/senales", "Señales", filters.filtered.map((row) => row.signal)));
 
   return (
     <div className="flex min-w-0 flex-col gap-4">

@@ -12,6 +12,7 @@ import {
   PanelLeftIcon,
   RadarIcon,
   SlidersHorizontalIcon,
+  SparklesIcon,
   StarIcon,
   UsersIcon,
   ZapIcon,
@@ -21,6 +22,8 @@ import { usePathname } from "next/navigation";
 import type { CSSProperties, ReactNode } from "react";
 import { ThemeTogglerButton } from "@/components/animate-ui/components/buttons/theme-toggler";
 import { Button } from "@/components/ui/button";
+import { AssistantSheet } from "@/features/asistente/assistant-sheet";
+import { PageContextProvider } from "@/features/asistente/page-context";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -56,6 +59,7 @@ const NAV_GROUPS = [
       { href: "/linea-de-tiempo", label: "Línea de tiempo", icon: HistoryIcon },
       { href: "/briefing", label: "Briefing", icon: FileTextIcon },
       { href: "/seguimiento", label: "Seguimiento", icon: StarIcon },
+      { href: "/asistente", label: "Asistente", icon: SparklesIcon },
     ],
   },
   {
@@ -109,6 +113,7 @@ export function AppShell({ actions, children }: Props) {
   const title = NAV.find((item) => item.href === pathname)?.label ?? "Monitor de entorno";
 
   return (
+    <PageContextProvider>
     <SidebarProvider
       defaultOpen={false}
       className="h-dvh [--header-height:50px]"
@@ -165,7 +170,10 @@ export function AppShell({ actions, children }: Props) {
               </BreadcrumbList>
             </Breadcrumb>
           </div>
-          <div className="ml-auto flex shrink-0 items-center gap-2">{pathname === "/dias" && actions}</div>
+          <div className="ml-auto flex shrink-0 items-center gap-2">
+            {pathname === "/dias" && actions}
+            {pathname !== "/asistente" && <AssistantSheet />}
+          </div>
         </header>
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-x-hidden overflow-y-auto p-4 print:overflow-visible">
@@ -173,12 +181,13 @@ export function AppShell({ actions, children }: Props) {
           <footer className="max-w-prose text-xs text-muted-foreground print:hidden">
             <p className="font-medium">Prototipo no oficial, sin relación ni aval de Smurfit Westrock.</p>
             <p>
-              Construido con datos públicos (datos.gov.co: TRM, SECOP II, Supersociedades y exportaciones; Banco Mundial: PIB e inflación). No usa inteligencia artificial: las señales
-              salen de reglas escritas y visibles.
+              Construido con datos públicos (datos.gov.co: TRM, SECOP II, Supersociedades y exportaciones; Banco Mundial: PIB e inflación). Las señales salen de reglas escritas y
+              visibles. El asistente de IA solo lee estos datos y puede equivocarse.
             </p>
           </footer>
         </div>
       </SidebarInset>
     </SidebarProvider>
+    </PageContextProvider>
   );
 }

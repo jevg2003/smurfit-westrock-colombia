@@ -1,6 +1,8 @@
 "use client";
 
 import type { ColumnDef } from "@tanstack/react-table";
+import { useRegisterPageContext } from "@/features/asistente/page-context";
+import { contractsContext } from "@/features/asistente/screen-contexts";
 import { ExternalLinkIcon, UsersIcon } from "lucide-react";
 import { useMemo } from "react";
 import type { DataGridFeatures } from "@/components/reui/data-grid/data-grid";
@@ -109,6 +111,7 @@ export function CompetidoresView() {
     [secop.data],
   );
   const companies = [{ ...COMPANY, isCompany: true }, ...COMPETITORS.map((competitor) => ({ ...competitor, isCompany: false }))];
+  useRegisterPageContext(contractsContext("/competidores", "Competidores", rows, [{ label: "Competidores", value: COMPETITORS.map((c) => c.name).join(", ") }]));
 
   return (
     <div className="flex min-w-0 flex-col gap-4">

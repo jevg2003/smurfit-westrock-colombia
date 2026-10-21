@@ -1,6 +1,8 @@
 "use client";
 
 import { BellRingIcon, DownloadIcon } from "lucide-react";
+import { useRegisterPageContext } from "@/features/asistente/page-context";
+import { signalsContext } from "@/features/asistente/screen-contexts";
 import { useState } from "react";
 import { PageIntro } from "@/components/shell/page-intro";
 import { Button } from "@/components/ui/button";
@@ -25,6 +27,7 @@ export function AlertasView() {
   const rows = useAlertRows(signals);
   const filters = useRowFilters(rows, { withState: true });
   const [open, setOpen] = useState<Signal | null>(null);
+  useRegisterPageContext(signalsContext("/alertas", "Alertas", filters.filtered.map((row) => row.signal)));
 
   return (
     <div className="flex min-w-0 flex-col gap-4">

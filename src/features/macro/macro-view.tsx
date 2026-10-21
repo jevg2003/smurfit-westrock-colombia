@@ -1,6 +1,8 @@
 "use client";
 
 import { CircleDollarSignIcon, GlobeIcon, PercentIcon, TrendingUpIcon, type LucideIcon } from "lucide-react";
+import { useRegisterPageContext } from "@/features/asistente/page-context";
+import { macroContext } from "@/features/asistente/screen-contexts";
 import type { ReactNode } from "react";
 import { PageIntro } from "@/components/shell/page-intro";
 import { ProvenanceNote } from "@/components/shell/provenance-note";
@@ -110,6 +112,16 @@ export function MacroView() {
   const cpiRows = cpi.data?.observations ?? [];
   const exportRows = exportsQuery.data?.observations ?? [];
   const showAnnual = gdpRows.length > 0 || cpiRows.length > 0;
+  useRegisterPageContext(
+    macroContext({
+      gdp: gdpRows,
+      cpi: cpiRows,
+      exports: exportRows,
+      gdpProvenance: gdp.data?.provenance,
+      cpiProvenance: cpi.data?.provenance,
+      exportsProvenance: exportsQuery.data?.provenance,
+    }),
+  );
 
   return (
     <div className="flex min-w-0 flex-col gap-4">

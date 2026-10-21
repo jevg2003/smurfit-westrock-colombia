@@ -1,6 +1,8 @@
 "use client";
 
 import { DownloadIcon, FileTextIcon, PrinterIcon } from "lucide-react";
+import { useRegisterPageContext } from "@/features/asistente/page-context";
+import { briefingContext } from "@/features/asistente/screen-contexts";
 import { useMemo, useState } from "react";
 import type { DateSelectorValue } from "@/components/reui/date-selector";
 import { PageIntro } from "@/components/shell/page-intro";
@@ -38,6 +40,7 @@ export function BriefingView() {
     [data.signals, alerts, range],
   );
   const briefing = result.ok ? result.value : undefined;
+  useRegisterPageContext(briefingContext(briefing, mode));
   const decisions = useDecisionsStore((state) => state.decisions);
   const extras = useMemo(
     () =>
