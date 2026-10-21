@@ -46,6 +46,36 @@ describe("PreferenciasView", () => {
     expect(screen.getByRole("status")).toHaveTextContent("Preferencias guardadas");
   });
 
+  it("shows every threshold problem at once, under its field, and saves nothing", async () => {
+    const user = userEvent.setup();
+    render(<PreferenciasView />);
+
+    await user.clear(screen.getByLabelText(/Variación diaria de la TRM para vigilar/));
+    await user.clear(screen.getByLabelText(/Días antes del fin para vigilar/));
+    await user.type(screen.getByLabelText(/Días antes del fin para vigilar/), "45,5");
+    await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
+
+    expect(await screen.findByText("Escribe un número.")).toBeInTheDocument();
+    expect(screen.getByText("Usa un número entero de días.")).toBeInTheDocument();
+    expect(screen.getByLabelText(/Variación diaria de la TRM para vigilar/)).toHaveAttribute("aria-invalid", "true");
+    expect(usePreferencesStore.getState().thresholds).toEqual(DEFAULT_THRESHOLDS);
+  });
+
+  it("refuses a term that is too long and keeps the saved terms", async () => {
+    const user = userEvent.setup();
+    render(<PreferenciasView />);
+    const before = usePreferencesStore.getState().newsTermGroups.sector;
+
+    const sector = screen.getByLabelText(/Sector/);
+    await user.clear(sector);
+    await user.click(sector);
+    await user.paste("a".repeat(81));
+    await user.click(screen.getByRole("button", { name: "Guardar términos" }));
+
+    expect(await screen.findByText("Cada término puede tener hasta 80 caracteres.")).toBeInTheDocument();
+    expect(usePreferencesStore.getState().newsTermGroups.sector).toEqual(before);
+  });
+
   it("restores the defaults", async () => {
     const user = userEvent.setup();
     usePreferencesStore.getState().setThreshold("trmDailyMovePct", 1.8);

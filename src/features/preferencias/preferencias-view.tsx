@@ -1,19 +1,20 @@
 "use client";
 
+import { revalidateLogic, useForm } from "@tanstack/react-form";
 import { RotateCcwIcon } from "lucide-react";
 import { useId, useState } from "react";
 import { PageIntro } from "@/components/shell/page-intro";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel, FieldLegend, FieldSet } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { NEWS_TERM_GROUPS, type Thresholds } from "@/content/config/empresa";
 import { useHydrationStore } from "@/stores/hydration.store";
 import { type NewsTermGroupId, usePreferencesStore } from "@/stores/preferences.store";
 import { activeRuleTexts } from "./rule-texts";
-import { parseTerms, validateThresholds, type ThresholdErrors, type ThresholdFields, type ThresholdKey } from "./validate";
+import { parseTerms, termsSchema, thresholdsSchema, validateThresholds, type ThresholdFields, type ThresholdKey } from "./validate";
 
 interface FieldSpec {
   key: ThresholdKey;
@@ -134,80 +135,91 @@ function ResetButton({ onReset }: { onReset: () => void }) {
 function ThresholdsCard() {
   const saved = usePreferencesStore((state) => state.thresholds);
   const setThreshold = usePreferencesStore((state) => state.setThreshold);
-  const [fields, setFields] = useState<ThresholdFields>(() => toFields(saved));
-  const [errors, setErrors] = useState<ThresholdErrors>({});
   const [message, setMessage] = useState<string | null>(null);
   const baseId = useId();
 
-  const save = () => {
-    const result = validateThresholds(fields);
-    if (!result.ok) {
-      setErrors(result.errors);
-      setMessage(null);
-      return;
-    }
-    for (const key of Object.keys(result.value) as ThresholdKey[]) setThreshold(key, result.value[key]);
-    setErrors({});
-    setMessage("Preferencias guardadas. Las reglas ya usan estos valores.");
-  };
+  const defaultValues: ThresholdFields = toFields(saved);
+  const form = useForm({
+    defaultValues,
+    validationLogic: revalidateLogic(),
+    validators: { onDynamic: thresholdsSchema },
+    onSubmit: ({ value }) => {
+      const result = validateThresholds(value);
+      if (!result.ok) return;
+      for (const key of Object.keys(result.value) as ThresholdKey[]) setThreshold(key, result.value[key]);
+      setMessage("Preferencias guardadas. Las reglas ya usan estos valores.");
+    },
+  });
 
   return (
     <Card className="min-w-0 gap-0 py-0">
-      <CardHeader className="border-b px-4 py-3 [.border-b]:pb-3">
-        <CardTitle className="text-sm font-semibold">Umbrales de las reglas</CardTitle>
-        <CardDescription>Los cambios se aplican a las señales, a las alertas nuevas y al texto de cada regla.</CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-5 py-4">
-        {THRESHOLD_FIELDS.map((group) => (
-          <fieldset key={group.title} className="flex min-w-0 flex-col gap-3">
-            <legend className="text-sm font-medium">{group.title}</legend>
-            <p className="-mt-1 text-xs text-muted-foreground">{group.description}</p>
-            {group.fields.map((field) => {
-              const id = `${baseId}-${field.key}`;
-              const error = errors[field.key];
-              return (
-                <div key={field.key} className="flex flex-col gap-1.5">
-                  <Label htmlFor={id}>{field.label}</Label>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      id={id}
-                      type="text"
-                      inputMode={field.inputMode}
-                      value={fields[field.key]}
-                      aria-invalid={error ? true : undefined}
-                      aria-describedby={`${id}-help${error ? ` ${id}-error` : ""}`}
-                      className="max-w-32"
-                      onChange={(event) => {
-                        setFields((current) => ({ ...current, [field.key]: event.target.value }));
-                        setMessage(null);
+      <form
+        noValidate
+        onSubmit={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          void form.handleSubmit();
+        }}
+      >
+        <CardHeader className="border-b px-4 py-3 [.border-b]:pb-3">
+          <CardTitle className="text-sm font-semibold">Umbrales de las reglas</CardTitle>
+          <CardDescription>Los cambios se aplican a las señales, a las alertas nuevas y al texto de cada regla.</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-5 py-4">
+          {THRESHOLD_FIELDS.map((group) => (
+            <FieldSet key={group.title} className="min-w-0">
+              <FieldLegend variant="label">{group.title}</FieldLegend>
+              <FieldDescription>{group.description}</FieldDescription>
+              <FieldGroup className="gap-3">
+                {group.fields.map((spec) => {
+                  const id = `${baseId}-${spec.key}`;
+                  return (
+                    <form.Field key={spec.key} name={spec.key}>
+                      {(field) => {
+                        const invalid = !field.state.meta.isValid;
+                        return (
+                          <Field data-invalid={invalid}>
+                            <FieldLabel htmlFor={id}>{spec.label}</FieldLabel>
+                            <div className="flex items-center gap-2">
+                              <Input
+                                id={id}
+                                type="text"
+                                inputMode={spec.inputMode}
+                                value={field.state.value}
+                                aria-invalid={invalid || undefined}
+                                aria-describedby={`${id}-help`}
+                                className="max-w-32"
+                                onBlur={field.handleBlur}
+                                onChange={(event) => {
+                                  field.handleChange(event.target.value);
+                                  setMessage(null);
+                                }}
+                              />
+                              <span className="text-sm text-muted-foreground">{spec.unit}</span>
+                            </div>
+                            <FieldDescription id={`${id}-help`}>{spec.help}</FieldDescription>
+                            {invalid && <FieldError errors={field.state.meta.errors} />}
+                          </Field>
+                        );
                       }}
-                    />
-                    <span className="text-sm text-muted-foreground">{field.unit}</span>
-                  </div>
-                  <p id={`${id}-help`} className="text-xs text-muted-foreground">
-                    {field.help}
-                  </p>
-                  {error && (
-                    <p id={`${id}-error`} role="alert" className="text-xs text-destructive-foreground">
-                      {error}
-                    </p>
-                  )}
-                </div>
-              );
-            })}
-          </fieldset>
-        ))}
-      </CardContent>
-      <CardFooter className="flex-wrap gap-3 border-t bg-muted/50 px-4 py-3">
-        <Button size="sm" onClick={save}>
-          Guardar cambios
-        </Button>
-        {message && (
-          <p role="status" className="text-xs text-muted-foreground">
-            {message}
-          </p>
-        )}
-      </CardFooter>
+                    </form.Field>
+                  );
+                })}
+              </FieldGroup>
+            </FieldSet>
+          ))}
+        </CardContent>
+        <CardFooter className="flex-wrap gap-3 border-t bg-muted/50 px-4 py-3">
+          <Button type="submit" size="sm">
+            Guardar cambios
+          </Button>
+          {message && (
+            <p role="status" className="text-xs text-muted-foreground">
+              {message}
+            </p>
+          )}
+        </CardFooter>
+      </form>
     </Card>
   );
 }
@@ -235,73 +247,88 @@ function RulesCard() {
   );
 }
 
+const TERM_GROUP_IDS = NEWS_TERM_GROUPS.map((group) => group.id);
+const termsFormSchema = termsSchema(TERM_GROUP_IDS);
+
 function TermsCard() {
   const groups = usePreferencesStore((state) => state.newsTermGroups);
   const setGroup = usePreferencesStore((state) => state.setNewsTermGroup);
-  const [text, setText] = useState<Record<NewsTermGroupId, string>>(
-    () => Object.fromEntries(NEWS_TERM_GROUPS.map((group) => [group.id, groups[group.id].join("\n")])) as Record<NewsTermGroupId, string>,
-  );
-  const [errors, setErrors] = useState<Partial<Record<NewsTermGroupId, string>>>({});
   const [message, setMessage] = useState<string | null>(null);
   const baseId = useId();
 
-  const save = () => {
-    const next: Partial<Record<NewsTermGroupId, string[]>> = {};
-    const found: Partial<Record<NewsTermGroupId, string>> = {};
-    for (const group of NEWS_TERM_GROUPS) {
-      const result = parseTerms(text[group.id]);
-      if (result.ok) next[group.id] = result.value;
-      else found[group.id] = result.errors;
-    }
-    setErrors(found);
-    if (Object.keys(found).length > 0) return setMessage(null);
-    for (const group of NEWS_TERM_GROUPS) setGroup(group.id, next[group.id] ?? []);
-    setMessage("Términos guardados. Se usarán cuando se conecten las noticias.");
-  };
+  const defaultValues = Object.fromEntries(NEWS_TERM_GROUPS.map((group) => [group.id, groups[group.id].join("\n")])) as Record<
+    NewsTermGroupId,
+    string
+  >;
+  const form = useForm({
+    defaultValues,
+    validationLogic: revalidateLogic(),
+    validators: { onDynamic: termsFormSchema },
+    onSubmit: ({ value }) => {
+      for (const group of NEWS_TERM_GROUPS) {
+        const parsed = parseTerms(value[group.id]);
+        if (parsed.ok) setGroup(group.id, parsed.value);
+      }
+      setMessage("Términos guardados. Se usarán cuando se conecten las noticias.");
+    },
+  });
 
   return (
     <Card className="min-w-0 gap-0 py-0">
-      <CardHeader className="border-b px-4 py-3 [.border-b]:pb-3">
-        <CardTitle className="text-sm font-semibold">Términos para noticias</CardTitle>
-        <CardDescription>Un término por línea. Las noticias llegan en una próxima versión.</CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4 py-4">
-        {NEWS_TERM_GROUPS.map((group) => {
-          const id = `${baseId}-${group.id}`;
-          const error = errors[group.id];
-          return (
-            <div key={group.id} className="flex flex-col gap-1.5">
-              <Label htmlFor={id}>{group.label}</Label>
-              <Textarea
-                id={id}
-                rows={4}
-                value={text[group.id]}
-                aria-invalid={error ? true : undefined}
-                aria-describedby={error ? `${id}-error` : undefined}
-                onChange={(event) => {
-                  setText((current) => ({ ...current, [group.id]: event.target.value }));
-                  setMessage(null);
-                }}
-              />
-              {error && (
-                <p id={`${id}-error`} role="alert" className="text-xs text-destructive-foreground">
-                  {error}
-                </p>
-              )}
-            </div>
-          );
-        })}
-      </CardContent>
-      <CardFooter className="flex-wrap gap-3 border-t bg-muted/50 px-4 py-3">
-        <Button size="sm" onClick={save}>
-          Guardar términos
-        </Button>
-        {message && (
-          <p role="status" className="text-xs text-muted-foreground">
-            {message}
-          </p>
-        )}
-      </CardFooter>
+      <form
+        noValidate
+        onSubmit={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          void form.handleSubmit();
+        }}
+      >
+        <CardHeader className="border-b px-4 py-3 [.border-b]:pb-3">
+          <CardTitle className="text-sm font-semibold">Términos para noticias</CardTitle>
+          <CardDescription>Un término por línea. Las noticias llegan en una próxima versión.</CardDescription>
+        </CardHeader>
+        <CardContent className="py-4">
+          <FieldGroup className="gap-4">
+            {NEWS_TERM_GROUPS.map((group) => {
+              const id = `${baseId}-${group.id}`;
+              return (
+                <form.Field key={group.id} name={group.id}>
+                  {(field) => {
+                    const invalid = !field.state.meta.isValid;
+                    return (
+                      <Field data-invalid={invalid}>
+                        <FieldLabel htmlFor={id}>{group.label}</FieldLabel>
+                        <Textarea
+                          id={id}
+                          rows={4}
+                          value={field.state.value}
+                          aria-invalid={invalid || undefined}
+                          onBlur={field.handleBlur}
+                          onChange={(event) => {
+                            field.handleChange(event.target.value);
+                            setMessage(null);
+                          }}
+                        />
+                        {invalid && <FieldError errors={field.state.meta.errors} />}
+                      </Field>
+                    );
+                  }}
+                </form.Field>
+              );
+            })}
+          </FieldGroup>
+        </CardContent>
+        <CardFooter className="flex-wrap gap-3 border-t bg-muted/50 px-4 py-3">
+          <Button type="submit" size="sm">
+            Guardar términos
+          </Button>
+          {message && (
+            <p role="status" className="text-xs text-muted-foreground">
+              {message}
+            </p>
+          )}
+        </CardFooter>
+      </form>
     </Card>
   );
 }

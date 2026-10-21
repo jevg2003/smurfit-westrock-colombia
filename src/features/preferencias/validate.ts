@@ -1,3 +1,4 @@
+import { z } from "zod";
 import type { Thresholds } from "@/content/config/empresa";
 
 export type ThresholdKey = keyof Thresholds;
@@ -77,4 +78,31 @@ export function parseTerms(text: string): Validation<string[], string> {
     return { ok: false, errors: `Usa hasta ${MAX_TERMS_PER_GROUP} términos por grupo.` };
   }
   return { ok: true, value: terms };
+}
+
+/**
+ * Schema the threshold form validates with (TanStack Form takes any standard schema). It wraps
+ * `validateThresholds`, so the rules live in one place and every field reports its own message.
+ */
+export const thresholdsSchema = z
+  .object({
+    trmDailyMovePct: z.string(),
+    trmDailyAlertPct: z.string(),
+    contractExpiryWatchDays: z.string(),
+    contractExpiryAlertDays: z.string(),
+    competitorContractWindowDays: z.string(),
+  })
+  .superRefine((fields, ctx) => {
+    const result = validateThresholds(fields);
+    if (result.ok) return;
+    for (const [key, message] of Object.entries(result.errors)) ctx.addIssue({ code: "custom", path: [key], message });
+  });
+
+/** One schema entry per news term group; each group's textarea is checked with `parseTerms`. */
+export function termsSchema<Id extends string>(groupIds: readonly Id[]) {
+  const group = z.string().superRefine((text, ctx) => {
+    const result = parseTerms(text);
+    if (!result.ok) ctx.addIssue({ code: "custom", message: result.errors });
+  });
+  return z.object(Object.fromEntries(groupIds.map((id) => [id, group])) as Record<Id, typeof group>);
 }

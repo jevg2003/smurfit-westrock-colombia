@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_THRESHOLDS } from "@/content/config/empresa";
-import { parseTerms, validateThresholds, type ThresholdFields } from "./validate";
+import { parseTerms, termsSchema, thresholdsSchema, validateThresholds, type ThresholdFields } from "./validate";
 
 const fields = (overrides: Partial<ThresholdFields> = {}): ThresholdFields => ({
   trmDailyMovePct: "1",
@@ -52,5 +52,46 @@ describe("parseTerms", () => {
   it("rejects terms that are too long", () => {
     const result = parseTerms("a".repeat(81));
     expect(result.ok).toBe(false);
+  });
+});
+
+const issueMap = (result: { success: boolean; error?: { issues: { path: PropertyKey[]; message: string }[] } }) =>
+  Object.fromEntries((result.error?.issues ?? []).map((issue) => [String(issue.path[0]), issue.message]));
+
+describe("thresholdsSchema (the schema the form validates with)", () => {
+  it("accepts valid text fields", () => {
+    expect(thresholdsSchema.safeParse(fields()).success).toBe(true);
+  });
+
+  it("gives one neutral Spanish message per field, all at once", () => {
+    const result = thresholdsSchema.safeParse(
+      fields({ trmDailyMovePct: "", trmDailyAlertPct: "abc", contractExpiryWatchDays: "0", contractExpiryAlertDays: "1.5", competitorContractWindowDays: "400" }),
+    );
+    expect(issueMap(result)).toEqual({
+      trmDailyMovePct: "Escribe un número.",
+      trmDailyAlertPct: "Escribe un número.",
+      contractExpiryWatchDays: "El valor debe ser mayor que cero.",
+      contractExpiryAlertDays: "Usa un número entero de días.",
+      competitorContractWindowDays: "El valor no puede pasar de 365.",
+    });
+  });
+
+  it("keeps the order rules between watch and alert", () => {
+    expect(issueMap(thresholdsSchema.safeParse(fields({ trmDailyMovePct: "3", trmDailyAlertPct: "2" })))).toEqual({
+      trmDailyAlertPct: "El umbral de alerta debe ser igual o mayor que el de vigilar.",
+    });
+  });
+});
+
+describe("termsSchema", () => {
+  const schema = termsSchema(["company", "sector"]);
+
+  it("accepts one term per line", () => {
+    expect(schema.safeParse({ company: "a\nb", sector: "" }).success).toBe(true);
+  });
+
+  it("names the group whose terms are too long", () => {
+    const result = schema.safeParse({ company: "ok", sector: "a".repeat(81) });
+    expect(issueMap(result)).toEqual({ sector: "Cada término puede tener hasta 80 caracteres." });
   });
 });
