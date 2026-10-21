@@ -37,44 +37,36 @@ Si la validación pasa, el proxy agrega la cabecera `x-access-email` con el corr
 - En desarrollo y en pruebas (`NODE_ENV` igual a `development` o `test`) no se exige.
 - Interruptor de emergencia: `CF_ACCESS_ENFORCE=off` desactiva la validación. Úsalo solo si Access falla y quítalo en cuanto se arregle. Mientras esté puesto, la pantalla Fuentes muestra "Cloudflare Access: sin configurar".
 
-## 2. Qué crear en Cloudflare
+## 2. Lo que está creado en Cloudflare
 
-Reemplaza los marcadores `<...>` con los valores reales. No hace falta pegar ningún secreto en el repo.
+Aplicado y verificado el 2026-10-21 en la cuenta de Cloudflare del proyecto. No se tocaron las aplicaciones `Mecateo Admin` ni `Mecateo Web`.
 
-### a) Aplicación de Access para todo el host
+### a) Aplicación privada: `SWC Monitor (privado)`
 
-Zero Trust > Access > Applications > Add an application > Self-hosted.
+- Tipo self-hosted, sesión de 24 horas, redirección automática al proveedor de login.
+- Login: **Google** (el mismo proveedor que usan las otras aplicaciones de la cuenta). No se creó un proveedor nuevo.
+- Política `swc-emails` (reutilizable, acción Allow): solo `arbelaeznicolas636@gmail.com` y `jevgdg@gmail.com`. No se reutilizó `team-emails` porque deja entrar a otros dos correos.
+- Destinos: uno por cada ruta privada. La lista vive en `src/lib/access-destinations.ts` (`PRIVATE_ACCESS_DESTINATIONS`): las 17 páginas del grupo `(app)` como prefijo (`swc.mecateo.co/home*`, ...), `swc.mecateo.co/api/*`, `/_next/image*`, `/_next/data/*` y `/.well-known/*`.
+- El **AUD** de esta aplicación es el valor de `CF_ACCESS_AUD`. Se ve en Zero Trust > Access > Applications > `SWC Monitor (privado)`, o en el parámetro `kid` de la URL de login.
 
-- Nombre: `SWC Radar`.
-- Destino: dominio `swc.mecateo.co`, sin ruta (cubre todo el host).
-- Duración de la sesión: 24 horas.
-- Método de login: solo **One-time PIN**. Quita los demás proveedores de esta aplicación.
-- Política `Allow`, acción Allow, regla Include > Emails:
-  - `arbelaeznicolas636@gmail.com`
-  - `jevgdg@gmail.com`
-- Anota el **Application Audience (AUD) Tag**: `<AUD_TAG>`.
-- Anota el dominio del equipo: `<equipo>.cloudflareaccess.com` (Settings > Custom pages o Zero Trust > Settings).
+### b) Aplicación pública: `SWC Landing (pública)`
 
-### b) Rutas públicas (Bypass)
+- Política `swc-public-bypass` (reutilizable, acción Bypass, Include > Everyone).
+- Destinos: `swc.mecateo.co/`, `swc.mecateo.co/_next/static/*`, `swc.mecateo.co/landing/*` y `swc.mecateo.co/favicon.svg`. Es el mismo contrato que `PUBLIC_PATH_RULES`.
 
-Crea una aplicación self-hosted por cada ruta pública, con una política de acción **Bypass** y regla Include > Everyone:
+### c) Por qué una lista de rutas y no una regla para todo el host
 
-| Aplicación | Destino |
-| --- | --- |
-| `SWC Landing raíz` | `swc.mecateo.co` con ruta vacía o `/`. Ver nota. |
-| `SWC Static` | `swc.mecateo.co/_next/static/*` |
-| `SWC Landing assets` | `swc.mecateo.co/landing/*` |
-| `SWC Favicon` | `swc.mecateo.co/favicon.svg` |
+Se probó primero una aplicación privada para todo el host (`swc.mecateo.co` y también `swc.mecateo.co/*`) más el Bypass de la raíz. **La raíz `/` seguía pidiendo login (302)**: Access no deja que `swc.mecateo.co/` sea más específico que el host completo. Con la lista de rutas privadas, `/` responde 200.
 
-Notas:
+Consecuencias:
 
-- Gana la ruta más específica. La aplicación de todo el host (a) queda como regla general y las de Bypass la superan en sus rutas.
-- **Hay que verificar con `curl` que la raíz exacta `/` queda pública** (sección 4). Cloudflare puede tratar una aplicación con ruta `/` como "todo el host".
-- Plan B si la raíz exacta no se puede igualar: dejar la aplicación (a) solo con las rutas privadas, es decir un destino por cada ruta privada (`swc.mecateo.co/home*`, `/api/*`, `/noticias*`, etc.), y no crear la de raíz. Cada ruta nueva privada habría que agregarla a mano, así que la app seguiría validando el JWT como segunda barrera. Otro plan B: mover el landing a un subdominio público aparte.
+- Una ruta nueva que no esté en la lista queda **pública en el borde de Cloudflare**. La app sigue protegida porque `src/proxy.ts` la rechaza con 401 (sin JWT válido de Access) o con 503 si falta la configuración. Pero ya no se ve la pantalla de login, solo el 401.
+- Por eso `src/lib/access-destinations.test.ts` falla si aparece una carpeta nueva en `src/app/(app)` que no esté en la lista. Al agregar una ruta: súmala a `PRIVATE_ACCESS_DESTINATIONS` **y** a los destinos de `SWC Monitor (privado)` en Cloudflare.
+- Si se agrega una ruta privada fuera de `(app)`, hay que sumarla a mano a las dos cosas.
 
-### c) DNS
+### d) DNS
 
-El registro de `swc` debe estar **proxied** (nube naranja). Si está en "DNS only", el tráfico no pasa por Cloudflare y Access no se aplica (la app respondería 401 a todo lo privado por la validación del JWT).
+El registro CNAME de `swc` está **proxied** (nube naranja). Si estuviera en "DNS only", el tráfico no pasaría por Cloudflare y Access no se aplicaría (la app respondería 401 a todo lo privado por la validación del JWT).
 
 ## 3. Variables en Vercel
 
@@ -82,8 +74,8 @@ Project Settings > Environment Variables (Production, y Preview si quieres proba
 
 | Variable | Valor |
 | --- | --- |
-| `CF_ACCESS_TEAM_DOMAIN` | `<equipo>.cloudflareaccess.com` (sin `https://`) |
-| `CF_ACCESS_AUD` | `<AUD_TAG>` |
+| `CF_ACCESS_TEAM_DOMAIN` | `arbelaeznicolas.cloudflareaccess.com` (sin `https://`) |
+| `CF_ACCESS_AUD` | el AUD de `SWC Monitor (privado)` (sección 2a) |
 
 Después de guardarlas hay que hacer un nuevo deploy. Son solo de servidor: nunca con prefijo `NEXT_PUBLIC_`.
 
@@ -110,12 +102,12 @@ curl -s -X POST -o /dev/null -w "%{http_code}\n" https://<proyecto>.vercel.app/a
 curl -s -o /dev/null -w "%{http_code}\n" -H "X-Requested-With: XMLHttpRequest" https://swc.mecateo.co/api/news
 ```
 
-Resultado esperado: 200, 200, 302, 302, 401, 401, 401. Si el paso 1 da 302, la raíz exacta no quedó en Bypass (ver el plan B de la sección 2b).
+Resultado esperado: 200, 200, 302, 302, 401, 401, 401. Si el paso 1 da 302, la raíz no quedó pública (ver la sección 2c).
 
 Prueba en el navegador:
 
 1. Abre `https://swc.mecateo.co/`: ves el landing sin login.
-2. Entra a `/home`: pide el correo, llega el código y entras (solo con los dos correos permitidos).
+2. Entra a `/home`: te manda a iniciar sesión con Google y entras solo con los dos correos permitidos.
 3. Sesión vencida: en Zero Trust revoca la sesión del usuario (o borra la cookie `CF_Authorization`) con la app abierta y pulsa Reintentar en cualquier dato o envía un mensaje al asistente. Debe aparecer "Tu sesión de acceso venció. Vuelve a entrar para seguir." con el botón "Volver a entrar", que recarga la página y muestra el login.
 4. En la pantalla Fuentes la fila "Cloudflare Access" dice "protegido".
 
