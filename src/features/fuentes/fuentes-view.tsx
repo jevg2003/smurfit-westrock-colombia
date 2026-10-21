@@ -3,6 +3,7 @@
 import { Badge } from "@/components/reui/badge";
 import { PageIntro } from "@/components/shell/page-intro";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
+import { summarizeHealth } from "./health-summary";
 import { FuenteCard } from "./fuente-card";
 import { useFuentes } from "./use-fuentes";
 
@@ -10,6 +11,7 @@ import { useFuentes } from "./use-fuentes";
 export function FuentesView() {
   const { groups, total } = useFuentes();
   const rows = groups.flatMap((group) => group.rows);
+  const health = summarizeHealth(rows);
   const count = (state: string) => rows.filter((row) => row.snapshot.state === state).length;
 
   return (
@@ -28,6 +30,11 @@ export function FuentesView() {
         </Empty>
       ) : (
         <>
+          <p aria-live="polite" className="flex items-center gap-2 text-sm font-medium" data-testid="health-summary">
+            <Badge variant={health.tone} size="lg">
+              {health.working} de {health.enabled} fuentes funcionando
+            </Badge>
+          </p>
           <p aria-live="polite" className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
             <Badge variant="success-light">{count("ok")} funcionando</Badge>
             <Badge variant="destructive-light">{count("error")} con error</Badge>

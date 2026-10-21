@@ -68,4 +68,20 @@ describe("FuentesView", () => {
     expect(screen.getByText("Consultando", { selector: "[data-slot=badge], span" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Reintentar/ })).not.toBeInTheDocument();
   });
+
+  it("summarizes how many enabled sources work, leaving disabled ones out", () => {
+    state.groups = [
+      {
+        id: "g",
+        title: "Grupo",
+        rows: [
+          { entry: CATALOG.trm, snapshot: { state: "ok", retry: vi.fn() } },
+          { entry: CATALOG.secop, snapshot: { state: "error", retry: vi.fn() } },
+          { entry: CATALOG.googleNews, snapshot: { state: "disabled", retry: vi.fn() } },
+        ],
+      },
+    ];
+    render(<FuentesView />);
+    expect(screen.getByText("1 de 2 fuentes funcionando")).toBeInTheDocument();
+  });
 });
