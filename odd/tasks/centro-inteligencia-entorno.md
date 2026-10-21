@@ -201,4 +201,12 @@ with verifiable sources and explicit rules.
 - Next dev note: `next dev` refuses to start a second server in the same project while one is running on port 3000, so the R2 smoke test used `next start -p 3100`.
 
 ## Next step
-R2 is complete (T9–T11); review assessment pending (base 09d920b or the R1 boundary, per the parent). Next: R3 (T12–T14). Note: `src/features/trm/resumen-view.tsx` (old summary) is still unrouted; the Macro screen reuses `TrmChart` and `TrmData` instead. Note: `src/lib/csv.ts` now uses the pure `toCsv` from `src/core/format/csv.ts`; the TRM saved-day signal dimension changed from market to macro to match proposal §4.6.
+R2 is complete (T9–T11).
+
+**R2 review:**
+- Assessed against base 09d920b: 50 files, 2,440 lines, medium risk.
+- The user declined the review (`declined_this_candidate`, lineage `review-3bfdc0f0df80de7f`).
+- Parent spot check: `pnpm test` ran 47 files, 265 tests, all passed.
+- The next assessment base is fbdf0ab.
+
+Next: R3 (T12–T14). Note: `src/features/trm/resumen-view.tsx` (old summary) is still unrouted; the Macro screen reuses `TrmChart` and `TrmData` instead. Note: `src/lib/csv.ts` now uses the pure `toCsv` from `src/core/format/csv.ts`; the TRM saved-day signal dimension changed from market to macro to match proposal §4.6.
