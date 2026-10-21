@@ -15,7 +15,7 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { Item, ItemContent, ItemDescription, ItemGroup, ItemTitle } from "@/components/ui/item";
-import { Label } from "@/components/ui/label";
+import { Field, FieldLabel } from "@/components/ui/field";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { NewsItem } from "@/core/domain/news";
 import { bogotaDateKey } from "@/core/time/bogota";
@@ -124,11 +124,11 @@ export function NoticiasView() {
               <SelectFilters fields={fields} query={query} onQueryChange={(next) => (setQuery(next), setVisible(PAGE_SIZE))} />
               <DateRangeFilter value={dates} onChange={setDates} label="Fecha" />
             </div>
-            <div className="flex flex-wrap items-center gap-2">
+            <Field orientation="horizontal" className="flex-wrap gap-x-2 gap-y-1">
               <Checkbox id={onlyTermsId} checked={onlyTerms} onCheckedChange={(checked) => (setOnlyTerms(checked === true), setVisible(PAGE_SIZE))} />
-              <Label htmlFor={onlyTermsId}>Solo titulares con mis términos</Label>
+              <FieldLabel htmlFor={onlyTermsId}>Solo titulares con mis términos</FieldLabel>
               <span className="text-xs text-muted-foreground">Los términos se cambian en Preferencias.</span>
-            </div>
+            </Field>
 
             {filtered.length === 0 ? (
               <Empty className="border-0 p-6">
