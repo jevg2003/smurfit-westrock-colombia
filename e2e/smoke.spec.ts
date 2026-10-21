@@ -74,8 +74,6 @@ const isThirdPartyAbort = (text: string) => /ERR_ABORTED|net::ERR_|Failed to loa
 test.describe("Smoke", () => {
   for (const route of ROUTES) {
     test(`${route} renders its heading and the disclaimer without page errors`, async ({ page }, testInfo) => {
-      // App defect: /dias renders no <h1> (TrmGrid title is not a heading). See "Tester round 2" in the findings file.
-      test.fixme(route === "/dias", "No main heading on /dias");
       const pageErrors: string[] = [];
       const consoleErrors: string[] = [];
       page.on("pageerror", (error) => pageErrors.push(error.message));
