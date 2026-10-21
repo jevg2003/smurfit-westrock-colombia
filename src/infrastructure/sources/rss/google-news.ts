@@ -12,28 +12,44 @@ import { toPlainText } from "./sanitize";
  * number of queries is bounded, and `FEATURE_GOOGLE_NEWS=false` switches the source off without a deploy.
  */
 export const GOOGLE_NEWS_MAX_QUERIES = 4;
-export const GOOGLE_NEWS_MAX_TERMS_PER_QUERY = 6;
+/** Upper bound of the query text, so the URL stays short and Google does not reject it. */
+export const GOOGLE_NEWS_MAX_QUERY_LENGTH = 400;
+/** Google News only looks at headlines of this recent window. */
+export const GOOGLE_NEWS_RECENCY = "when:30d";
+/** One noisy query can never flood the list: at most this many newest items are kept per group. */
+export const GOOGLE_NEWS_MAX_ITEMS_PER_GROUP = 25;
 const FALLBACK_OUTLET = "Google News";
 
 /** Characters that could change the structure of a search query are removed from every term. */
 const cleanTerm = (term: string) => term.replace(/[^\p{L}\p{N} .&'-]+/gu, " ").replace(/\s+/g, " ").trim();
 
+export interface GoogleNewsSearch {
+  groupId: string;
+  query: string;
+}
+
 /**
- * One OR query per group (at most `GOOGLE_NEWS_MAX_QUERIES`, at most `GOOGLE_NEWS_MAX_TERMS_PER_QUERY`
- * terms each). Multi-word terms are quoted so Google matches the phrase.
+ * One query per group (at most `GOOGLE_NEWS_MAX_QUERIES`): the terms as quoted exact phrases joined with OR,
+ * as many as fit in `GOOGLE_NEWS_MAX_QUERY_LENGTH`, limited to the last 30 days. Single words are quoted too,
+ * so Google never searches a generic word on its own. The Colombia edition is set in the URL.
  */
-export function buildGoogleNewsQueries(groups: readonly TermGroup[]): string[] {
+export function buildGoogleNewsSearches(groups: readonly TermGroup[]): GoogleNewsSearch[] {
+  const wrap = (phrases: string[]) => `(${phrases.join(" OR ")}) ${GOOGLE_NEWS_RECENCY}`;
   return groups
-    .map((group) =>
-      group.terms
-        .map(cleanTerm)
-        .filter((term) => term.length > 0)
-        .slice(0, GOOGLE_NEWS_MAX_TERMS_PER_QUERY)
-        .map((term) => (term.includes(" ") ? `"${term}"` : term))
-        .join(" OR "),
-    )
-    .filter((query) => query.length > 0)
+    .map((group) => {
+      const phrases: string[] = [];
+      for (const term of group.terms.map(cleanTerm).filter((value) => value.length > 0)) {
+        if (wrap([...phrases, `"${term}"`]).length > GOOGLE_NEWS_MAX_QUERY_LENGTH) break;
+        phrases.push(`"${term}"`);
+      }
+      return { groupId: group.id, query: phrases.length > 0 ? wrap(phrases) : "" };
+    })
+    .filter((search) => search.query.length > 0)
     .slice(0, GOOGLE_NEWS_MAX_QUERIES);
+}
+
+export function buildGoogleNewsQueries(groups: readonly TermGroup[]): string[] {
+  return buildGoogleNewsSearches(groups).map((search) => search.query);
 }
 
 export function buildGoogleNewsUrl(query: string): string {

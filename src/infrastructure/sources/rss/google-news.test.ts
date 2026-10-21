@@ -1,42 +1,79 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { NEWS_TERM_GROUPS } from "@/content/config/empresa";
-import { GOOGLE_NEWS_MAX_QUERIES, buildGoogleNewsQueries, buildGoogleNewsUrl, parseGoogleNews } from "./google-news";
+import {
+  GOOGLE_NEWS_MAX_QUERIES,
+  GOOGLE_NEWS_MAX_QUERY_LENGTH,
+  buildGoogleNewsQueries,
+  buildGoogleNewsSearches,
+  buildGoogleNewsUrl,
+  parseGoogleNews,
+} from "./google-news";
 
 const fixture = readFileSync(new URL("./fixtures/google-news.sample.xml", import.meta.url), "utf8");
 
 describe("buildGoogleNewsQueries", () => {
-  it("builds a bounded number of OR queries from the term groups, quoting multi-word terms", () => {
+  it("builds one query per group from quoted exact phrases, OR-joined, limited to the last 30 days", () => {
     const queries = buildGoogleNewsQueries(NEWS_TERM_GROUPS);
-    expect(queries.length).toBeGreaterThan(0);
+    expect(queries).toHaveLength(NEWS_TERM_GROUPS.length);
     expect(queries.length).toBeLessThanOrEqual(GOOGLE_NEWS_MAX_QUERIES);
-    expect(queries[0]).toBe('"Cartón de Colombia" OR "Smurfit Westrock" OR "Smurfit Kappa" OR "Cartones América" OR "Carvajal Empaques" OR "Papeles y Cartones"');
+    expect(queries[0]).toBe(
+      '("Cartón de Colombia" OR "Smurfit Westrock" OR "Smurfit Kappa" OR "Cartones América" OR "Carvajal Empaques" OR "Papeles y Cartones") when:30d',
+    );
+    expect(queries[1]).toContain('"cartón corrugado" OR "empaques de cartón" OR "papel kraft"');
+    for (const query of queries) expect(query).toMatch(/\) when:30d$/);
   });
 
-  it("limits terms per query, skips empty terms and empty groups", () => {
-    const groups = [
-      { id: "a", label: "A", terms: ["uno", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho"] },
+  it("quotes single words too, so a generic word is never searched on its own", () => {
+    const [query] = buildGoogleNewsQueries([{ id: "a", label: "A", terms: ["celulosa", "Yumbo"] }]);
+    expect(query).toBe('("celulosa" OR "Yumbo") when:30d');
+  });
+
+  it("keeps each query within the length budget, dropping the terms that do not fit", () => {
+    const terms = Array.from({ length: 40 }, (_, index) => `frase número ${index + 1} de prueba`);
+    const [query] = buildGoogleNewsQueries([{ id: "a", label: "A", terms }]);
+    expect(query.length).toBeLessThanOrEqual(GOOGLE_NEWS_MAX_QUERY_LENGTH);
+    expect(query).toContain('"frase número 1 de prueba"');
+    expect(query).not.toContain('"frase número 40 de prueba"');
+  });
+
+  it("skips empty terms and empty groups", () => {
+    const queries = buildGoogleNewsQueries([
+      { id: "a", label: "A", terms: ["uno", "", "  "] },
       { id: "b", label: "B", terms: ["", "  "] },
-    ];
-    const queries = buildGoogleNewsQueries(groups);
-    expect(queries).toHaveLength(1);
-    expect(queries[0].split(" OR ")).toHaveLength(6);
+    ]);
+    expect(queries).toEqual(['("uno") when:30d']);
   });
 
   it("drops characters that could alter the query structure", () => {
     const [query] = buildGoogleNewsQueries([{ id: "a", label: "A", terms: ['x" OR site:evil.test', "ok"] }]);
     expect(query).not.toContain("site:");
-    expect(query.match(/"/g)?.length ?? 0).toBeLessThanOrEqual(4);
+    expect(query.match(/"/g)?.length).toBe(4);
+    expect(query).not.toMatch(/[()].*[()].*[()]/);
+  });
+});
+
+describe("buildGoogleNewsSearches", () => {
+  it("keeps the group id of each query so the items can be capped per group", () => {
+    const searches = buildGoogleNewsSearches([
+      { id: "a", label: "A", terms: ["uno"] },
+      { id: "empty", label: "E", terms: [""] },
+      { id: "c", label: "C", terms: ["tres"] },
+    ]);
+    expect(searches.map((search) => search.groupId)).toEqual(["a", "c"]);
   });
 });
 
 describe("buildGoogleNewsUrl", () => {
   it("builds the Spanish-Colombia search URL with the query URL-encoded", () => {
-    const url = buildGoogleNewsUrl('"Smurfit Westrock" OR Yumbo & más');
-    expect(url).toBe(
-      "https://news.google.com/rss/search?q=%22Smurfit%20Westrock%22%20OR%20Yumbo%20%26%20m%C3%A1s&hl=es-419&gl=CO&ceid=CO:es-419",
-    );
-    expect(new URL(url).host).toBe("news.google.com");
+    const url = buildGoogleNewsUrl('("Smurfit Westrock" OR "Yumbo") when:30d');
+    const parsed = new URL(url);
+    expect(parsed.host).toBe("news.google.com");
+    expect(parsed.pathname).toBe("/rss/search");
+    expect(parsed.searchParams.get("q")).toBe('("Smurfit Westrock" OR "Yumbo") when:30d');
+    expect(parsed.searchParams.get("hl")).toBe("es-419");
+    expect(parsed.searchParams.get("gl")).toBe("CO");
+    expect(parsed.searchParams.get("ceid")).toBe("CO:es-419");
   });
 });
 
