@@ -11,7 +11,7 @@ import {
 } from "ai";
 import { z } from "zod";
 import { DEFAULT_THRESHOLDS } from "@/content/config/empresa";
-import { fitsPageContextBudget, pageContextSchema } from "./page-context";
+import { fitsPageContextBudget, pageContextSchema, type PageContext } from "./page-context";
 import { buildSystemPrompt } from "./system-prompt";
 
 /** Messages sent to the model: older turns are dropped. */
@@ -154,7 +154,7 @@ export async function handleChat(request: Request, deps: ChatDeps): Promise<Resp
   if (!parsed.success) return json(400, "La solicitud no es válida.");
   const { messages, mode, pageContext: rawContext, thresholds, webSearch } = parsed.data;
 
-  let pageContext;
+  let pageContext: PageContext | undefined;
   if (rawContext !== undefined && mode === "sheet") {
     if (!fitsPageContextBudget(rawContext)) return json(413, "El contexto de la pantalla es demasiado grande.");
     const context = pageContextSchema.safeParse(rawContext);
