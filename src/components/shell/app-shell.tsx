@@ -3,6 +3,7 @@
 import {
   BellRingIcon,
   FileTextIcon,
+  GlobeIcon,
   HistoryIcon,
   LandmarkIcon,
   LineChartIcon,
@@ -10,6 +11,8 @@ import {
   PanelLeftIcon,
   RadarIcon,
   SlidersHorizontalIcon,
+  StarIcon,
+  UsersIcon,
   ZapIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -50,13 +53,16 @@ const NAV_GROUPS = [
       { href: "/alertas", label: "Alertas", icon: BellRingIcon },
       { href: "/linea-de-tiempo", label: "Línea de tiempo", icon: HistoryIcon },
       { href: "/briefing", label: "Briefing", icon: FileTextIcon },
+      { href: "/seguimiento", label: "Seguimiento", icon: StarIcon },
     ],
   },
   {
     label: "Dimensiones",
     items: [
+      { href: "/macro", label: "Macro", icon: GlobeIcon },
       { href: "/dias", label: "TRM: días y variaciones", icon: ListOrderedIcon },
       { href: "/contratacion", label: "Contratación", icon: LandmarkIcon },
+      { href: "/competidores", label: "Competidores", icon: UsersIcon },
     ],
   },
   {
@@ -165,7 +171,7 @@ export function AppShell({ actions, children }: Props) {
           <footer className="max-w-prose text-xs text-muted-foreground print:hidden">
             <p className="font-medium">Prototipo no oficial, sin relación ni aval de Smurfit Westrock.</p>
             <p>
-              Construido con datos públicos (datos.gov.co: TRM y SECOP II). No usa inteligencia artificial: las señales
+              Construido con datos públicos (datos.gov.co: TRM, SECOP II, Supersociedades y exportaciones; Banco Mundial: PIB e inflación). No usa inteligencia artificial: las señales
               salen de reglas escritas y visibles.
             </p>
           </footer>
