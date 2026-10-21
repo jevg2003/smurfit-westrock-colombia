@@ -1,44 +1,12 @@
 import { expect, test, type Page } from "@playwright/test";
+import { mockChat, send, STREAM_HEADERS, uiMessageStream } from "./support";
 
 const QUESTION = "¿Cómo se movió la TRM esta semana?";
 const ANSWER = "La TRM cerró la semana en 3163,76 COP por USD.";
 
-/** A valid AI SDK UI message stream (SSE, protocol v1) that answers with plain text. */
-function uiMessageStream(text: string): string {
-  const chunks = [
-    { type: "start" },
-    { type: "start-step" },
-    { type: "text-start", id: "t1" },
-    ...text.split(" ").map((word, index) => ({ type: "text-delta", id: "t1", delta: index === 0 ? word : ` ${word}` })),
-    { type: "text-end", id: "t1" },
-    { type: "finish-step" },
-    { type: "finish" },
-  ];
-  return [...chunks.map((chunk) => `data: ${JSON.stringify(chunk)}\n\n`), "data: [DONE]\n\n"].join("");
-}
-
-async function mockChat(page: Page, text = ANSWER) {
-  const bodies: Array<Record<string, unknown>> = [];
-  await page.route("**/api/chat", async (route) => {
-    bodies.push(route.request().postDataJSON() as Record<string, unknown>);
-    await route.fulfill({
-      status: 200,
-      headers: { "content-type": "text/event-stream", "x-vercel-ai-ui-message-stream": "v1", "cache-control": "no-cache" },
-      body: uiMessageStream(text),
-    });
-  });
-  return bodies;
-}
-
-const composer = (page: Page) => page.getByRole("textbox", { name: "Mensaje para el asistente" });
-const send = async (page: Page, text: string) => {
-  await composer(page).fill(text);
-  await page.getByRole("button", { name: "Enviar mensaje" }).click();
-};
-
 test.describe("Asistente page", () => {
   test("shows the user message at once, streams the answer and keeps the chat in the history", async ({ page }) => {
-    const bodies = await mockChat(page);
+    const bodies = await mockChat(page, ANSWER);
     await page.goto("/asistente");
 
     await send(page, QUESTION);
@@ -70,7 +38,7 @@ test.describe("Asistente page", () => {
       }
       await route.fulfill({
         status: 200,
-        headers: { "content-type": "text/event-stream", "x-vercel-ai-ui-message-stream": "v1" },
+        headers: STREAM_HEADERS,
         body: uiMessageStream(ANSWER),
       });
     });
@@ -88,7 +56,7 @@ test.describe("Asistente page", () => {
 
 test.describe("Assistant sheet", () => {
   test("opens from the header, shows the page context and answers", async ({ page }) => {
-    const bodies = await mockChat(page);
+    const bodies = await mockChat(page, ANSWER);
     await page.goto("/");
 
     await page.getByRole("button", { name: "Asistente" }).click();
@@ -99,6 +67,165 @@ test.describe("Assistant sheet", () => {
     await expect(dialog.getByText(QUESTION)).toBeVisible();
     await expect(dialog.getByText(ANSWER)).toBeVisible();
     expect(bodies[0]).toMatchObject({ mode: "sheet", pageContext: { route: "/" } });
+  });
+});
+
+const log = (page: Page) => page.getByRole("log", { name: "Conversación con el asistente" });
+const PROCESS_URL = "https://community.secop.gov.co/proceso/CO1.PCCNTR.123";
+const CONTRACTS_ANSWER = `Estos contratos vencen pronto:\n\n- CARTON DE COLOMBIA, 72 días, vigilar. [Abrir proceso](${PROCESS_URL})`;
+
+test.describe("Contracts answer", () => {
+  test("renders the process link as a safe external anchor", async ({ page }) => {
+    await mockChat(page, CONTRACTS_ANSWER);
+    await page.goto("/asistente");
+
+    await send(page, "¿Qué contratos vencen pronto?");
+    const link = log(page).getByRole("link", { name: "Abrir proceso" });
+    await expect(link).toBeVisible();
+    await expect(link).toHaveAttribute("href", PROCESS_URL);
+    await expect(link).toHaveAttribute("target", "_blank");
+    await expect(link).toHaveAttribute("rel", /noopener/);
+    await expect(link).toHaveAttribute("rel", /noreferrer/);
+  });
+});
+
+test.describe("Request body", () => {
+  test("carries the user's thresholds and web search, which defaults to on", async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem(
+        "swc:preferences:v1",
+        JSON.stringify({ state: { thresholds: { contractExpiryWatchDays: 45, contractExpiryAlertDays: 10 } }, version: 1 }),
+      );
+    });
+    const bodies = await mockChat(page, ANSWER);
+    await page.goto("/asistente");
+
+    await expect(page.getByRole("button", { name: "Buscar en internet" })).toHaveAttribute("aria-pressed", "true");
+    await send(page, QUESTION);
+    await expect(log(page).getByText(ANSWER)).toBeVisible();
+    expect(bodies[0]).toMatchObject({ webSearch: true, thresholds: { watchDays: 45, alertDays: 10 } });
+  });
+
+  test("sends webSearch=false once toggled off, and the choice survives a reload", async ({ page }) => {
+    const bodies = await mockChat(page, ANSWER);
+    await page.goto("/asistente");
+
+    const internet = page.getByRole("button", { name: "Buscar en internet" });
+    await internet.click();
+    await expect(internet).toHaveAttribute("aria-pressed", "false");
+    await send(page, QUESTION);
+    await expect(log(page).getByText(ANSWER)).toBeVisible();
+    expect(bodies[0]).toMatchObject({ webSearch: false });
+
+    await page.reload();
+    await expect(page.getByRole("button", { name: "Buscar en internet" })).toHaveAttribute("aria-pressed", "false");
+    await page.getByRole("button", { name: "Nueva conversación" }).click();
+    await send(page, "Otra pregunta");
+    await expect.poll(() => bodies.length).toBe(2);
+    expect(bodies[1]).toMatchObject({ webSearch: false });
+  });
+});
+
+test.describe("Sheet history", () => {
+  test("switches between conversations, starts a new one and opens one in the full page", async ({ page }) => {
+    const bodies = await mockChat(page, (call) => `Respuesta número ${call + 1}.`);
+    await page.goto("/");
+    await page.getByRole("button", { name: "Asistente" }).click();
+    const dialog = page.getByRole("dialog");
+
+    await send(page, "Primera pregunta");
+    await expect(dialog.getByText("Respuesta número 1.")).toBeVisible();
+
+    await dialog.getByRole("button", { name: "Historial" }).click();
+    await page.getByRole("menuitem", { name: "Nueva conversación" }).click();
+    await expect(dialog.getByText("Primera pregunta")).toBeHidden();
+    await send(page, "Segunda pregunta");
+    await expect(dialog.getByText("Respuesta número 2.")).toBeVisible();
+
+    // Both conversations are listed with the current one checked; switch back to the first.
+    await dialog.getByRole("button", { name: "Historial" }).click();
+    await expect(page.getByRole("menuitemradio", { name: /Segunda pregunta/ })).toBeChecked();
+    await page.getByRole("menuitemradio", { name: /Primera pregunta/ }).click();
+    await expect(dialog.getByText("Respuesta número 1.")).toBeVisible();
+    await expect(dialog.getByText("Respuesta número 2.")).toBeHidden();
+    // Picking a radio item keeps the menu open, so "Abrir en página completa" is still reachable.
+
+    // Open the current conversation in the full page: same messages, and the URL is tidied afterwards.
+    await page.getByRole("menuitem", { name: "Abrir en página completa" }).click();
+    await expect(log(page).getByText("Primera pregunta")).toBeVisible();
+    await expect(log(page).getByText("Respuesta número 1.")).toBeVisible();
+    await expect(page).toHaveURL(/\/asistente$/);
+    expect(bodies).toHaveLength(2);
+  });
+
+  test("the full-page link carries the conversation id as ?c=<id>", async ({ page }) => {
+    await mockChat(page, ANSWER);
+    await page.goto("/");
+    await page.getByRole("button", { name: "Asistente" }).click();
+    const dialog = page.getByRole("dialog");
+    await send(page, QUESTION);
+    await expect(dialog.getByText(ANSWER)).toBeVisible();
+    await expect
+      .poll(() => page.evaluate(() => localStorage.getItem("swc:chats:v1") ?? ""))
+      .toContain(ANSWER);
+    const id = await page.evaluate(() => {
+      const saved = JSON.parse(localStorage.getItem("swc:chats:v1") ?? "{}") as { state?: { conversations?: Array<{ id: string }> } };
+      return saved.state?.conversations?.[0]?.id ?? "";
+    });
+    expect(id).not.toBe("");
+
+    const requested = page.waitForRequest((request) => request.url().includes("/asistente?c=") || request.url().includes("/asistente?_rsc") );
+    await dialog.getByRole("button", { name: "Historial" }).click();
+    await page.getByRole("menuitem", { name: "Abrir en página completa" }).click();
+    await expect(log(page).getByText(ANSWER)).toBeVisible();
+    expect((await requested).url()).toContain(id);
+  });
+});
+
+test.describe("Navigation persistence", () => {
+  test("an in-flight answer completes in the open Sheet after changing screen", async ({ page }) => {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    await mockChat(page, ANSWER, gate);
+    await page.goto("/");
+    await page.getByRole("button", { name: "Asistente" }).click();
+    const dialog = page.getByRole("dialog");
+    await send(page, QUESTION);
+    await expect(dialog.getByText(QUESTION)).toBeVisible();
+
+    // The modal Sheet covers the sidebar, so the link is activated through the DOM (still a client-side navigation).
+    await page.locator('a[href="/contratacion"]').first().evaluate((link) => (link as HTMLAnchorElement).click());
+    await expect(page).toHaveURL(/\/contratacion$/);
+    release();
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByText(ANSWER)).toBeVisible();
+  });
+});
+
+test.describe("Asistente sidebar", () => {
+  test("renames a conversation and deletes it after confirming", async ({ page }) => {
+    await mockChat(page, ANSWER);
+    await page.goto("/asistente");
+    const history = page.getByRole("complementary", { name: "Historial de conversaciones" });
+    await expect(history.getByText("Aún no hay conversaciones")).toBeVisible();
+
+    await send(page, QUESTION);
+    await expect(log(page).getByText(ANSWER)).toBeVisible();
+    await expect(history.getByRole("button", { name: QUESTION, exact: true })).toBeVisible();
+
+    await history.getByRole("button", { name: `Renombrar: ${QUESTION}` }).click();
+    const name = history.getByRole("textbox", { name: "Nuevo nombre" });
+    await name.fill("Resumen de la TRM");
+    await name.press("Enter");
+    await expect(history.getByRole("button", { name: "Resumen de la TRM", exact: true })).toBeVisible();
+
+    await history.getByRole("button", { name: "Borrar: Resumen de la TRM" }).click();
+    await history.getByRole("button", { name: "Cancelar" }).click();
+    await expect(history.getByRole("button", { name: "Resumen de la TRM", exact: true })).toBeVisible();
+
+    await history.getByRole("button", { name: "Borrar: Resumen de la TRM" }).click();
+    await history.getByRole("button", { name: "Borrar", exact: true }).click();
+    await expect(history.getByText("Aún no hay conversaciones")).toBeVisible();
   });
 });
 
