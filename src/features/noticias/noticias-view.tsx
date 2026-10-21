@@ -92,7 +92,7 @@ export function NoticiasView() {
       />
 
       <div className="flex flex-col gap-2">
-        {view.status === "error" && <ErrorState source="Noticias" message={view.errorMessage ?? "Error desconocido."} onRetry={view.retry} />}
+        {view.status === "error" && <ErrorState source="Noticias" message={view.errorMessage ?? "Error desconocido."} kind={view.errorKind} onRetry={view.retry} />}
         {view.isStale && <StaleNotice source="Noticias" updatedAt={view.updatedAt} />}
         {data?.off && (
           <Alert>

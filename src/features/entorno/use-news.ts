@@ -2,12 +2,12 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
-import { NEWS_TERM_GROUPS } from "@/content/config/empresa";
+import { COLOMBIAN_OUTLETS } from "@/content/config/empresa";
 import type { NewsItem } from "@/core/domain/news";
 import type { TermGroup } from "@/core/text/match";
 import { filterRelevantNews, matchNewsItems, sortByRelevance } from "@/core/usecases/match-news";
 import type { FeedHealth } from "@/infrastructure/sources/rss/service";
-import { usePreferencesStore } from "@/stores/preferences.store";
+import { buildNewsTermGroups, usePreferencesStore } from "@/stores/preferences.store";
 import { getContainer } from "./container";
 import { SourceFailure } from "./source-failure";
 import { toSourceView } from "./source-view";
@@ -20,10 +20,11 @@ export interface NewsData {
   off: boolean;
 }
 
-/** The news term groups with the terms the user has configured in Preferencias. */
+/** The news term groups with the terms and the context/exclusion words the user has configured in Preferencias. */
 export function useNewsTermGroups(): TermGroup[] {
-  const groups = usePreferencesStore((state) => state.newsTermGroups);
-  return useMemo(() => NEWS_TERM_GROUPS.map((group) => ({ id: group.id, label: group.label, terms: groups[group.id] ?? group.terms })), [groups]);
+  const newsTermGroups = usePreferencesStore((state) => state.newsTermGroups);
+  const newsContext = usePreferencesStore((state) => state.newsContext);
+  return useMemo(() => buildNewsTermGroups({ newsTermGroups, newsContext }), [newsTermGroups, newsContext]);
 }
 
 /** Colombian media and Google News headlines, read from our own `/api/news` route. */
@@ -42,8 +43,12 @@ export function useNews() {
     },
   });
   const groups = useNewsTermGroups();
-  // Every headline, matched against the user's terms and ordered by relevance (company first, unmatched last).
-  const items = useMemo(() => sortByRelevance(matchNewsItems(query.data?.items ?? [], groups)), [query.data, groups]);
+  // Every headline, matched against the user's terms and ordered by relevance (company first, unmatched last,
+  // Colombian outlets ahead of the rest inside a group). A Colombian outlet stands in for the context words.
+  const items = useMemo(
+    () => sortByRelevance(matchNewsItems(query.data?.items ?? [], groups, COLOMBIAN_OUTLETS), COLOMBIAN_OUTLETS),
+    [query.data, groups],
+  );
   // Only the headlines that mention at least one active term: what the radar and the timeline may use.
   const relevantItems = useMemo(() => filterRelevantNews(items), [items]);
   return { query, view: toSourceView(query), data: query.data, items, relevantItems, groups, fetchedAt: query.dataUpdatedAt };
