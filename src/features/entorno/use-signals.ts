@@ -39,7 +39,8 @@ export function useSignals() {
   const contracts = secop.data?.contracts;
   const trmRecords = trm.data;
   const trmUpdatedAt = trm.query.dataUpdatedAt;
-  const newsItems = news.items;
+  // Only headlines that mention an active term feed the radar, so unrelated news never raises a signal.
+  const newsItems = news.relevantItems;
   const newsGroups = news.groups;
   const regulationItems = regulation.items;
   const energySpot = energy.observations;

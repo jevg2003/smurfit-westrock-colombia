@@ -76,4 +76,17 @@ describe("news.keyword-mention.v1", () => {
     const groups = GROUPS.map((g) => (g.id === "company" ? { ...g, terms: [] } : g));
     expect(detectNewsKeywordMentions({ news: [makeNews("a", "Smurfit Westrock", "2026-10-19T10:00:00.000Z")], groups, clock: fixedClock(NOW) })).toEqual([]);
   });
+
+  it("raises nothing for a headline that only shares a generic word with the specific phrases", () => {
+    const groups = [
+      { id: "company", label: "Empresa y competidores", terms: ["Smurfit Westrock"] },
+      { id: "regulation", label: "Regulación y sostenibilidad", terms: ["economía circular", "aprovechamiento de residuos"] },
+    ];
+    const news = [
+      makeNews("n1", "Vietnam asume el papel de anfitrión de la APEC 2027", "2026-10-19T10:00:00.000Z"),
+      makeNews("n2", "Reafirmar el papel de los órganos electos", "2026-10-19T10:00:00.000Z"),
+      makeNews("n3", "El aprovechamiento del terreno mejora", "2026-10-19T10:00:00.000Z"),
+    ];
+    expect(detectNewsKeywordMentions({ news, groups, clock: fixedClock(NOW) })).toEqual([]);
+  });
 });
