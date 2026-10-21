@@ -16,6 +16,17 @@ export const SOURCES = {
     license: "CC BY-SA 4.0",
   },
   secop: { name: "SECOP II", attribution: SECOP_ATTRIBUTION, license: "CC BY-SA 4.0" },
+  worldBank: { name: "Banco Mundial", attribution: "Banco Mundial – World Development Indicators", license: "CC BY 4.0" },
+  exports: {
+    name: "Exportaciones",
+    attribution: "Ministerio de Comercio, Industria y Turismo - MinCIT vía datos.gov.co",
+    license: "CC BY-SA 4.0",
+  },
+  supersociedades: {
+    name: "Supersociedades",
+    attribution: "Superintendencia de Sociedades vía datos.gov.co",
+    license: "CC BY-SA 4.0",
+  },
 } satisfies Record<string, SourceInfo>;
 
 export const SOURCE_NAMES: Record<SourceId, string> = {

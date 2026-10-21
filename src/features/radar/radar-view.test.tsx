@@ -1,7 +1,10 @@
 // @vitest-environment jsdom
 import { cleanup, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { fakeContainer, renderWithQuery, resetStores, secopDown, secopEmpty, trmRecord } from "@/features/entorno/test-utils";
+import type { PublicContract } from "@/core/domain/contract";
+import { fakeContainer, renderWithQuery, resetStores, secopDown, secopEmpty, secopOk, trmRecord } from "@/features/entorno/test-utils";
+import { useWatchlistStore } from "@/stores/watchlist.store";
 
 const secopFetch = vi.fn();
 const fetchTrm = vi.fn();
@@ -43,5 +46,52 @@ describe("RadarView", () => {
     renderWithQuery(<RadarView />);
 
     expect(screen.getByRole("status", { name: "Consultando las fuentes" })).toBeInTheDocument();
+  });
+
+  describe("watchlist filter (RF-15)", () => {
+    const contract = (id: string, nit: string, name: string): PublicContract => ({
+      id,
+      entity: `Entidad ${id}`,
+      supplierNit: nit,
+      supplierName: name,
+      value: 1000000,
+      signedAt: "2026-10-10T00:00:00.000-05:00",
+      status: "En ejecución",
+      provenance: {
+        sourceId: "secop",
+        url: `https://www.datos.gov.co/resource/jbjy-vk9h.json?id_contrato=${id}`,
+        fetchedAt: "2026-10-20T15:00:00.000Z",
+        license: "CC BY-SA 4.0",
+        attribution: "Agencia Nacional de Contratación Pública - Colombia Compra Eficiente vía datos.gov.co",
+      },
+    });
+
+    beforeEach(() => {
+      secopFetch.mockResolvedValue(
+        secopOk([contract("A1", "860026759", "CARTONES AMERICA"), contract("C1", "890319047", "CARVAJAL EMPAQUES")]),
+      );
+    });
+
+    it("shows every new alert until the toggle is on, then only the followed ones", async () => {
+      useWatchlistStore.setState({ competitorNits: ["860026759"] });
+      const user = userEvent.setup();
+      renderWithQuery(<RadarView />);
+
+      expect(await screen.findByText(/Cartones América firmó un contrato con Entidad A1/)).toBeInTheDocument();
+      expect(screen.getByText(/Carvajal Empaques firmó un contrato con Entidad C1/)).toBeInTheDocument();
+
+      await user.click(screen.getByRole("checkbox", { name: "Solo mis seguimientos" }));
+
+      expect(screen.getByText(/Cartones América firmó un contrato con Entidad A1/)).toBeInTheDocument();
+      expect(screen.queryByText(/Carvajal Empaques firmó/)).not.toBeInTheDocument();
+      expect(useWatchlistStore.getState().onlyFollowed).toBe(true);
+    });
+
+    it("explains an empty result caused by the filter", async () => {
+      useWatchlistStore.setState({ competitorNits: [], indicators: [], onlyFollowed: true });
+      renderWithQuery(<RadarView />);
+
+      expect(await screen.findByText("Ninguna alerta nueva es de lo que sigues")).toBeInTheDocument();
+    });
   });
 });

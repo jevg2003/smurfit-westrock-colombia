@@ -1,7 +1,7 @@
 "use client";
 
 import { BellRingIcon, CircleDollarSignIcon, FileClockIcon, InboxIcon, UsersIcon } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { StatCard } from "@/components/shell/stat-card";
 import { PageIntro } from "@/components/shell/page-intro";
 import { ErrorState } from "@/components/states/error-state";
@@ -10,6 +10,7 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/u
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Dimension } from "@/core/domain/dimension";
 import { DIMENSION_LABELS } from "@/core/labels";
+import { isFollowed, signalSubject } from "@/core/rules/watch-subject";
 import { SECOP_COMPETITOR_NEW_CONTRACT_RULE_ID } from "@/core/rules/secop-competitor-new-contract";
 import { SECOP_EXPIRING_CONTRACT_RULE_ID } from "@/core/rules/secop-expiring-contract";
 import { AlertsGrid } from "@/features/alertas/alerts-grid";
@@ -19,7 +20,9 @@ import { Delta } from "@/features/trm/delta";
 import { procesar } from "@/features/trm/use-trm";
 import { formatDiaBogota } from "@/lib/date";
 import { formatCop } from "@/lib/money";
+import { FollowedFilterToggle } from "@/features/seguimiento/followed-filter-toggle";
 import { usePreferencesStore } from "@/stores/preferences.store";
+import { useWatchlistStore } from "@/stores/watchlist.store";
 import { InboxLink } from "./inbox-link";
 import type { Signal } from "@/core/domain/signal";
 import { useAlertsStore } from "@/stores/alerts.store";
@@ -35,8 +38,24 @@ export function RadarView() {
   const allAlerts = useAlertsStore((state) => state.alerts);
   const rows = useAlertRows(data.signals);
   const [open, setOpen] = useState<Signal | null>(null);
+  const onlyFollowed = useWatchlistStore((state) => state.onlyFollowed);
+  const competitorNits = useWatchlistStore((state) => state.competitorNits);
+  const indicators = useWatchlistStore((state) => state.indicators);
 
-  const newRows = useMemo(() => rows.filter((row) => row.alert.state === "new"), [rows]);
+  const supplierNitByContractId = useMemo(
+    () => new Map(data.contracts.map((contract) => [contract.id, contract.supplierNit])),
+    [data.contracts],
+  );
+  const followed = useCallback(
+    (signal: Signal) => !onlyFollowed || isFollowed(signalSubject(signal, supplierNitByContractId), { competitorNits, indicators }),
+    [onlyFollowed, competitorNits, indicators, supplierNitByContractId],
+  );
+
+  const newRows = useMemo(
+    () => rows.filter((row) => row.alert.state === "new" && followed(row.signal)),
+    [rows, followed],
+  );
+  const allNewCount = useMemo(() => rows.filter((row) => row.alert.state === "new").length, [rows]);
   const counts = useMemo(() => {
     const map = new Map<Dimension, number>();
     for (const row of newRows) map.set(row.signal.dimension, (map.get(row.signal.dimension) ?? 0) + 1);
@@ -46,7 +65,9 @@ export function RadarView() {
   const today = useMemo(() => procesar(data.trmRecords, thresholds.trmDailyMovePct).at(-1), [data.trmRecords, thresholds]);
   const previous = useMemo(() => procesar(data.trmRecords, thresholds.trmDailyMovePct).at(-2), [data.trmRecords, thresholds]);
   const expiring = data.signals.filter((signal) => signal.ruleId === SECOP_EXPIRING_CONTRACT_RULE_ID).length;
-  const competitors = data.signals.filter((signal) => signal.ruleId === SECOP_COMPETITOR_NEW_CONTRACT_RULE_ID).length;
+  const competitors = data.signals.filter(
+    (signal) => signal.ruleId === SECOP_COMPETITOR_NEW_CONTRACT_RULE_ID && followed(signal),
+  ).length;
 
   const lastReview = allAlerts
     .filter((alert) => alert.state !== "new")
@@ -54,6 +75,7 @@ export function RadarView() {
     .sort()
     .at(-1);
 
+  const hiddenByFilter = onlyFollowed && newRows.length === 0 && allNewCount > 0;
   const secopReady = data.secop.status === "ready";
   const trmReady = data.trm.status === "ready";
 
@@ -62,6 +84,7 @@ export function RadarView() {
       <PageIntro
         title="Radar"
         description="Lo que cambió en el entorno y todavía no has revisado: el dólar, tus contratos públicos y los contratos de la competencia."
+        actions={<FollowedFilterToggle />}
       />
 
       <div className="flex flex-col gap-2">
@@ -130,9 +153,13 @@ export function RadarView() {
           emptyMessage={
             <Empty className="border-0 p-6">
               <EmptyHeader>
-                <EmptyTitle>No hay alertas nuevas</EmptyTitle>
+                <EmptyTitle>{hiddenByFilter ? "Ninguna alerta nueva es de lo que sigues" : "No hay alertas nuevas"}</EmptyTitle>
                 <EmptyDescription>
-                  {lastReview ? `Última revisión: ${formatDiaBogota(lastReview)}.` : "Aún no has revisado ninguna alerta."}
+                  {hiddenByFilter
+                    ? `Hay ${allNewCount} alertas nuevas fuera de tu lista. Desactiva «Solo mis seguimientos» para verlas.`
+                    : lastReview
+                      ? `Última revisión: ${formatDiaBogota(lastReview)}.`
+                      : "Aún no has revisado ninguna alerta."}
                 </EmptyDescription>
               </EmptyHeader>
             </Empty>

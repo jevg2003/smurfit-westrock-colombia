@@ -21,6 +21,24 @@ describe("watchlist store", () => {
     expect(store.getState().indicators).toContain("pib");
   });
 
+  it("keeps the 'only my follows' filter off by default, toggles it and persists it", async () => {
+    const storage = createMemoryStorage();
+    const store = createWatchlistStore({ storage });
+    expect(store.getState().onlyFollowed).toBe(false);
+    store.getState().setOnlyFollowed(true);
+    expect(store.getState().onlyFollowed).toBe(true);
+
+    const fresh = createWatchlistStore({ storage });
+    await fresh.persist.rehydrate();
+    expect(fresh.getState().onlyFollowed).toBe(true);
+  });
+
+  it("accepts the exports indicator", () => {
+    const store = createWatchlistStore({ storage: createMemoryStorage() });
+    store.getState().toggleIndicator("exportaciones");
+    expect(store.getState().indicators).toContain("exportaciones");
+  });
+
   it("persists under a versioned key", async () => {
     const storage = createMemoryStorage();
     createWatchlistStore({ storage }).getState().toggleCompetitor("890319047");

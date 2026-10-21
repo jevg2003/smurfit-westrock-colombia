@@ -1,5 +1,6 @@
 import type { AlertState } from "./domain/alert";
 import type { Dimension, Severity } from "./domain/dimension";
+import type { IndicatorId } from "./domain/observation";
 
 /** Fixed display order of the dimensions in briefings. */
 export const DIMENSION_ORDER: readonly Dimension[] = ["procurement", "competitors", "market", "regulation", "macro"];
@@ -22,4 +23,11 @@ export const ALERT_STATE_LABELS: Record<AlertState, string> = {
   new: "Nueva",
   reviewed: "Revisada",
   dismissed: "Descartada",
+};
+
+export const INDICATOR_LABELS: Record<IndicatorId, string> = {
+  trm: "TRM (dólar)",
+  pib: "PIB real",
+  ipc_anual: "Inflación anual (IPC)",
+  exportaciones: "Exportaciones",
 };

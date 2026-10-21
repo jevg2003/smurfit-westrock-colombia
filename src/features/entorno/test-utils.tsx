@@ -1,25 +1,38 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render } from "@testing-library/react";
 import type { ReactElement } from "react";
-import { createContainer } from "@/app/composition";
+import { createContainer, type Container } from "@/app/composition";
 import type { PublicContract } from "@/core/domain/contract";
+import type { SourceId } from "@/core/domain/provenance";
 import type { Result, SourceError } from "@/core/domain/result";
 import type { SourceAdapter } from "@/core/ports/source-adapter";
 import type { SecopQuery } from "@/infrastructure/sources/datos-gov-co/secop-contratos/adapter";
 import { useAlertsStore } from "@/stores/alerts.store";
 import { useHydrationStore } from "@/stores/hydration.store";
 import { usePreferencesStore } from "@/stores/preferences.store";
+import { useWatchlistStore } from "@/stores/watchlist.store";
+import { COMPETITORS } from "@/content/config/empresa";
 import { createFakeClock } from "@/stores/test-utils";
 import type { TrmRegistro } from "@/features/trm/types";
 
 export const TEST_NOW = "2026-10-20T15:00:00.000Z";
 
-export function fakeContainer(secop: SourceAdapter<SecopQuery, PublicContract[]>["fetch"]) {
+export function fakeContainer(
+  secop: SourceAdapter<SecopQuery, PublicContract[]>["fetch"],
+  overrides: Partial<Container> = {},
+) {
   return {
     ...createContainer({ clock: createFakeClock(TEST_NOW) }),
     secop: { sourceId: "secop", fetch: secop } as SourceAdapter<SecopQuery, PublicContract[]>,
+    ...overrides,
   };
 }
+
+/** An adapter whose `fetch` is the given function, for any source. */
+export const fakeAdapter = <Q, T>(sourceId: SourceId, fetch: SourceAdapter<Q, T>["fetch"]): SourceAdapter<Q, T> => ({
+  sourceId,
+  fetch,
+});
 
 export const secopOk = (data: PublicContract[]): Result<{ data: PublicContract[]; provenance: PublicContract["provenance"] }> => ({
   ok: true,
@@ -56,6 +69,11 @@ export const trmRecord = (day: string, value: string): TrmRegistro => ({
 export function resetStores({ hydrated = true }: { hydrated?: boolean } = {}) {
   useAlertsStore.setState({ alerts: [] });
   usePreferencesStore.getState().reset();
+  useWatchlistStore.setState({
+    competitorNits: COMPETITORS.map((competitor) => competitor.nit),
+    indicators: ["trm"],
+    onlyFollowed: false,
+  });
   useHydrationStore.setState({ hasHydrated: hydrated });
 }
 

@@ -26,6 +26,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { COMPETITORS } from "@/content/config/empresa";
 import type { Signal } from "@/core/domain/signal";
 import { DIMENSION_LABELS } from "@/core/labels";
+import { contractSubject, isFollowed, signalSubject } from "@/core/rules/watch-subject";
 import { bogotaDateKey } from "@/core/time/bogota";
 import { buildTimeline, type TimelineEvent } from "@/core/usecases/build-timeline";
 import { useSignals } from "@/features/entorno/use-signals";
@@ -34,7 +35,9 @@ import { applyFilters } from "@/features/filtros/apply-filters";
 import { DateRangeFilter, rangeOf } from "@/features/filtros/date-range-filter";
 import { SelectFilters } from "@/features/filtros/select-filters";
 import { DimensionBadge, SeverityBadge } from "@/features/senales/badges";
+import { FollowedFilterToggle } from "@/features/seguimiento/followed-filter-toggle";
 import { SignalDetailSheet } from "@/features/senales/signal-detail-sheet";
+import { useWatchlistStore } from "@/stores/watchlist.store";
 import type { DateSelectorValue } from "@/components/reui/date-selector";
 import { formatDiaBogota } from "@/lib/date";
 import { safeHttpUrl } from "@/lib/safe-url";
@@ -89,16 +92,32 @@ export function TimelineView() {
     [data.signals, data.contracts],
   );
 
+  const onlyFollowed = useWatchlistStore((state) => state.onlyFollowed);
+  const competitorNits = useWatchlistStore((state) => state.competitorNits);
+  const indicators = useWatchlistStore((state) => state.indicators);
+  const signalsById = useMemo(() => new Map(data.signals.map((signal) => [`signal:${signal.id}`, signal])), [data.signals]);
+
   const filtered = useMemo(() => {
-    const byChips = applyFilters(events, query, ACCESSORS);
-    if (!range) return byChips;
-    return byChips.filter((event) => {
+    let result = applyFilters(events, query, ACCESSORS);
+    if (onlyFollowed) {
+      const supplierNitByContractId = new Map(data.contracts.map((contract) => [contract.id, contract.supplierNit]));
+      const contractsById = new Map(data.contracts.map((contract) => [`contract:${contract.id}`, contract]));
+      const watchlist = { competitorNits, indicators };
+      // News and regulation have no competitor or indicator, so they stay out of a "followed only" view.
+      result = result.filter((event) => {
+        const signal = signalsById.get(event.id);
+        if (signal) return isFollowed(signalSubject(signal, supplierNitByContractId), watchlist);
+        const contract = contractsById.get(event.id);
+        return contract ? isFollowed(contractSubject(contract), watchlist) : false;
+      });
+    }
+    if (!range) return result;
+    return result.filter((event) => {
       const day = bogotaDateKey(event.at);
       return day >= range.fromDate && day <= range.toDate;
     });
-  }, [events, query, range]);
+  }, [events, query, range, onlyFollowed, competitorNits, indicators, data.contracts, signalsById]);
 
-  const signalsById = useMemo(() => new Map(data.signals.map((signal) => [`signal:${signal.id}`, signal])), [data.signals]);
   const shown = filtered.slice(0, visible);
   const isFiltering = filtered.length !== events.length;
 
@@ -107,6 +126,7 @@ export function TimelineView() {
       <PageIntro
         title="Línea de tiempo"
         description="Señales y contratos en orden, del más reciente al más antiguo. Las noticias y las normas llegan en próximas versiones."
+        actions={<FollowedFilterToggle />}
       />
 
       <div className="flex flex-col gap-2">
@@ -147,7 +167,7 @@ export function TimelineView() {
                   <EmptyTitle>No hay eventos para mostrar</EmptyTitle>
                   <EmptyDescription>
                     {isFiltering
-                      ? "Ningún evento cumple estos filtros. Quita alguno para ver más."
+                      ? "Ningún evento cumple estos filtros o tu lista de seguimiento. Quita alguno para ver más."
                       : "Todavía no hay señales ni contratos con los datos de hoy."}
                   </EmptyDescription>
                 </EmptyHeader>
