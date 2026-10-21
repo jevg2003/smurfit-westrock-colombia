@@ -74,7 +74,7 @@ export function useFuentes(): { groups: FuenteGroup[]; total: number } {
       status,
       retryStatus: () => void statusQuery.refetch(),
     });
-  }, [trm, secop.view, secop.data, pib.view, pib.data, ipc.view, ipc.data, exportsHook.view, exportsHook.data, supersociedades.view, supersociedades.data, energy.view, energy.data, energy.observations, news.view, news.data, regulation.view, regulation.data, norms, statusQuery]);
+  }, [trm, secop.query.error, pib.query.error, ipc.query.error, exportsHook.query.error, supersociedades.query.error, energy.query.error, news.query.error, regulation.query.error, secop.view, secop.data, pib.view, pib.data, ipc.view, ipc.data, exportsHook.view, exportsHook.data, supersociedades.view, supersociedades.data, energy.view, energy.data, energy.observations, news.view, news.data, regulation.view, regulation.data, norms, statusQuery]);
 
   return { groups, total: groups.reduce((sum, group) => sum + group.rows.length, 0) };
 }
