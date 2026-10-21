@@ -5,7 +5,8 @@ export interface TermGroupDefinition {
   id: string;
   label: string;
   terms: readonly string[];
-  contextTerms?: readonly string[];
+  /** Terms that need context words; "all" gates every term of the group, including ones the user adds. */
+  contextTerms?: readonly string[] | "all";
 }
 
 export interface ContextRules {
@@ -18,9 +19,10 @@ export interface ContextRules {
  * `requireAny` words, and the whole group gets the `excludeAny` words. Pure.
  */
 export function buildTermGroup(definition: TermGroupDefinition, rules: ContextRules): TermGroup {
-  const gated = new Set((definition.contextTerms ?? []).map(normalizeText));
+  const all = definition.contextTerms === "all";
+  const gated = new Set((Array.isArray(definition.contextTerms) ? definition.contextTerms : []).map(normalizeText));
   const requireAny = rules.requireAny.filter((word) => word.trim().length > 0);
-  const terms = definition.terms.map((term): TermSpec => (requireAny.length > 0 && gated.has(normalizeText(term)) ? { term, requireAny } : term));
+  const terms = definition.terms.map((term): TermSpec => (requireAny.length > 0 && (all || gated.has(normalizeText(term))) ? { term, requireAny } : term));
   const excludeAny = rules.excludeAny.filter((word) => word.trim().length > 0);
   return { id: definition.id, label: definition.label, terms, ...(excludeAny.length > 0 ? { excludeAny } : {}) };
 }

@@ -33,6 +33,11 @@ export function normalizeText(text: string): string {
     .trim();
 }
 
+export interface MatchOptions {
+  /** The context words are taken as present: only the exclusions still apply. */
+  contextAssumed?: boolean;
+}
+
 const hasPhrase = (haystack: string, phrase: string) => haystack.includes(` ${phrase} `);
 
 /** Normalized, non-empty phrases of a word list. */
@@ -44,7 +49,7 @@ const phrasesOf = (words: readonly string[] | undefined) => (words ?? []).map(no
  * A group with `excludeAny` words is skipped when the text has one of them, and a term with
  * `requireAny` words only counts when the text has one of those too.
  */
-export function matchTermGroups(text: string, groups: readonly TermGroup[]): TermMatch[] {
+export function matchTermGroups(text: string, groups: readonly TermGroup[], options: MatchOptions = {}): TermMatch[] {
   const haystack = ` ${normalizeText(text)} `;
   return groups.flatMap((group) => {
     if (phrasesOf(group.excludeAny).some((phrase) => hasPhrase(haystack, phrase))) return [];
@@ -52,7 +57,7 @@ export function matchTermGroups(text: string, groups: readonly TermGroup[]): Ter
       const term = termName(spec);
       const needle = normalizeText(term);
       if (!needle || !hasPhrase(haystack, needle)) return [];
-      const context = typeof spec === "string" ? [] : phrasesOf(spec.requireAny);
+      const context = typeof spec === "string" || options.contextAssumed ? [] : phrasesOf(spec.requireAny);
       if (context.length > 0 && !context.some((phrase) => hasPhrase(haystack, phrase))) return [];
       return [{ groupId: group.id, term }];
     });

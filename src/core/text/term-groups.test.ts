@@ -23,4 +23,14 @@ describe("buildTermGroup", () => {
     expect(group.terms).toEqual(["Smurfit Westrock", "Cartones América"]);
     expect(group.excludeAny).toBeUndefined();
   });
+
+  it("gates every term of the group when the context applies to all of them", () => {
+    const group = buildTermGroup({ id: "sector", label: "Sector", terms: ["celulosa", "papel kraft"], contextTerms: "all" }, { requireAny: ["Colombia"], excludeAny: [] });
+    expect(group.terms).toEqual([
+      { term: "celulosa", requireAny: ["Colombia"] },
+      { term: "papel kraft", requireAny: ["Colombia"] },
+    ]);
+    expect(matchTermGroups("Celulosa Argentina pierde", [group])).toEqual([]);
+    expect(matchTermGroups("Celulosa sube en Colombia", [group])).toHaveLength(1);
+  });
 });

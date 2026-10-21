@@ -101,7 +101,7 @@ describe("preferences news context rules", () => {
   it("starts with the default context and exclusion words", () => {
     const { newsContext } = createPreferencesStore({ storage: createMemoryStorage() }).getState();
     expect(newsContext.company.requireAny).toContain("Colombia");
-    expect(newsContext.sector.requireAny).toEqual([]);
+    expect(newsContext.sector.requireAny).toContain("Colombia");
     for (const group of NEWS_TERM_GROUPS) expect(newsContext[group.id].excludeAny).toEqual(DEFAULT_NEWS_CONTEXT[group.id].excludeAny);
   });
 

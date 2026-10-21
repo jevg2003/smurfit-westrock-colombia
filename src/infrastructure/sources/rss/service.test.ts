@@ -160,4 +160,13 @@ describe("loadNews", () => {
     const result = await run(fetchImpl, { feedId: "google-news", googleItemsPerGroup: 1 });
     expect(result.items.map((i) => i.title)).toEqual(["Smurfit Westrock amplía su planta en Yumbo"]);
   });
+
+  it("keeps a Google News headline from a Colombian outlet without a context word, but not one from abroad", async () => {
+    const item = (title: string, outlet: string, i: number) =>
+      `<item><title>${title} - ${outlet}</title><link>https://example.test/${i}</link><pubDate>Mon, 19 Oct 2026 1${i}:00:00 GMT</pubDate><source url="https://example.test">${outlet}</source></item>`;
+    const body = `<?xml version="1.0"?><rss version="2.0"><channel>${item("Smurfit Westrock compra negocio en Chile", "El Tiempo", 1)}${item("Smurfit Westrock compra negocio en Chile", "Heraldo", 2)}${item("Fútbol: Smurfit Westrock patrocina", "El Tiempo", 3)}</channel></rss>`;
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL) => (new URL(String(input)).host === "news.google.com" ? new Response(body, { status: 200 }) : new Response("nope", { status: 404 }))) as unknown as typeof fetch;
+    const result = await run(fetchImpl, { feedId: "google-news" });
+    expect(result.items.map((i) => `${i.title}|${i.outlet}`)).toEqual(["Smurfit Westrock compra negocio en Chile|El Tiempo"]);
+  });
 });

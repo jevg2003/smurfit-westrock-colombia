@@ -67,4 +67,9 @@ describe("context rules", () => {
     const lax: TermGroup[] = [{ id: "g", label: "G", terms: [{ term: "alfa", requireAny: [" "] }], excludeAny: ["", " "] }];
     expect(matchTermGroups("alfa", lax)).toEqual([{ groupId: "g", term: "alfa" }]);
   });
+
+  it("waives the context words, but never the exclusions, when the context is assumed", () => {
+    expect(matchTermGroups("Smurfit Westrock cierra planta en Málaga", groups, { contextAssumed: true })).toHaveLength(1);
+    expect(matchTermGroups("Fútbol: Smurfit Westrock", groups, { contextAssumed: true })).toEqual([]);
+  });
 });

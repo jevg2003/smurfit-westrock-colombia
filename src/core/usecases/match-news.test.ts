@@ -118,3 +118,23 @@ describe("sortByRelevance with Colombian outlets", () => {
     expect(sortByRelevance(items, outlets).map((item) => item.id)).toEqual(["b", "a"]);
   });
 });
+
+describe("matchNewsItems with Colombian outlets", () => {
+  const groups = [{ id: "company", label: "Empresa", terms: [{ term: "Smurfit Westrock", requireAny: ["Colombia"] }], excludeAny: ["fútbol"] }];
+  const outlets = ["El Tiempo", "Portafolio.co"];
+  const make = (id: string, title: string, outlet: string) => ({ ...base, id, title, outlet });
+
+  it("lets a Colombian outlet stand in for the context words, ignoring case and accents", () => {
+    const items = matchNewsItems(
+      [make("a", "Smurfit Westrock compra negocio en Chile", "el tiempo"), make("b", "Smurfit Westrock compra negocio en Chile", "Heraldo"), make("c", "Smurfit Westrock compra negocio en Chile", "Portafolio.co")],
+      groups,
+      outlets,
+    );
+    expect(filterRelevantNews(items).map((item) => item.id)).toEqual(["a", "c"]);
+  });
+
+  it("still drops excluded words from Colombian outlets", () => {
+    const items = matchNewsItems([make("a", "Fútbol: Smurfit Westrock patrocina", "El Tiempo")], groups, outlets);
+    expect(filterRelevantNews(items)).toEqual([]);
+  });
+});

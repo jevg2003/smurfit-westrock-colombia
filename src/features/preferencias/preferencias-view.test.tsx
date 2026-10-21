@@ -2,7 +2,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { DEFAULT_THRESHOLDS } from "@/content/config/empresa";
+import { DEFAULT_THRESHOLDS, NEWS_TERM_GROUPS } from "@/content/config/empresa";
 import { resetStores } from "@/features/entorno/test-utils";
 import { AtipicosCard } from "@/features/trm/atipicos-card";
 import { usePreferencesStore } from "@/stores/preferences.store";
@@ -115,10 +115,12 @@ describe("PreferenciasView", () => {
     expect(usePreferencesStore.getState().newsContext.sector.excludeAny).toEqual(["fútbol"]);
   });
 
-  it("only offers context words for the groups that have terms needing context", () => {
+  it("offers context and excluded words for every group", () => {
     render(<PreferenciasView />);
-    expect(screen.queryByLabelText("Palabras de contexto (Sector)")).not.toBeInTheDocument();
-    expect(screen.getByLabelText("Palabras a excluir (Empresa y competidores)")).toBeInTheDocument();
+    for (const group of NEWS_TERM_GROUPS) {
+      expect(screen.getByLabelText(`Palabras de contexto (${group.label})`)).toBeInTheDocument();
+      expect(screen.getByLabelText(`Palabras a excluir (${group.label})`)).toBeInTheDocument();
+    }
   });
 
   it("refuses a context word that is too long and keeps the saved words", async () => {

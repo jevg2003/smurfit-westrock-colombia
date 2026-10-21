@@ -1,6 +1,7 @@
-import { DEFAULT_NEWS_CONTEXT, NEWS_TERM_GROUPS } from "@/content/config/empresa";
+import { COLOMBIAN_OUTLETS, DEFAULT_NEWS_CONTEXT, NEWS_TERM_GROUPS } from "@/content/config/empresa";
 import { matchTermGroups, type TermGroup } from "@/core/text/match";
 import { buildTermGroup } from "@/core/text/term-groups";
+import { isColombianOutlet } from "@/core/usecases/match-news";
 import type { Fetcher } from "@/infrastructure/http/fetcher";
 import type { SourceFlags } from "@/infrastructure/flags";
 import { fetchFeed } from "./fetch-feed";
@@ -10,6 +11,10 @@ import { mergeHeadlines, type SourcedHeadline } from "./merge";
 
 /** The default groups with their Colombian context and exclusion words. The server searches with these. */
 export const DEFAULT_SEARCH_GROUPS: readonly TermGroup[] = NEWS_TERM_GROUPS.map((group) => buildTermGroup(group, DEFAULT_NEWS_CONTEXT[group.id]));
+
+/** Whether a headline passes the term groups; a Colombian outlet stands in for the context words. */
+const isRelevant = (item: { title: string; outlet: string }, groups: readonly TermGroup[]) =>
+  matchTermGroups(item.title, groups, { contextAssumed: isColombianOutlet(item.outlet, COLOMBIAN_OUTLETS) }).length > 0;
 
 export interface NewsApiItem {
   id: string;
@@ -103,9 +108,9 @@ export async function loadNews({
  * When the limit cuts the list, headlines that match none of the default terms go first, so a flood of
  * unrelated media headlines cannot push a relevant one out. The result stays newest first.
  */
-function keepMostRelevant<T extends { title: string }>(merged: readonly T[], groups: readonly TermGroup[], limit: number): T[] {
+function keepMostRelevant<T extends { title: string; outlet: string }>(merged: readonly T[], groups: readonly TermGroup[], limit: number): T[] {
   if (merged.length <= limit) return [...merged];
-  const indexed = merged.map((item, index) => ({ item, index, relevant: matchTermGroups(item.title, groups).length > 0 }));
+  const indexed = merged.map((item, index) => ({ item, index, relevant: isRelevant(item, groups) }));
   const kept = [...indexed.filter((entry) => entry.relevant), ...indexed.filter((entry) => !entry.relevant)].slice(0, limit);
   return kept.sort((a, b) => a.index - b.index).map((entry) => entry.item);
 }
@@ -126,7 +131,7 @@ async function loadGoogleNews(fetcher: Fetcher, enabled: boolean, termGroups: re
   // before the per-group cap, so it can never push a Colombian headline out.
   const headlines = results.flatMap((result, index) =>
     [...result.items]
-      .filter((item) => matchTermGroups(item.title, termGroups.filter((group) => group.id === searches[index]?.groupId)).length > 0)
+      .filter((item) => isRelevant(item, termGroups.filter((group) => group.id === searches[index]?.groupId)))
       .sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt))
       .slice(0, perGroup)
       .map(

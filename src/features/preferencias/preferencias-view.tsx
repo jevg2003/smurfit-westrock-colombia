@@ -10,7 +10,7 @@ import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel, FieldLegen
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import { NEWS_TERM_GROUPS, type Thresholds } from "@/content/config/empresa";
+import { hasContextTerms, NEWS_TERM_GROUPS, type Thresholds } from "@/content/config/empresa";
 import { useHydrationStore } from "@/stores/hydration.store";
 import { type NewsTermGroupId, usePreferencesStore } from "@/stores/preferences.store";
 import { activeRuleTexts } from "./rule-texts";
@@ -270,7 +270,7 @@ function RulesCard() {
 }
 
 const TERM_GROUP_IDS = NEWS_TERM_GROUPS.map((group) => group.id);
-const GROUPS_WITH_CONTEXT = NEWS_TERM_GROUPS.filter((group) => group.contextTerms.length > 0);
+const GROUPS_WITH_CONTEXT = NEWS_TERM_GROUPS.filter(hasContextTerms);
 const contextKey = (id: NewsTermGroupId) => `${id}Context`;
 const excludeKey = (id: NewsTermGroupId) => `${id}Exclude`;
 const WORD_KEYS = [...GROUPS_WITH_CONTEXT.map((group) => contextKey(group.id)), ...NEWS_TERM_GROUPS.map((group) => excludeKey(group.id))];
@@ -325,12 +325,12 @@ function TermsCard() {
               <FieldSet key={group.id} className="gap-3">
                 <FieldLegend variant="label">{group.label}</FieldLegend>
                 <WordsField form={form} name={group.id} label={group.label} baseId={baseId} rows={4} onEdit={() => setMessage(null)} />
-                {group.contextTerms.length > 0 && (
+                {hasContextTerms(group) && (
                   <WordsField
                     form={form}
                     name={contextKey(group.id)}
                     label={`Palabras de contexto (${group.label})`}
-                    help={`${group.contextTerms.join(" y ")} solo cuenta si el titular trae una de estas palabras.`}
+                    help={contextHelp(group)}
                     baseId={baseId}
                     rows={3}
                     onEdit={() => setMessage(null)}
@@ -363,6 +363,11 @@ function TermsCard() {
     </Card>
   );
 }
+
+const contextHelp = (group: (typeof NEWS_TERM_GROUPS)[number]) =>
+  group.contextTerms === "all"
+    ? "Los términos de este grupo solo cuentan si el titular trae una de estas palabras, o si viene de un medio colombiano."
+    : `${group.contextTerms.join(" y ")} solo cuenta si el titular trae una de estas palabras, o si viene de un medio colombiano.`;
 
 interface WordsFieldProps {
   form: { Field: React.ComponentType<any> };

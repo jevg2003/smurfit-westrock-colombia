@@ -34,8 +34,8 @@ export interface NewsTermGroup {
   id: "company" | "sector" | "regulation" | "operations";
   label: string;
   terms: readonly string[];
-  /** Terms of this group that count only with a context word in the title (see `DEFAULT_NEWS_CONTEXT`). */
-  contextTerms: readonly string[];
+  /** Terms that count only with a context word in the title (see `DEFAULT_NEWS_CONTEXT`); "all" gates the whole group. */
+  contextTerms: readonly string[] | "all";
 }
 
 /** The context rules a user can edit for each group. */
@@ -82,12 +82,11 @@ export const DEFAULT_EXCLUDE_WORDS: readonly string[] = [
   "goles",
 ];
 
-const NO_CONTEXT_TERMS: readonly string[] = [];
-
 /**
  * Default terms. They are specific phrases on purpose: single generic words ("papel", "empaques")
- * match unrelated headlines. A place name such as Cauca only appears inside a longer phrase, and the
- * global company names carry context words (`contextTerms`).
+ * match unrelated headlines. A place name such as Cauca only appears inside a longer phrase. The global company
+ * names and every sector, regulation and operations term need a Colombian context word (`contextTerms`), because
+ * Google News also returns Argentine, Mexican or Spanish stories; Colombian outlets are exempt (see `COLOMBIAN_OUTLETS`).
  */
 export const NEWS_TERM_GROUPS: readonly NewsTermGroup[] = [
   {
@@ -110,7 +109,7 @@ export const NEWS_TERM_GROUPS: readonly NewsTermGroup[] = [
       "bag-in-box",
       "papel reciclado",
     ],
-    contextTerms: NO_CONTEXT_TERMS,
+    contextTerms: "all",
   },
   {
     id: "regulation",
@@ -123,7 +122,7 @@ export const NEWS_TERM_GROUPS: readonly NewsTermGroup[] = [
       "aprovechamiento de residuos",
       "economía circular",
     ],
-    contextTerms: NO_CONTEXT_TERMS,
+    contextTerms: "all",
   },
   {
     id: "operations",
@@ -137,15 +136,18 @@ export const NEWS_TERM_GROUPS: readonly NewsTermGroup[] = [
       "tasa de cambio",
       "dólar en Colombia",
     ],
-    contextTerms: NO_CONTEXT_TERMS,
+    contextTerms: "all",
   },
 ];
+
+/** Whether some term of the group needs context words. */
+export const hasContextTerms = (group: Pick<NewsTermGroup, "contextTerms">): boolean => group.contextTerms === "all" || group.contextTerms.length > 0;
 
 /** Default context rules of each group: Colombian context for the company group, the same exclusions for all. */
 export const DEFAULT_NEWS_CONTEXT: Readonly<Record<NewsTermGroup["id"], NewsContextRules>> = Object.fromEntries(
   NEWS_TERM_GROUPS.map((group) => [
     group.id,
-    { requireAny: group.contextTerms.length > 0 ? [...COLOMBIA_CONTEXT_WORDS] : [], excludeAny: [...DEFAULT_EXCLUDE_WORDS] },
+    { requireAny: hasContextTerms(group) ? [...COLOMBIA_CONTEXT_WORDS] : [], excludeAny: [...DEFAULT_EXCLUDE_WORDS] },
   ]),
 ) as Record<NewsTermGroup["id"], NewsContextRules>;
 

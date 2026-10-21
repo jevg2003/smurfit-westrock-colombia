@@ -1,4 +1,4 @@
-import { termName, type TermGroup, type TermSpec } from "@/core/text/match";
+import { termName, type TermGroup } from "@/core/text/match";
 import { parseFeed } from "./parse";
 import { toPlainText } from "./sanitize";
 
@@ -25,14 +25,6 @@ const FALLBACK_OUTLET = "Google News";
 /** Characters that could change the structure of a search query are removed from every term. */
 const cleanTerm = (term: string) => term.replace(/[^\p{L}\p{N} .&'-]+/gu, " ").replace(/\s+/g, " ").trim();
 
-/** `"term"`, or `"term" (word OR word)` for a term that needs context, so Google ranks Colombian results first. */
-function phraseOf(spec: TermSpec): string {
-  const term = cleanTerm(termName(spec));
-  if (!term) return "";
-  const context = typeof spec === "string" ? [] : spec.requireAny.map(cleanTerm).filter((word) => word.length > 0).slice(0, GOOGLE_NEWS_MAX_CONTEXT_WORDS);
-  return context.length > 0 ? `("${term}" (${context.map((word) => `"${word}"`).join(" OR ")}))` : `"${term}"`;
-}
-
 export interface GoogleNewsSearch {
   groupId: string;
   query: string;
@@ -48,7 +40,7 @@ export function buildGoogleNewsSearches(groups: readonly TermGroup[]): GoogleNew
   return groups
     .map((group) => {
       const phrases: string[] = [];
-      for (const phrase of group.terms.map(phraseOf).filter((value) => value.length > 0)) {
+      for (const phrase of group.terms.map((spec) => cleanTerm(termName(spec))).filter((value) => value.length > 0).map((term) => `"${term}"`)) {
         if (wrap([...phrases, phrase]).length > GOOGLE_NEWS_MAX_QUERY_LENGTH) break;
         phrases.push(phrase);
       }
