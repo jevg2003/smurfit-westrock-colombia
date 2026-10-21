@@ -67,4 +67,35 @@ describe("AssistantSheet", () => {
     await user.click(screen.getByRole("button", { name: "Asistente" }));
     expect(await screen.findByText("No veo datos de esta pantalla.")).toBeInTheDocument();
   });
+
+  it("lets the user switch to a previous sheet conversation from the Historial menu", async () => {
+    const conv = (id: string, title: string, updatedAt: string) => ({
+      id,
+      title,
+      mode: "sheet" as const,
+      createdAt: updatedAt,
+      updatedAt,
+      messages: [
+        { id: `u${id}`, role: "user" as const, parts: [{ type: "text" as const, text: `Pregunta ${title}` }] },
+        { id: `a${id}`, role: "assistant" as const, parts: [{ type: "text" as const, text: `Respuesta ${title}` }] },
+      ],
+      feedback: {},
+    });
+    useChatStore.setState({
+      conversations: [conv("1", "Vieja", "2026-10-18T10:00:00.000Z"), conv("2", "Reciente", "2026-10-19T10:00:00.000Z")],
+      activeId: null,
+    });
+    const user = userEvent.setup();
+    render(
+      <PageContextProvider>
+        <AssistantSheet />
+      </PageContextProvider>,
+    );
+    await user.click(screen.getByRole("button", { name: "Asistente" }));
+    expect(await screen.findByText("Respuesta Reciente")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Historial" }));
+    await user.click(await screen.findByRole("menuitem", { name: /Vieja/ }));
+    expect(await screen.findByText("Respuesta Vieja")).toBeInTheDocument();
+  });
 });

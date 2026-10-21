@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -48,8 +48,9 @@ describe("AssistantPage in StrictMode (next dev)", () => {
     );
     await user.type(await screen.findByLabelText("Mensaje para el asistente"), "Hola asistente{Enter}");
 
-    expect(await screen.findByText("Hola asistente")).toBeInTheDocument();
-    expect(await screen.findByText("Respuesta lista")).toBeInTheDocument();
+    const log = await screen.findByRole("log", { name: "Conversación con el asistente" });
+    expect(await within(log).findByText("Hola asistente")).toBeInTheDocument();
+    expect(await within(log).findByText("Respuesta lista")).toBeInTheDocument();
     await waitFor(() => expect(useChatStore.getState().conversations[0].messages.length).toBe(2));
   });
 });

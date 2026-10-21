@@ -1,8 +1,9 @@
 "use client";
 
-import { PlusIcon, SparklesIcon, XIcon } from "lucide-react";
+import { HistoryIcon, PlusIcon, SparklesIcon, XIcon } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuGroup, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Marker, MarkerContent } from "@/components/ui/marker";
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -10,6 +11,7 @@ import { selectResumeList, useChatStore } from "@/stores/chat.store";
 import { ChatSession } from "./chat-session";
 import { Composer } from "./composer";
 import { useCurrentPageContext } from "./page-context";
+import { relativeTime } from "./relative-time";
 import { useChatHydrated } from "./use-chat-hydration";
 
 function SheetBody() {
@@ -31,6 +33,8 @@ function SheetBody() {
     setPending({ id, text });
   };
 
+  const history = selectResumeList({ conversations }, "sheet").slice(0, 10);
+
   if (!hydrated) return <Skeleton role="status" aria-label="Cargando conversaciones" className="mx-4 h-48 rounded-xl" />;
 
   return (
@@ -41,6 +45,25 @@ function SheetBody() {
             {pageContext ? `Viendo: ${pageContext.title}` : "No veo datos de esta pantalla."}
           </MarkerContent>
         </Marker>
+        {history.length > 0 && (
+          <DropdownMenu>
+            <DropdownMenuTrigger render={<Button variant="outline" size="xs" />}>
+              <HistoryIcon aria-hidden="true" data-icon="inline-start" />
+              Historial
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-64">
+              <DropdownMenuGroup>
+                <DropdownMenuLabel>Conversaciones anteriores</DropdownMenuLabel>
+                {history.map((conversation) => (
+                  <DropdownMenuItem key={conversation.id} onClick={() => setCurrentId(conversation.id)}>
+                    <span className="min-w-0 flex-1 truncate">{conversation.title}</span>
+                    <span className="shrink-0 text-xs text-muted-foreground">{relativeTime(conversation.updatedAt)}</span>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
         {active && (
           <Button variant="outline" size="xs" onClick={() => setCurrentId(null)}>
             <PlusIcon aria-hidden="true" data-icon="inline-start" />

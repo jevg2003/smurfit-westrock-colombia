@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useChatStore } from "@/stores/chat.store";
@@ -28,10 +28,10 @@ describe("AssistantPage", () => {
     expect(await screen.findByRole("button", { name: "¿Qué contratos vencen pronto?" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Compara a los competidores" })).toBeInTheDocument();
     expect(screen.getByText("La IA puede equivocarse. Verifica las fuentes.")).toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "Retomar" })).toBeNull();
+    expect(screen.getByText("Aún no hay conversaciones")).toBeInTheDocument();
   });
 
-  it("lists previous conversations to resume, latest first", async () => {
+  it("lists previous conversations in the history sidebar and resumes one", async () => {
     useChatStore.setState({
       conversations: [
         {
@@ -46,8 +46,10 @@ describe("AssistantPage", () => {
       ],
     });
     render(<AssistantPage />);
-    expect(await screen.findByRole("heading", { name: "Retomar" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Contratos de la semana" })).toBeInTheDocument();
+    const history = await screen.findByRole("complementary", { name: "Historial de conversaciones" });
+    await userEvent.click(within(history).getByRole("button", { name: "Contratos de la semana" }));
+    expect(await screen.findByRole("log", { name: "Conversación con el asistente" })).toBeInTheDocument();
+    expect(useChatStore.getState().activeId).toBe("a");
   });
 
   it("sends a suggestion in page mode without page context and streams the answer with a source link", async () => {
@@ -92,5 +94,28 @@ describe("AssistantPage", () => {
     expect(alert).toHaveTextContent("Asistente no disponible");
     expect(alert).toHaveTextContent("falta la clave");
     expect(screen.getByRole("button", { name: "Reintentar" })).toBeInTheDocument();
+  });
+
+  it("opens the history in a drawer from the Historial button (mobile)", async () => {
+    useChatStore.setState({
+      conversations: [
+        {
+          id: "a",
+          title: "Contratos de la semana",
+          mode: "page",
+          createdAt: "2026-10-19T10:00:00.000Z",
+          updatedAt: "2026-10-19T10:05:00.000Z",
+          messages: [{ id: "m", role: "user", parts: [{ type: "text", text: "Contratos de la semana" }] }],
+          feedback: {},
+        },
+      ],
+    });
+    const user = userEvent.setup();
+    render(<AssistantPage />);
+    await user.click(await screen.findByRole("button", { name: "Historial" }));
+    const drawer = await screen.findByRole("dialog");
+    await user.click(within(drawer).getByRole("button", { name: "Contratos de la semana" }));
+    expect(useChatStore.getState().activeId).toBe("a");
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   });
 });
