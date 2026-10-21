@@ -1,10 +1,11 @@
 "use client";
 
+import { revalidateLogic, useForm } from "@tanstack/react-form";
 import { ExternalLinkIcon } from "lucide-react";
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { Badge } from "@/components/reui/badge";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
+import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import {
   Sheet,
   SheetContent,
@@ -23,6 +24,7 @@ import { safeHttpUrl } from "@/lib/safe-url";
 import { useAlertsStore } from "@/stores/alerts.store";
 import { dismissSignal, reviewSignal } from "./alert-actions";
 import { AlertStateBadge, DimensionBadge, SeverityBadge } from "./badges";
+import { noteSchema, type NoteIntent } from "./note-schema";
 
 interface Props {
   signal: Signal | null;
@@ -51,25 +53,25 @@ export function SignalDetailSheet({ signal, onOpenChange }: Props) {
 
 function SheetBody({ signal, onDone }: { signal: Signal; onDone: () => void }) {
   const noteId = useId();
-  const errorId = useId();
+  const formId = useId();
   const alert = useAlertsStore((state) => state.alerts.find((item) => item.signalId === signal.id));
-  const [note, setNote] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  // Which button was pressed; the schema reads it, so only "Descartar" demands a note.
+  const intent = useRef<NoteIntent>("review");
+  const [storeError, setStoreError] = useState<string | null>(null);
 
   const state = alert?.state ?? "new";
   const canAct = state !== "dismissed";
 
-  const review = () => {
-    const result = reviewSignal(signal, note);
-    if (!result.ok) return setError(result.error.message);
-    onDone();
-  };
-
-  const dismiss = () => {
-    const result = dismissSignal(signal, note);
-    if (!result.ok) return setError(result.error.message);
-    onDone();
-  };
+  const form = useForm({
+    defaultValues: { note: "" },
+    validationLogic: revalidateLogic(),
+    validators: { onDynamic: noteSchema(() => intent.current) },
+    onSubmit: ({ value }) => {
+      const result = intent.current === "dismiss" ? dismissSignal(signal, value.note) : reviewSignal(signal, value.note);
+      if (!result.ok) return setStoreError(result.error.message);
+      onDone();
+    },
+  });
 
   return (
     <>
@@ -156,26 +158,43 @@ function SheetBody({ signal, onDone }: { signal: Signal; onDone: () => void }) {
             </p>
           )}
           {canAct ? (
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor={noteId}>Nota (obligatoria para descartar)</Label>
-              <Textarea
-                id={noteId}
-                value={note}
-                rows={3}
-                aria-invalid={error ? true : undefined}
-                aria-describedby={error ? errorId : undefined}
-                placeholder="Por ejemplo: contrato ya renovado"
-                onChange={(event) => {
-                  setNote(event.target.value);
-                  setError(null);
+            <form
+              id={formId}
+              noValidate
+              onSubmit={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                void form.handleSubmit();
+              }}
+            >
+              <form.Field name="note">
+                {(field) => {
+                  const invalid = !field.state.meta.isValid || storeError !== null;
+                  return (
+                    <Field data-invalid={invalid}>
+                      <FieldLabel htmlFor={noteId}>Nota (obligatoria para descartar)</FieldLabel>
+                      <Textarea
+                        id={noteId}
+                        value={field.state.value}
+                        rows={3}
+                        aria-invalid={invalid || undefined}
+                        placeholder="Por ejemplo: contrato ya renovado"
+                        onBlur={field.handleBlur}
+                        onChange={(event) => {
+                          field.handleChange(event.target.value);
+                          setStoreError(null);
+                        }}
+                      />
+                      {!field.state.meta.isValid ? (
+                        <FieldError errors={field.state.meta.errors} />
+                      ) : (
+                        storeError && <FieldError>{storeError}</FieldError>
+                      )}
+                    </Field>
+                  );
                 }}
-              />
-              {error && (
-                <p id={errorId} role="alert" className="text-xs text-destructive-foreground">
-                  {error}
-                </p>
-              )}
-            </div>
+              </form.Field>
+            </form>
           ) : (
             !alert?.note && <p className="text-sm text-muted-foreground">Esta alerta fue descartada.</p>
           )}
@@ -185,11 +204,25 @@ function SheetBody({ signal, onDone }: { signal: Signal; onDone: () => void }) {
       {canAct && (
         <SheetFooter className="flex-row flex-wrap justify-end gap-2">
           {state === "new" && (
-            <Button variant="outline" onClick={review}>
+            <Button
+              type="submit"
+              form={formId}
+              variant="outline"
+              onClick={() => {
+                intent.current = "review";
+              }}
+            >
               Marcar revisada
             </Button>
           )}
-          <Button variant="destructive" onClick={dismiss}>
+          <Button
+            type="submit"
+            form={formId}
+            variant="destructive"
+            onClick={() => {
+              intent.current = "dismiss";
+            }}
+          >
             Descartar
           </Button>
         </SheetFooter>
