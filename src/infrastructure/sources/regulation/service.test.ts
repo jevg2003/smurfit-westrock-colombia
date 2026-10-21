@@ -7,7 +7,7 @@ import { loadRegulation } from "./service";
 const minambiente = readFileSync(new URL("../rss/fixtures/minambiente.sample.xml", import.meta.url), "utf8");
 const decrees = readFileSync(new URL("./fixtures/decretos.sample.json", import.meta.url), "utf8");
 const NOW = new Date("2026-10-20T15:00:00.000Z");
-const FLAGS = { newsRss: true, googleNews: true, minambiente: true, presidencia: true };
+const FLAGS = { newsRss: true, googleNews: true, minambiente: true, presidencia: true, xm: true };
 
 function fakeFetch(failures: { minambiente?: boolean; presidencia?: boolean } = {}) {
   const calls: string[] = [];

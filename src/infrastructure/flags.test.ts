@@ -3,7 +3,7 @@ import { readFlags } from "./flags";
 
 describe("readFlags", () => {
   it("defaults every source to on", () => {
-    expect(readFlags({})).toMatchObject({ newsRss: true, googleNews: true, minambiente: true, presidencia: true });
+    expect(readFlags({})).toMatchObject({ newsRss: true, googleNews: true, minambiente: true, presidencia: true, xm: true });
   });
 
   it("turns a source off with false, 0, off or no (any case)", () => {
@@ -14,6 +14,11 @@ describe("readFlags", () => {
       FEATURE_PRESIDENCIA: " No ",
     });
     expect(flags).toMatchObject({ newsRss: false, googleNews: false, minambiente: false, presidencia: false });
+  });
+
+  it("turns XM off with FEATURE_XM=false and leaves it on by default", () => {
+    expect(readFlags({ FEATURE_XM: "false" }).xm).toBe(false);
+    expect(readFlags({}).xm).toBe(true);
   });
 
   it("keeps a source on for any other value", () => {

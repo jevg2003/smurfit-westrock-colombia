@@ -12,6 +12,8 @@ export interface SourceFlags {
   minambiente: boolean;
   /** Presidencia decrees dataset. */
   presidencia: boolean;
+  /** XM national spot electricity price (public API, no CORS: read on the server). */
+  xm: boolean;
 }
 
 type Env = Record<string, string | undefined>;
@@ -29,5 +31,6 @@ export function readFlags(env: Env = process.env): SourceFlags {
     googleNews: isOn(env.FEATURE_GOOGLE_NEWS),
     minambiente: isOn(env.FEATURE_MINAMBIENTE),
     presidencia: isOn(env.FEATURE_PRESIDENCIA),
+    xm: isOn(env.FEATURE_XM),
   };
 }

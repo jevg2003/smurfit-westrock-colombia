@@ -8,7 +8,7 @@ import { loadNews } from "./service";
 
 const fixture = (name: string) => readFileSync(new URL(`./fixtures/${name}`, import.meta.url), "utf8");
 const NOW = new Date("2026-10-21T01:00:00.000Z");
-const FLAGS = { newsRss: true, googleNews: true, minambiente: true, presidencia: true };
+const FLAGS = { newsRss: true, googleNews: true, minambiente: true, presidencia: true, xm: true };
 
 const GOOGLE_URLS = buildGoogleNewsQueries(NEWS_TERM_GROUPS).map(buildGoogleNewsUrl);
 
