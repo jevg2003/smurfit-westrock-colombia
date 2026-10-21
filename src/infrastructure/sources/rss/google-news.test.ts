@@ -10,7 +10,7 @@ describe("buildGoogleNewsQueries", () => {
     const queries = buildGoogleNewsQueries(NEWS_TERM_GROUPS);
     expect(queries.length).toBeGreaterThan(0);
     expect(queries.length).toBeLessThanOrEqual(GOOGLE_NEWS_MAX_QUERIES);
-    expect(queries[0]).toBe('"Cartón de Colombia" OR "Smurfit Westrock" OR "Cartones América" OR "Carvajal Empaques" OR "Papeles y Cartones"');
+    expect(queries[0]).toBe('"Cartón de Colombia" OR "Smurfit Westrock" OR "Smurfit Kappa" OR "Cartones América" OR "Carvajal Empaques" OR "Papeles y Cartones"');
   });
 
   it("limits terms per query, skips empty terms and empty groups", () => {

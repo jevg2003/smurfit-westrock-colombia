@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist, type StateStorage } from "zustand/middleware";
 import type { Result } from "@/core/domain/result";
-import { DEFAULT_NEWS_TERMS, DEFAULT_THRESHOLDS, NEWS_TERM_GROUPS, type NewsTermGroup, type Thresholds } from "@/content/config/empresa";
+import { DEFAULT_NEWS_TERMS, DEFAULT_THRESHOLDS, LEGACY_NEWS_TERM_GROUPS, NEWS_TERM_GROUPS, type NewsTermGroup, type Thresholds } from "@/content/config/empresa";
 import { browserStorage } from "./browser-storage";
 
 export const PREFERENCES_STORAGE_KEY = "swc:preferences:v1";
@@ -27,6 +27,22 @@ const cleanTerms = (terms: string[]) => [...new Set(terms.map((term) => term.tri
 
 const defaultGroups = () =>
   Object.fromEntries(NEWS_TERM_GROUPS.map((group) => [group.id, [...group.terms]])) as Record<NewsTermGroupId, string[]>;
+
+const sameTerms = (a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((term, index) => term === b[index]);
+
+/**
+ * Version 1 -> 2: groups that still hold the old generic defaults get the new phrase defaults.
+ * A group the user edited in any way is left alone.
+ */
+function upgradeLegacyNewsTerms(saved: Partial<PreferencesState> | undefined): Partial<PreferencesState> | undefined {
+  if (!saved?.newsTermGroups) return saved;
+  const newsTermGroups = { ...saved.newsTermGroups };
+  for (const group of NEWS_TERM_GROUPS) {
+    const current = newsTermGroups[group.id];
+    if (current && sameTerms(current, LEGACY_NEWS_TERM_GROUPS[group.id])) newsTermGroups[group.id] = [...group.terms];
+  }
+  return { ...saved, newsTermGroups, newsTerms: cleanTerms(Object.values(newsTermGroups).flat()) };
+}
 
 const defaults = () => ({
   thresholds: { ...DEFAULT_THRESHOLDS } as Thresholds,
@@ -58,9 +74,10 @@ export function createPreferencesStore({ storage }: { storage?: StateStorage } =
       }),
       {
         name: PREFERENCES_STORAGE_KEY,
-        version: 1,
+        version: 2,
         storage: browserStorage(storage),
         skipHydration: true,
+        migrate: (persisted, version) => (version < 2 ? upgradeLegacyNewsTerms(persisted as Partial<PreferencesState> | undefined) : persisted) as PreferencesState,
         // Thresholds added in later releases must keep their defaults when old data is loaded.
         merge: (persisted, current) => {
           const saved = (persisted ?? {}) as Partial<PreferencesState>;

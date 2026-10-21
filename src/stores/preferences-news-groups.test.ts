@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { NEWS_TERM_GROUPS } from "@/content/config/empresa";
+import { DEFAULT_NEWS_TERMS, LEGACY_NEWS_TERM_GROUPS, NEWS_TERM_GROUPS } from "@/content/config/empresa";
 import { createPreferencesStore } from "./preferences.store";
 import { createMemoryStorage } from "./test-utils";
 
@@ -48,5 +48,49 @@ describe("preferences news term groups", () => {
     await store.persist.rehydrate();
     expect(store.getState().newsTermGroups.company.length).toBeGreaterThan(0);
     expect(store.getState().thresholds.trmDailyMovePct).toBe(1.5);
+  });
+});
+
+describe("preferences news term defaults migration", () => {
+  const persisted = (state: object) =>
+    createMemoryStorage({ "swc:preferences:v1": JSON.stringify({ state, version: 1 }) });
+
+  it("replaces groups that still hold the old defaults with the new defaults", async () => {
+    const store = createPreferencesStore({
+      storage: persisted({
+        newsTermGroups: Object.fromEntries(Object.entries(LEGACY_NEWS_TERM_GROUPS).map(([id, terms]) => [id, [...terms]])),
+      }),
+    });
+    await store.persist.rehydrate();
+    const groups = store.getState().newsTermGroups;
+    for (const group of NEWS_TERM_GROUPS) expect(groups[group.id]).toEqual([...group.terms]);
+    expect(groups.sector).not.toContain("papel");
+    expect(store.getState().newsTerms).toEqual([...DEFAULT_NEWS_TERMS]);
+  });
+
+  it("keeps customised groups and still upgrades the untouched ones", async () => {
+    const store = createPreferencesStore({
+      storage: persisted({
+        newsTermGroups: {
+          company: [...LEGACY_NEWS_TERM_GROUPS.company],
+          sector: ["papel", "mi término"],
+          regulation: [...LEGACY_NEWS_TERM_GROUPS.regulation],
+          operations: [...LEGACY_NEWS_TERM_GROUPS.operations],
+        },
+      }),
+    });
+    await store.persist.rehydrate();
+    const groups = store.getState().newsTermGroups;
+    expect(groups.sector).toEqual(["papel", "mi término"]);
+    expect(groups.company).toEqual([...NEWS_TERM_GROUPS[0].terms]);
+  });
+
+  it("does not touch groups saved by the current version", async () => {
+    const storage = createMemoryStorage();
+    const first = createPreferencesStore({ storage });
+    first.getState().setNewsTermGroup("sector", ["papel"]);
+    const second = createPreferencesStore({ storage });
+    await second.persist.rehydrate();
+    expect(second.getState().newsTermGroups.sector).toEqual(["papel"]);
   });
 });

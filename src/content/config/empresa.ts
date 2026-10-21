@@ -36,28 +36,69 @@ export interface NewsTermGroup {
   terms: readonly string[];
 }
 
+/**
+ * Default terms. They are specific phrases on purpose: single generic words ("papel", "empaques")
+ * match unrelated headlines. The matcher has no AND, so a place name such as Cauca only appears
+ * inside a longer phrase.
+ */
 export const NEWS_TERM_GROUPS: readonly NewsTermGroup[] = [
   {
     id: "company",
     label: "Empresa y competidores",
-    terms: [COMPANY.name, "Smurfit Westrock", ...COMPETITORS.map((competitor) => competitor.name)],
+    terms: [COMPANY.name, "Smurfit Westrock", "Smurfit Kappa", ...COMPETITORS.map((competitor) => competitor.name)],
   },
   {
     id: "sector",
     label: "Sector",
-    terms: ["cartón corrugado", "empaques", "papel", "celulosa", "bag-in-box"],
+    terms: [
+      "cartón corrugado",
+      "empaques de cartón",
+      "papel kraft",
+      "industria papelera",
+      "industria del cartón",
+      "celulosa",
+      "empaque sostenible",
+      "bag-in-box",
+      "papel reciclado",
+    ],
   },
   {
     id: "regulation",
     label: "Regulación y sostenibilidad",
-    terms: ["REP envases", "Resolución 1407", "Ley 2232", "reciclaje", "aprovechamiento"],
+    terms: [
+      "REP envases",
+      "responsabilidad extendida del productor",
+      "Resolución 1407",
+      "Ley 2232",
+      "aprovechamiento de residuos",
+      "economía circular",
+    ],
   },
   {
     id: "operations",
     label: "Riesgos operativos",
-    terms: ["gas natural", "Yumbo", "Cauca", "paro camionero", "TRM", "dólar"],
+    terms: [
+      "precio del gas natural",
+      "gas natural Colombia",
+      "paro camionero",
+      "Yumbo",
+      "plantaciones forestales Cauca",
+      "tasa de cambio",
+      "dólar en Colombia",
+    ],
   },
 ];
+
+/**
+ * The defaults shipped before the phrases above. A saved group that still equals its legacy default
+ * was never edited by the user, so the preferences migration replaces it with the new default.
+ */
+export const LEGACY_NEWS_TERM_GROUPS: Readonly<Record<NewsTermGroup["id"], readonly string[]>> = {
+  company: ["Cartón de Colombia", "Smurfit Westrock", "Cartones América", "Carvajal Empaques", "Papeles y Cartones"],
+  sector: ["cartón corrugado", "empaques", "papel", "celulosa", "bag-in-box"],
+  regulation: ["REP envases", "Resolución 1407", "Ley 2232", "reciclaje", "aprovechamiento"],
+  operations: ["gas natural", "Yumbo", "Cauca", "paro camionero", "TRM", "dólar"],
+};
 
 export const DEFAULT_NEWS_TERMS: readonly string[] = NEWS_TERM_GROUPS.flatMap((group) => group.terms);
 
