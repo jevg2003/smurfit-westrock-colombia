@@ -1,6 +1,8 @@
+import type { DecisionStatus } from "./domain/decision";
 import type { AlertState } from "./domain/alert";
 import type { Dimension, Severity } from "./domain/dimension";
 import type { IndicatorId } from "./domain/observation";
+import type { Impact } from "./rules/pestel-mapping";
 
 /** Fixed display order of the dimensions in briefings. */
 export const DIMENSION_ORDER: readonly Dimension[] = ["procurement", "competitors", "market", "regulation", "macro"];
@@ -30,4 +32,17 @@ export const INDICATOR_LABELS: Record<IndicatorId, string> = {
   pib: "PIB real",
   ipc_anual: "Inflación anual (IPC)",
   exportaciones: "Exportaciones",
+};
+
+export const IMPACT_LABELS: Record<Impact, string> = {
+  opportunity: "Oportunidad",
+  threat: "Amenaza",
+  to_evaluate: "Por evaluar",
+};
+
+export const DECISION_STATUS_LABELS: Record<DecisionStatus, string> = {
+  open: "Abierta",
+  evaluating: "En evaluación",
+  decided: "Decidida",
+  discarded: "Descartada",
 };
