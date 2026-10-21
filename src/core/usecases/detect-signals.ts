@@ -1,5 +1,6 @@
 import type { PublicContract } from "../domain/contract";
 import type { NewsItem } from "../domain/news";
+import type { Observation } from "../domain/observation";
 import type { RegulationItem } from "../domain/regulation";
 import type { Signal } from "../domain/signal";
 import type { Clock } from "../ports/clock";
@@ -25,6 +26,8 @@ export interface SignalInputs {
   regulationItems?: readonly RegulationItem[];
   /** Keywords that make a regulation item relevant, and terms that rule it out. */
   regulationTerms?: { include: readonly string[]; exclude: readonly string[] };
+  /** Daily mean national spot electricity prices (XM). Absent when the source is off or failed. */
+  energySpot?: readonly Observation[];
 }
 
 /** A rule adapted to the shared inputs. Pure: no I/O, time only through the clock. */

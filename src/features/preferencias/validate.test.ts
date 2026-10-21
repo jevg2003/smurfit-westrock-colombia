@@ -8,10 +8,19 @@ const fields = (overrides: Partial<ThresholdFields> = {}): ThresholdFields => ({
   contractExpiryWatchDays: "90",
   contractExpiryAlertDays: "30",
   competitorContractWindowDays: "30",
+  energySpotWeeklyMovePct: "15",
+  energySpotWeeklyAlertPct: "30",
   ...overrides,
 });
 
 describe("validateThresholds", () => {
+  it("requires the energy alert level to be at least the watch level", () => {
+    const inverted = validateThresholds(fields({ energySpotWeeklyMovePct: "20", energySpotWeeklyAlertPct: "10" }));
+    expect(inverted.ok).toBe(false);
+    if (!inverted.ok) expect(inverted.errors.energySpotWeeklyAlertPct).toMatch(/igual o mayor/);
+    expect(validateThresholds(fields({ energySpotWeeklyMovePct: "12,5" })).ok).toBe(true);
+  });
+
   it("accepts the defaults, with a decimal comma", () => {
     const result = validateThresholds(fields({ trmDailyMovePct: "1,5", trmDailyAlertPct: "3" }));
     expect(result).toEqual({ ok: true, value: { ...DEFAULT_THRESHOLDS, trmDailyMovePct: 1.5, trmDailyAlertPct: 3 } });

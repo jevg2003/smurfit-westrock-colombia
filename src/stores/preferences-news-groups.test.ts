@@ -31,6 +31,15 @@ describe("preferences news term groups", () => {
     expect(fresh.getState().newsTermGroups.operations).toEqual([...NEWS_TERM_GROUPS[3].terms]);
   });
 
+  it("gives the energy spot thresholds their defaults when old persisted data lacks them", async () => {
+    const storage = createMemoryStorage({
+      "swc:preferences:v1": JSON.stringify({ state: { thresholds: { trmDailyMovePct: 1.5 } }, version: 1 }),
+    });
+    const store = createPreferencesStore({ storage });
+    await store.persist.rehydrate();
+    expect(store.getState().thresholds).toMatchObject({ trmDailyMovePct: 1.5, energySpotWeeklyMovePct: 15, energySpotWeeklyAlertPct: 30 });
+  });
+
   it("keeps the default groups when old persisted data has none", async () => {
     const storage = createMemoryStorage({
       "swc:preferences:v1": JSON.stringify({ state: { thresholds: { trmDailyMovePct: 1.5 }, newsTerms: ["a"] }, version: 1 }),

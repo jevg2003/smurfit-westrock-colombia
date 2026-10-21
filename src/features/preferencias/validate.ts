@@ -19,6 +19,8 @@ const RULES: Record<ThresholdKey, Rule> = {
   contractExpiryWatchDays: { integer: true, max: 730 },
   contractExpiryAlertDays: { integer: true, max: 730 },
   competitorContractWindowDays: { integer: true, max: 365 },
+  energySpotWeeklyMovePct: { integer: false, max: 200 },
+  energySpotWeeklyAlertPct: { integer: false, max: 200 },
 };
 
 /** Accepts a decimal comma ("1,5") as well as a point. */
@@ -53,6 +55,11 @@ export function validateThresholds(fields: ThresholdFields): Validation<Threshol
   if (values.trmDailyMovePct !== undefined && values.trmDailyAlertPct !== undefined && !errors.trmDailyAlertPct) {
     if (values.trmDailyAlertPct < values.trmDailyMovePct) {
       errors.trmDailyAlertPct = "El umbral de alerta debe ser igual o mayor que el de vigilar.";
+    }
+  }
+  if (values.energySpotWeeklyMovePct !== undefined && values.energySpotWeeklyAlertPct !== undefined && !errors.energySpotWeeklyAlertPct) {
+    if (values.energySpotWeeklyAlertPct < values.energySpotWeeklyMovePct) {
+      errors.energySpotWeeklyAlertPct = "El umbral de alerta debe ser igual o mayor que el de vigilar.";
     }
   }
   if (values.contractExpiryWatchDays !== undefined && values.contractExpiryAlertDays !== undefined && !errors.contractExpiryAlertDays) {
@@ -91,6 +98,8 @@ export const thresholdsSchema = z
     contractExpiryWatchDays: z.string(),
     contractExpiryAlertDays: z.string(),
     competitorContractWindowDays: z.string(),
+    energySpotWeeklyMovePct: z.string(),
+    energySpotWeeklyAlertPct: z.string(),
   })
   .superRefine((fields, ctx) => {
     const result = validateThresholds(fields);

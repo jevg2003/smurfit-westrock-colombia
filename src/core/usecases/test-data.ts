@@ -17,6 +17,8 @@ export const THRESHOLDS = {
   contractExpiryWatchDays: 90,
   contractExpiryAlertDays: 30,
   competitorContractWindowDays: 30,
+  energySpotWeeklyMovePct: 15,
+  energySpotWeeklyAlertPct: 30,
 };
 
 export function makeInputs(overrides: Partial<SignalInputs> = {}): SignalInputs {

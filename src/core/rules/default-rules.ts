@@ -1,5 +1,6 @@
 import type { SignalRule } from "../usecases/detect-signals";
 import { detectCompetitorNewContracts } from "./secop-competitor-new-contract";
+import { detectEnergySpotWeeklyMoveSignals } from "./energy-spot-weekly-move";
 import { detectNewsKeywordMentions } from "./news-keyword-mention";
 import { detectRegulationMentions } from "./regulation-keyword-mention";
 import { detectExpiringContracts } from "./secop-expiring-contract";
@@ -38,5 +39,13 @@ export const DEFAULT_SIGNAL_RULES: readonly SignalRule[] = [
       include: inputs.regulationTerms?.include ?? [],
       exclude: inputs.regulationTerms?.exclude ?? [],
       clock,
+    }),
+  (inputs, _clock, thresholds) =>
+    detectEnergySpotWeeklyMoveSignals({
+      observations: inputs.energySpot ?? [],
+      thresholds: {
+        energySpotWeeklyMovePct: thresholds.energySpotWeeklyMovePct,
+        energySpotWeeklyAlertPct: thresholds.energySpotWeeklyAlertPct,
+      },
     }),
 ];

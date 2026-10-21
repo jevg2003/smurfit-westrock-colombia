@@ -46,6 +46,26 @@ const THRESHOLD_FIELDS: { title: string; description: string; fields: FieldSpec[
     ],
   },
   {
+    title: "Energía eléctrica (XM)",
+    description: "Cuánto debe moverse el precio de bolsa de la electricidad, de una semana a otra, para que salga una señal.",
+    fields: [
+      {
+        key: "energySpotWeeklyMovePct",
+        label: "Variación semanal del precio de bolsa para vigilar",
+        help: "Compara el promedio de los últimos 7 días con los 7 días anteriores.",
+        unit: "%",
+        inputMode: "decimal",
+      },
+      {
+        key: "energySpotWeeklyAlertPct",
+        label: "Variación semanal del precio de bolsa para alertar",
+        help: "Desde este cambio, la señal pasa de vigilar a alerta.",
+        unit: "%",
+        inputMode: "decimal",
+      },
+    ],
+  },
+  {
     title: "Contratos de la empresa",
     description: "Cuántos días antes del fin de un contrato quieres que te avisemos.",
     fields: [
@@ -86,6 +106,8 @@ const toFields = (thresholds: Thresholds): ThresholdFields => ({
   contractExpiryWatchDays: String(thresholds.contractExpiryWatchDays),
   contractExpiryAlertDays: String(thresholds.contractExpiryAlertDays),
   competitorContractWindowDays: String(thresholds.competitorContractWindowDays),
+  energySpotWeeklyMovePct: String(thresholds.energySpotWeeklyMovePct),
+  energySpotWeeklyAlertPct: String(thresholds.energySpotWeeklyAlertPct),
 });
 
 /** Thresholds and news terms. The page waits for the stores to load so the form starts from saved values. */

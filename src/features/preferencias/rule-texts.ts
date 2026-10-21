@@ -1,5 +1,6 @@
 import { COMPANY, COMPETITORS, type Thresholds } from "@/content/config/empresa";
 import type { PublicContract } from "@/core/domain/contract";
+import { ENERGY_SPOT_WEEKLY_MOVE_RULE_ID } from "@/core/rules/energy-spot-weekly-move";
 import { detectCompetitorNewContracts } from "@/core/rules/secop-competitor-new-contract";
 import { detectExpiringContracts } from "@/core/rules/secop-expiring-contract";
 import { buildTrmDaySignal } from "@/core/rules/trm-daily-move";
@@ -45,6 +46,11 @@ export function activeRuleTexts(thresholds: Thresholds): RuleText[] {
       id: "trm.daily-move.v1",
       title: "Movimiento diario de la TRM",
       text: `${buildTrmDaySignal({ date: "2026-01-01", thresholdPct: thresholds.trmDailyMovePct, fetchedAt: "2026-01-01T00:00:00.000Z" }).ruleText}. Alerta desde ${thresholds.trmDailyAlertPct}%.`,
+    },
+    {
+      id: ENERGY_SPOT_WEEKLY_MOVE_RULE_ID,
+      title: "Precio de bolsa de la energía eléctrica",
+      text: `Precio de bolsa de energía: promedio de 7 días con variación de ${thresholds.energySpotWeeklyMovePct}% o más frente a los 7 días anteriores. Alerta desde ${thresholds.energySpotWeeklyAlertPct}%.`,
     },
     { id: "secop.expiring-contract.v1", title: "Contratos por vencer", text: expiring[0]?.ruleText ?? "" },
     { id: "secop.competitor-new-contract.v1", title: "Contratos nuevos de competidores", text: newContract[0]?.ruleText ?? "" },

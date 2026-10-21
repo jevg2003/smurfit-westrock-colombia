@@ -22,6 +22,10 @@ export const DEFAULT_THRESHOLDS = {
   competitorContractWindowDays: 30,
   /** Daily TRM move (percent) from which the signal becomes an alert. */
   trmDailyAlertPct: 2,
+  /** Week-over-week move (percent) of the spot electricity price (XM) that goes on watch. */
+  energySpotWeeklyMovePct: 15,
+  /** Week-over-week move (percent) of the spot electricity price from which the signal is an alert. */
+  energySpotWeeklyAlertPct: 30,
 } as const;
 
 export type Thresholds = { [K in keyof typeof DEFAULT_THRESHOLDS]: number };
