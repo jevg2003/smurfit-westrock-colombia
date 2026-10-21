@@ -122,10 +122,10 @@ export function CompetidoresView() {
 
       <div className="flex flex-col gap-2">
         {finances.view.status === "error" && (
-          <ErrorState source="Supersociedades" message={finances.view.errorMessage ?? "Error desconocido."} onRetry={finances.view.retry} />
+          <ErrorState source="Supersociedades" message={finances.view.errorMessage ?? "Error desconocido."} kind={finances.view.errorKind} onRetry={finances.view.retry} />
         )}
         {secop.view.status === "error" && (
-          <ErrorState source="SECOP II" message={secop.view.errorMessage ?? "Error desconocido."} onRetry={secop.view.retry} />
+          <ErrorState source="SECOP II" message={secop.view.errorMessage ?? "Error desconocido."} kind={secop.view.errorKind} onRetry={secop.view.retry} />
         )}
         {finances.view.isStale && <StaleNotice source="Supersociedades" updatedAt={finances.view.updatedAt} />}
         {secop.view.isStale && <StaleNotice source="SECOP II" updatedAt={secop.view.updatedAt} />}

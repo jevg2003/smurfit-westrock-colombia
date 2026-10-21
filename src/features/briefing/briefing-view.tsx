@@ -105,10 +105,10 @@ export function BriefingView() {
           <p className="text-xs text-muted-foreground">Elige las fechas. Mientras tanto se usa la semana anterior.</p>
         )}
         {data.trm.status === "error" && (
-          <ErrorState source="la TRM" message={data.trm.errorMessage ?? "Error desconocido."} onRetry={data.trm.retry} />
+          <ErrorState source="la TRM" message={data.trm.errorMessage ?? "Error desconocido."} kind={data.trm.errorKind} onRetry={data.trm.retry} />
         )}
         {data.secop.status === "error" && (
-          <ErrorState source="SECOP II" message={data.secop.errorMessage ?? "Error desconocido."} onRetry={data.secop.retry} />
+          <ErrorState source="SECOP II" message={data.secop.errorMessage ?? "Error desconocido."} kind={data.secop.errorKind} onRetry={data.secop.retry} />
         )}
         {data.trm.isStale && <StaleNotice source="la TRM" updatedAt={data.trm.updatedAt} />}
         {data.secop.isStale && <StaleNotice source="SECOP II" updatedAt={data.secop.updatedAt} />}

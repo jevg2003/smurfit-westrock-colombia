@@ -34,7 +34,7 @@ export function RegulacionView() {
         description="Normas que pueden afectar a los empaques y por qué importan, más lo último de Minambiente y los decretos de Presidencia sobre residuos, empaques y sostenibilidad."
       />
 
-      {view.status === "error" && <ErrorState source="Regulación" message={view.errorMessage ?? "Error desconocido."} onRetry={view.retry} />}
+      {view.status === "error" && <ErrorState source="Regulación" message={view.errorMessage ?? "Error desconocido."} kind={view.errorKind} onRetry={view.retry} />}
       {view.isStale && <StaleNotice source="Regulación" updatedAt={view.updatedAt} />}
 
       <CuratedSection norms={norms} />

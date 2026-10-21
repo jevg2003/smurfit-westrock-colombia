@@ -48,7 +48,7 @@ function MetricCard({ view, data, source, sourceLabel, icon, label, hint, period
     return <Skeleton role="status" aria-label={`Consultando ${sourceLabel}`} className="h-44 rounded-xl" />;
   }
   if (view.status === "error") {
-    return <ErrorState source={sourceLabel} message={view.errorMessage ?? "Error desconocido."} onRetry={view.retry} />;
+    return <ErrorState source={sourceLabel} message={view.errorMessage ?? "Error desconocido."} kind={view.errorKind} onRetry={view.retry} />;
   }
 
   const { latest, previous } = lastTwo(data?.observations ?? []);
@@ -107,7 +107,7 @@ function EnergySection({ energy }: { energy: ReturnType<typeof useEnergy> }) {
     return <Skeleton role="status" aria-label="Consultando XM (precio de bolsa de energía)" className="h-72 rounded-xl" />;
   }
   if (view.status === "error") {
-    return <ErrorState source="XM (precio de bolsa de energía)" message={view.errorMessage ?? "Error desconocido."} onRetry={view.retry} />;
+    return <ErrorState source="XM (precio de bolsa de energía)" message={view.errorMessage ?? "Error desconocido."} kind={view.errorKind} onRetry={view.retry} />;
   }
   if (observations.length === 0) return null;
   return (

@@ -155,7 +155,7 @@ export function ContratacionView() {
       />
 
       {view.status === "error" && (
-        <ErrorState source="SECOP II" message={view.errorMessage ?? "Error desconocido."} onRetry={view.retry} />
+        <ErrorState source="SECOP II" message={view.errorMessage ?? "Error desconocido."} kind={view.errorKind} onRetry={view.retry} />
       )}
       {view.isStale && <StaleNotice source="SECOP II" updatedAt={view.updatedAt} />}
 
