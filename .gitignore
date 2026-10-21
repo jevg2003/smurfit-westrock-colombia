@@ -31,3 +31,4 @@ npm-debug.log*
 # playwright
 /test-results/
 /playwright-report/
+/docs/explicacion-del-proyecto-personal.md
