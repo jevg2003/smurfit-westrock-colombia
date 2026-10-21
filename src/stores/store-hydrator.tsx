@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { consoleLogger } from "@/infrastructure/logging/console-logger";
 import { useAlertsStore } from "./alerts.store";
+import { useDecisionsStore } from "./decisions.store";
 import { hydrateStores } from "./hydrate-stores";
 import { useHydrationStore } from "./hydration.store";
 import { migrateLegacyAlerts } from "./legacy-migration";
@@ -22,6 +23,7 @@ export function StoreHydrator() {
         () => useAlertsStore.persist.rehydrate(),
         () => useWatchlistStore.persist.rehydrate(),
         () => usePreferencesStore.persist.rehydrate(),
+        () => useDecisionsStore.persist.rehydrate(),
       ],
       migrate: () => {
         migrateLegacyAlerts({ storage: window.localStorage, alerts: useAlertsStore, clock: systemClock });
