@@ -64,4 +64,16 @@ describe("createContainer", () => {
     const result = await container.xm.fetch({}, { now: container.clock.now() });
     expect(result.ok).toBe(true);
   });
+
+  it("wires the news adapter", async () => {
+    const body = {
+      items: [{ id: "news:aaaaaaaa", title: "Titular", url: "https://www.portafolio.co/a", outlet: "Portafolio", publishedAt: "2026-10-20T10:00:00.000Z", via: "rss", feedId: "portafolio" }],
+      feeds: [{ id: "portafolio", outlet: "Portafolio", status: "ok", count: 1 }],
+      fetchedAt: "2026-10-20T11:00:00.000Z",
+    };
+    const fetchImpl = vi.fn().mockResolvedValue(new Response(JSON.stringify(body), { status: 200 }));
+    const container = createContainer({ fetcher: createFetcher({ fetchImpl, retryDelayMs: 0 }) });
+    const result = await container.news.fetch({}, { now: container.clock.now() });
+    expect(result.ok).toBe(true);
+  });
 });

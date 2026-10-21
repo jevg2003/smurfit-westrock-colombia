@@ -1,6 +1,8 @@
 import type { PublicContract } from "../domain/contract";
+import type { NewsItem } from "../domain/news";
 import type { Signal } from "../domain/signal";
 import type { Clock } from "../ports/clock";
+import type { TermGroup } from "../text/match";
 import { dedupeSignals } from "../rules/dedupe";
 import type { CompetitorRef } from "../rules/secop-competitor-new-contract";
 import { compareSeverity } from "../rules/severity";
@@ -14,6 +16,10 @@ export interface SignalInputs {
   trmFetchedAt: string;
   companyNit: string;
   competitors: readonly CompetitorRef[];
+  /** Headlines (media RSS and Google News). Absent when the source is off or failed. */
+  news?: readonly NewsItem[];
+  /** The news term groups of the preferences, with their current terms. */
+  newsTermGroups?: readonly TermGroup[];
 }
 
 /** A rule adapted to the shared inputs. Pure: no I/O, time only through the clock. */

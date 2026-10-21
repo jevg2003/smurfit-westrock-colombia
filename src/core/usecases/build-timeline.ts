@@ -73,7 +73,7 @@ export function buildTimeline({ signals, contracts, news, regulations, competito
       kind: "regulation",
       title: entry.name,
       detail: entry.topic,
-      url: entry.url,
+      url: entry.url ?? undefined,
       provenance: [entry.provenance],
     })),
   ];

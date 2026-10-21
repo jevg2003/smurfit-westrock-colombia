@@ -1,5 +1,6 @@
 import type { SignalRule } from "../usecases/detect-signals";
 import { detectCompetitorNewContracts } from "./secop-competitor-new-contract";
+import { detectNewsKeywordMentions } from "./news-keyword-mention";
 import { detectExpiringContracts } from "./secop-expiring-contract";
 import { detectTrmDailyMoveSignals } from "./trm-daily-move";
 
@@ -28,4 +29,6 @@ export const DEFAULT_SIGNAL_RULES: readonly SignalRule[] = [
       clock,
       windowDays: thresholds.competitorContractWindowDays,
     }),
+  (inputs, clock) =>
+    detectNewsKeywordMentions({ news: inputs.news ?? [], groups: inputs.newsTermGroups ?? [], clock }),
 ];

@@ -19,7 +19,9 @@ const news: NewsItem = {
   url: "https://news.test/1",
   outlet: "Medio",
   publishedAt: "2026-10-15T12:00:00.000Z",
+  via: "rss",
   matchedTerms: ["papel"],
+  matches: [{ groupId: "sector", term: "papel" }],
   provenance,
 };
 
@@ -31,6 +33,7 @@ const regulation: RegulationEntry = {
   whyItMatters: "Aplica a envases",
   url: "https://reg.test/1",
   reviewedAt: "2026-10-19T00:00:00.000Z",
+  curated: true,
   provenance,
 };
 
