@@ -67,3 +67,13 @@ describe("preferences store", () => {
     expect(fresh.getState().thresholds).toEqual(DEFAULT_THRESHOLDS);
   });
 });
+
+describe("preferences store migration of thresholds", () => {
+  it("fills thresholds added after the data was saved with their defaults", async () => {
+    const saved = { state: { thresholds: { trmDailyMovePct: 3 }, newsTerms: ["x"], briefingPeriod: "previous-week" }, version: 1 };
+    const storage = createMemoryStorage({ "swc:preferences:v1": JSON.stringify(saved) });
+    const store = createPreferencesStore({ storage });
+    await store.persist.rehydrate();
+    expect(store.getState().thresholds).toEqual({ ...DEFAULT_THRESHOLDS, trmDailyMovePct: 3 });
+  });
+});

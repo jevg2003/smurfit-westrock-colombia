@@ -6,12 +6,12 @@ describe("buildTrmDaySignal", () => {
     expect(trmDaySignalId("2026-10-01T00:00:00.000")).toBe("trm.daily-move.v1:trm:2026-10-01T00:00:00.000");
   });
 
-  it("builds a market signal with trm provenance and the active threshold in the rule text", () => {
+  it("builds a macro signal with trm provenance and the active threshold in the rule text", () => {
     const signal = buildTrmDaySignal({ date: "2026-10-01T00:00:00.000", thresholdPct: 2, fetchedAt: "2026-10-20T12:00:00.000Z" });
     expect(signal).toMatchObject({
       id: "trm.daily-move.v1:trm:2026-10-01T00:00:00.000",
       ruleId: "trm.daily-move.v1",
-      dimension: "market",
+      dimension: "macro",
       occurredAt: "2026-10-01T00:00:00.000",
     });
     expect(signal.ruleText).toContain("2%");

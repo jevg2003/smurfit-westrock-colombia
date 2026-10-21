@@ -51,6 +51,40 @@ export function trmDaySignalId(date: string): string {
   return `${TRM_DAILY_MOVE_RULE_ID}:trm:${date}`;
 }
 
+export interface TrmSignalThresholds {
+  /** Daily move (percent) from which a day raises a signal. Inclusive. */
+  trmDailyMovePct: number;
+  /** Daily move (percent) from which the signal is an alert. Inclusive. */
+  trmDailyAlertPct: number;
+}
+
+export interface DetectTrmSignalsInput {
+  records: readonly TrmInputRecord[];
+  thresholds: TrmSignalThresholds;
+  /** ISO 8601 UTC instant at which the data was read. */
+  fetchedAt: string;
+}
+
+/**
+ * Signals for atypical TRM days: `watch` from the move threshold, `alert` from the alert level.
+ * Uses the same signal id as a day saved by the user, so a saved day is not raised as new again.
+ */
+export function detectTrmDailyMoveSignals({ records, thresholds, fetchedAt }: DetectTrmSignalsInput): Signal[] {
+  return computeTrmDailyMoves(records, thresholds.trmDailyMovePct).flatMap((move): Signal[] => {
+    if (!move.isAtypical || move.changePct === null) return [];
+    const pct = Math.abs(move.changePct).toFixed(2).replace(".", ",");
+    const direction = move.changePct > 0 ? "subió" : "bajó";
+    return [
+      {
+        ...buildTrmDaySignal({ date: move.date, thresholdPct: thresholds.trmDailyMovePct, fetchedAt }),
+        severity: Math.abs(move.changePct) >= thresholds.trmDailyAlertPct ? "alert" : "watch",
+        title: `La TRM ${direction} ${pct}% el ${move.date.slice(0, 10)}`,
+        detail: `Cerró en COP ${move.value} frente al día anterior. Alerta desde ${thresholds.trmDailyAlertPct}%.`,
+      },
+    ];
+  });
+}
+
 export interface TrmDaySignalInput {
   date: string;
   thresholdPct?: number;
@@ -68,7 +102,7 @@ export function buildTrmDaySignal({
     id: trmDaySignalId(date),
     ruleId: TRM_DAILY_MOVE_RULE_ID,
     ruleText: `Variación diaria de la TRM de ${thresholdPct}% o más frente al día anterior`,
-    dimension: "market",
+    dimension: "macro",
     pestel: "economic",
     severity: "info",
     kind: "event",

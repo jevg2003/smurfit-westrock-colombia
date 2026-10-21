@@ -46,6 +46,11 @@ export function createPreferencesStore({ storage }: { storage?: StateStorage } =
         version: 1,
         storage: browserStorage(storage),
         skipHydration: true,
+        // Thresholds added in later releases must keep their defaults when old data is loaded.
+        merge: (persisted, current) => {
+          const saved = (persisted ?? {}) as Partial<PreferencesState>;
+          return { ...current, ...saved, thresholds: { ...current.thresholds, ...saved.thresholds } };
+        },
         partialize: (state) => ({
           thresholds: state.thresholds,
           newsTerms: state.newsTerms,

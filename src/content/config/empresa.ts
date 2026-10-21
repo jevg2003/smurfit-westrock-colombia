@@ -18,6 +18,10 @@ export const DEFAULT_THRESHOLDS = {
   contractExpiryWatchDays: 90,
   /** Contracts ending within this many days raise an alert. */
   contractExpiryAlertDays: 30,
+  /** A competitor contract counts as new when signed within this many days. */
+  competitorContractWindowDays: 30,
+  /** Daily TRM move (percent) from which the signal becomes an alert. */
+  trmDailyAlertPct: 2,
 } as const;
 
 export type Thresholds = { [K in keyof typeof DEFAULT_THRESHOLDS]: number };
