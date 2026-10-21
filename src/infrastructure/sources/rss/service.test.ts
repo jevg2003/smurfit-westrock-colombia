@@ -117,6 +117,32 @@ describe("loadNews", () => {
     expect(result.items).toEqual([]);
   });
 
+  it("keeps at most N Google News items per group so one noisy query cannot flood the list", async () => {
+    const { fetchImpl } = fakeFetch();
+    const uncapped = await run(fetchImpl, { feedId: "google-news" });
+    const capped = await run(fetchImpl, { feedId: "google-news", googleItemsPerGroup: 2 });
+    expect(uncapped.items.length).toBeGreaterThan(2);
+    expect(capped.items.length).toBeLessThanOrEqual(2 * GOOGLE_URLS.length);
+    expect(capped.items.length).toBeLessThan(uncapped.items.length);
+    const newest = [...uncapped.items].sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt))[0];
+    expect(capped.items.map((i) => i.id)).toContain(newest.id);
+  });
+
+  it("when the limit cuts the list, it drops the headlines that match no default term first", async () => {
+    const rss = (items: Array<[string, string, string]>) =>
+      `<rss version="2.0"><channel>${items
+        .map(([title, link, date]) => `<item><title>${title}</title><link>${link}</link><pubDate>${date}</pubDate></item>`)
+        .join("")}</channel></rss>`;
+    const body = rss([
+      ["Titular sin relación uno", "https://example.test/1", "Tue, 20 Oct 2026 12:00:00 GMT"],
+      ["Titular sin relación dos", "https://example.test/2", "Tue, 20 Oct 2026 11:00:00 GMT"],
+      ["Smurfit Westrock inaugura una línea", "https://example.test/3", "Mon, 05 Oct 2026 11:00:00 GMT"],
+    ]);
+    const fetchImpl = vi.fn(async () => new Response(body, { status: 200 })) as unknown as typeof fetch;
+    const result = await run(fetchImpl, { feedId: "valora", limit: 1 });
+    expect(result.items.map((i) => i.title)).toEqual(["Smurfit Westrock inaugura una línea"]);
+  });
+
   it("applies the limit", async () => {
     const { fetchImpl } = fakeFetch();
     expect((await run(fetchImpl, { limit: 5 })).items).toHaveLength(5);

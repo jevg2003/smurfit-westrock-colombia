@@ -36,8 +36,8 @@ const item = (id: string, title: string, outlet: string, publishedAt: string, vi
 
 const ITEMS: NewsItem[] = [
   item("a", "Smurfit Westrock invierte en Yumbo", "Portafolio", "2026-10-19T15:00:00.000Z"),
-  item("b", "El dólar cierra a la baja", "El Tiempo", "2026-10-18T15:00:00.000Z"),
-  item("c", "Nuevas reglas de reciclaje de envases", "Valora Analitik", "2026-10-17T15:00:00.000Z", "google-news"),
+  item("b", "El precio del gas natural sube en el Valle", "El Tiempo", "2026-10-21T15:00:00.000Z"),
+  item("c", "Nuevas reglas de economía circular para envases", "Valora Analitik", "2026-10-17T15:00:00.000Z", "google-news"),
   item("d", "Un titular sin nada que ver", "La República", "2026-10-16T15:00:00.000Z"),
 ];
 
@@ -71,17 +71,36 @@ describe("NoticiasView", () => {
   it("labels Google News items 'vía Google News' and keeps the original outlet", async () => {
     renderWithQuery(<NoticiasView />);
 
-    const row = (await screen.findByRole("link", { name: /Nuevas reglas de reciclaje/ })).closest("[data-slot=item]") as HTMLElement;
+    const row = (await screen.findByRole("link", { name: /Nuevas reglas de economía circular/ })).closest("[data-slot=item]") as HTMLElement;
     expect(within(row).getByText("vía Google News")).toBeInTheDocument();
     expect(within(row).getByText(/Valora Analitik/)).toBeInTheDocument();
     const direct = (await screen.findByRole("link", { name: /Smurfit Westrock invierte/ })).closest("[data-slot=item]") as HTMLElement;
     expect(within(direct).queryByText("vía Google News")).not.toBeInTheDocument();
   });
 
-  it("shows every headline when the 'only my terms' box is cleared", async () => {
+  it("says how many headlines are relevant out of all of them", async () => {
     renderWithQuery(<NoticiasView />);
 
-    fireEvent.click(await screen.findByRole("checkbox", { name: /Solo titulares con mis términos/ }));
+    expect(await screen.findByText("3 noticias relevantes de 4")).toBeInTheDocument();
+  });
+
+  it("orders by relevance (company, regulation, operations) and not only by date", async () => {
+    renderWithQuery(<NoticiasView />);
+
+    await screen.findByRole("link", { name: /Smurfit Westrock invierte/ });
+    const titles = screen.getAllByRole("link").map((link) => link.textContent ?? "");
+    const order = [/Smurfit Westrock invierte/, /economía circular/, /gas natural/].map((pattern) => titles.findIndex((title) => pattern.test(title)));
+    expect(order).toEqual([...order].sort((a, b) => a - b));
+    expect(order.every((index) => index >= 0)).toBe(true);
+  });
+
+  it("hides unmatched headlines by default and shows them with 'Ver todas'", async () => {
+    renderWithQuery(<NoticiasView />);
+
+    const toggle = await screen.findByRole("checkbox", { name: "Ver todas" });
+    expect(toggle).not.toBeChecked();
+    expect(screen.queryByText("Un titular sin nada que ver")).not.toBeInTheDocument();
+    fireEvent.click(toggle);
     expect(await screen.findByText("Un titular sin nada que ver")).toBeInTheDocument();
   });
 

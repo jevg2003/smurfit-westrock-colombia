@@ -5,14 +5,14 @@ import { useMemo } from "react";
 import { NEWS_TERM_GROUPS } from "@/content/config/empresa";
 import type { NewsItem } from "@/core/domain/news";
 import type { TermGroup } from "@/core/text/match";
-import { matchNewsItems } from "@/core/usecases/match-news";
+import { filterRelevantNews, matchNewsItems, sortByRelevance } from "@/core/usecases/match-news";
 import type { FeedHealth } from "@/infrastructure/sources/rss/service";
 import { usePreferencesStore } from "@/stores/preferences.store";
 import { getContainer } from "./container";
 import { toSourceView } from "./source-view";
 
 export interface NewsData {
-  /** Headlines without matched terms (matching follows the user's preferences). */
+  /** Raw headlines, before matching (matching follows the user's preferences). */
   items: NewsItem[];
   feeds: FeedHealth[];
   /** True when the server flag switched the source off ("fuente desactivada"). */
@@ -41,6 +41,9 @@ export function useNews() {
     },
   });
   const groups = useNewsTermGroups();
-  const items = useMemo(() => matchNewsItems(query.data?.items ?? [], groups), [query.data, groups]);
-  return { query, view: toSourceView(query), data: query.data, items, groups, fetchedAt: query.dataUpdatedAt };
+  // Every headline, matched against the user's terms and ordered by relevance (company first, unmatched last).
+  const items = useMemo(() => sortByRelevance(matchNewsItems(query.data?.items ?? [], groups)), [query.data, groups]);
+  // Only the headlines that mention at least one active term: what the radar and the timeline may use.
+  const relevantItems = useMemo(() => filterRelevantNews(items), [items]);
+  return { query, view: toSourceView(query), data: query.data, items, relevantItems, groups, fetchedAt: query.dataUpdatedAt };
 }

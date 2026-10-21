@@ -1,10 +1,10 @@
 import { NEWS_TERM_GROUPS } from "@/content/config/empresa";
-import type { TermGroup } from "@/core/text/match";
+import { matchTermGroups, type TermGroup } from "@/core/text/match";
 import type { Fetcher } from "@/infrastructure/http/fetcher";
 import type { SourceFlags } from "@/infrastructure/flags";
 import { fetchFeed } from "./fetch-feed";
 import { GOOGLE_NEWS_ID, NEWS_FEEDS, type NewsSourceId } from "./feeds";
-import { buildGoogleNewsQueries, buildGoogleNewsUrl, parseGoogleNews } from "./google-news";
+import { GOOGLE_NEWS_MAX_ITEMS_PER_GROUP, buildGoogleNewsSearches, buildGoogleNewsUrl, parseGoogleNews } from "./google-news";
 import { mergeHeadlines, type SourcedHeadline } from "./merge";
 
 export interface NewsApiItem {
@@ -43,6 +43,8 @@ export interface LoadNewsOptions {
   limit: number;
   /** Term groups for the Google News queries. The client can never change them. */
   termGroups?: readonly TermGroup[];
+  /** Newest Google News items kept per term group. */
+  googleItemsPerGroup?: number;
 }
 
 /**
@@ -56,6 +58,7 @@ export async function loadNews({
   feedId,
   limit,
   termGroups = NEWS_TERM_GROUPS,
+  googleItemsPerGroup = GOOGLE_NEWS_MAX_ITEMS_PER_GROUP,
 }: LoadNewsOptions): Promise<NewsResponse> {
   const selected = NEWS_FEEDS.filter((feed) => !feedId || feed.id === feedId);
 
@@ -81,32 +84,45 @@ export async function loadNews({
     }),
   );
 
-  const google = !feedId || feedId === GOOGLE_NEWS_ID ? await loadGoogleNews(fetcher, flags.googleNews, termGroups) : undefined;
+  const google = !feedId || feedId === GOOGLE_NEWS_ID ? await loadGoogleNews(fetcher, flags.googleNews, termGroups, googleItemsPerGroup) : undefined;
   if (google) results.push(google);
 
-  const items = mergeHeadlines(
+  const merged = mergeHeadlines(
     results.flatMap((r) => r.headlines),
     now,
-  )
-    .slice(0, limit)
-    .map(({ id, title, url, outlet, publishedAt, via, feedId: source }): NewsApiItem => ({ id, title, url, outlet, publishedAt, via, feedId: source }));
+  );
+  const items = keepMostRelevant(merged, termGroups, limit).map(({ id, title, url, outlet, publishedAt, via, feedId: source }): NewsApiItem => ({ id, title, url, outlet, publishedAt, via, feedId: source }));
   return { items, feeds: results.map((r) => r.health), fetchedAt: now.toISOString() };
+}
+
+/**
+ * When the limit cuts the list, headlines that match none of the default terms go first, so a flood of
+ * unrelated media headlines cannot push a relevant one out. The result stays newest first.
+ */
+function keepMostRelevant<T extends { title: string }>(merged: readonly T[], groups: readonly TermGroup[], limit: number): T[] {
+  if (merged.length <= limit) return [...merged];
+  const indexed = merged.map((item, index) => ({ item, index, relevant: matchTermGroups(item.title, groups).length > 0 }));
+  const kept = [...indexed.filter((entry) => entry.relevant), ...indexed.filter((entry) => !entry.relevant)].slice(0, limit);
+  return kept.sort((a, b) => a.index - b.index).map((entry) => entry.item);
 }
 
 /**
  * Google News RSS searches (server-side URLs only). Each query is fetched on its own: some failing
  * queries leave the others intact and are counted in the health message.
  */
-async function loadGoogleNews(fetcher: Fetcher, enabled: boolean, termGroups: readonly TermGroup[]) {
+async function loadGoogleNews(fetcher: Fetcher, enabled: boolean, termGroups: readonly TermGroup[], perGroup: number) {
   const base = { id: GOOGLE_NEWS_ID, outlet: "Google News" };
   if (!enabled) {
     const health: FeedHealth = { ...base, status: "disabled", count: 0, message: "Fuente desactivada." };
     return { health, headlines: [] as SourcedHeadline[] };
   }
-  const urls = buildGoogleNewsQueries(termGroups).map(buildGoogleNewsUrl);
-  const results = await Promise.all(urls.map((url) => fetchFeed(fetcher, url, parseGoogleNews)));
+  const searches = buildGoogleNewsSearches(termGroups);
+  const results = await Promise.all(searches.map((search) => fetchFeed(fetcher, buildGoogleNewsUrl(search.query), parseGoogleNews)));
   const headlines = results.flatMap((result) =>
-    result.items.map(
+    [...result.items]
+      .sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt))
+      .slice(0, perGroup)
+      .map(
       (item): SourcedHeadline => ({ title: item.title, url: item.url, publishedAt: item.publishedAt, outlet: item.outlet, via: "google-news", feedId: GOOGLE_NEWS_ID }),
     ),
   );

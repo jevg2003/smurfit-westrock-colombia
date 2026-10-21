@@ -44,13 +44,17 @@ function applyNewsFilters(items: readonly NewsItem[], query: FilterQuery): NewsI
   );
 }
 
+function relevanceSummary(relevant: number, total: number): string {
+  return `${relevant} ${relevant === 1 ? "noticia relevante" : "noticias relevantes"} de ${total}`;
+}
+
 /** Headlines from Colombian media and Google News: title, outlet, date, link and the terms they mention. */
 export function NoticiasView() {
   const news = useNews();
-  const onlyTermsId = useId();
+  const showAllId = useId();
   const [query, setQuery] = useState<FilterQuery>(() => createFilterQuery());
   const [dates, setDates] = useState<DayRange | undefined>();
-  const [onlyTerms, setOnlyTerms] = useState(true);
+  const [showAll, setShowAll] = useState(false);
   const [visible, setVisible] = useState(PAGE_SIZE);
   const range = dates;
 
@@ -68,14 +72,13 @@ export function NoticiasView() {
   );
 
   const filtered = useMemo(() => {
-    let result = applyNewsFilters(news.items, query);
-    if (onlyTerms) result = result.filter((item) => item.matches.length > 0);
+    let result = applyNewsFilters(showAll ? news.items : news.relevantItems, query);
     if (!range) return result;
     return result.filter((item) => {
       const day = bogotaDateKey(item.publishedAt);
       return day >= range.fromDate && day <= range.toDate;
     });
-  }, [news.items, query, onlyTerms, range]);
+  }, [news.items, news.relevantItems, query, showAll, range]);
 
   const { view, data } = news;
   const problems = (data?.feeds ?? []).filter((feed) => feed.status !== "ok");
@@ -125,9 +128,10 @@ export function NoticiasView() {
               <DateRangeFilter value={dates} onChange={setDates} label="Fecha" />
             </div>
             <Field orientation="horizontal" className="flex-wrap gap-x-2 gap-y-1">
-              <Checkbox id={onlyTermsId} checked={onlyTerms} onCheckedChange={(checked) => (setOnlyTerms(checked === true), setVisible(PAGE_SIZE))} />
-              <FieldLabel htmlFor={onlyTermsId}>Solo titulares con mis términos</FieldLabel>
-              <span className="text-xs text-muted-foreground">Los términos se cambian en Preferencias.</span>
+              <p className="text-sm font-medium">{relevanceSummary(news.relevantItems.length, news.items.length)}</p>
+              <Checkbox id={showAllId} checked={showAll} onCheckedChange={(checked) => (setShowAll(checked === true), setVisible(PAGE_SIZE))} />
+              <FieldLabel htmlFor={showAllId}>Ver todas</FieldLabel>
+              <span className="text-xs text-muted-foreground">Las relevantes mencionan tus términos, que se cambian en Preferencias.</span>
             </Field>
 
             {filtered.length === 0 ? (
@@ -137,7 +141,7 @@ export function NoticiasView() {
                   <EmptyDescription>
                     {news.items.length === 0
                       ? "Los medios no devolvieron titulares ahora mismo."
-                      : "Ningún titular cumple los filtros. Prueba quitar un filtro o la casilla de términos."}
+                      : "Ninguna noticia cumple los filtros. Prueba quitar un filtro o marcar «Ver todas»."}
                   </EmptyDescription>
                 </EmptyHeader>
               </Empty>
