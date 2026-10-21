@@ -160,3 +160,27 @@
     font-variant-numeric: tabular-nums;
   }
 }
+
+/* Printing the briefing: drop the fixed-height app shell so every page of the document prints. */
+@media print {
+  html,
+  body,
+  [data-slot="sidebar-wrapper"],
+  [data-slot="sidebar-inset"] {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  [data-slot="sidebar-gap"],
+  [data-slot="sidebar-container"] {
+    display: none !important;
+  }
+
+  [data-slot="sidebar-inset"] {
+    margin: 0 !important;
+    border: 0 !important;
+  }
+}
