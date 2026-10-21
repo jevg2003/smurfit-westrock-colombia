@@ -27,3 +27,4 @@ npm-debug.log*
 
 # playwright
 .playwright-cli/
+/docs/explicacion-del-proyecto-personal.md
