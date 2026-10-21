@@ -69,3 +69,10 @@ describe("buildSystemPrompt", () => {
     expect(buildSystemPrompt({ mode: "page", webSearch: false })).not.toContain("Fuentes de internet");
   });
 });
+
+describe("buildSystemPrompt without web search", () => {
+  it("tells the model web search is unavailable only when asked to", () => {
+    expect(buildSystemPrompt({ mode: "page", webSearchUnavailable: true })).toContain("no está disponible");
+    expect(buildSystemPrompt({ mode: "page" })).not.toContain("no está disponible");
+  });
+});

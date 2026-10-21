@@ -1,5 +1,7 @@
 import {
+  AISDKError,
   APICallError,
+  RetryError,
   convertToModelMessages,
   stepCountIs,
   streamText,
@@ -54,7 +56,23 @@ export interface ChatToolOptions {
   webSearch: boolean;
 }
 
-export type ModelLookup = { ok: true; model: LanguageModel; webSearchTools?: ToolSet } | { ok: false; message: string };
+export type ProviderName = "openai" | "openrouter";
+
+export interface ChatModel {
+  model: LanguageModel;
+  provider?: ProviderName;
+  webSearchTools?: ToolSet;
+}
+
+export type ModelLookup =
+  | (ChatModel & {
+      ok: true;
+      /** Tried when the primary fails before streaming anything, for a reason that means it is unavailable. */
+      fallback?: ChatModel;
+      /** The primary key is missing, so the answering provider is already the fallback. */
+      usingFallback?: boolean;
+    })
+  | { ok: false; message: string };
 
 export interface ChatDeps {
   resolve(): ModelLookup;
@@ -73,6 +91,48 @@ export function describeChatError(error: unknown): string {
   if (status === 429) return RATE_LIMIT_MESSAGE;
   if (status === 401 || status === 403) return "El proveedor de IA rechazó la clave configurada en el servidor.";
   return GENERIC_MESSAGE;
+}
+
+const FALLBACK_STATUSES = new Set([401, 402, 403, 429]);
+
+function statusOf(error: unknown): number | undefined {
+  const status = (error as { statusCode?: unknown } | null)?.statusCode;
+  return typeof status === "number" ? status : undefined;
+}
+
+/**
+ * True when the failure means the provider is unavailable (bad or exhausted key, rate limit, server or
+ * network trouble). Other 4xx errors are request problems that would fail the same way elsewhere.
+ */
+export function shouldFallBack(error: unknown): boolean {
+  const cause = RetryError.isInstance(error) ? error.lastError : error;
+  const status = statusOf(cause);
+  if (status !== undefined) return FALLBACK_STATUSES.has(status) || status >= 500;
+  // No HTTP status: network errors and timeouts. Other SDK errors (bad prompt, no such tool) are not provider outages.
+  return !AISDKError.isInstance(cause) || APICallError.isInstance(cause);
+}
+
+interface OpenedStream {
+  result: ReturnType<typeof streamText>;
+  /** Set when the stream failed before producing any output. */
+  error?: unknown;
+}
+
+/** Starts a stream and waits for its first real part, so a failure before any output can still be retried elsewhere. */
+async function openStream(options: Parameters<typeof streamText>[0]): Promise<OpenedStream> {
+  const result = streamText(options);
+  const reader = result.fullStream.getReader();
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) return { result };
+      if (value.type === "start" || value.type === "start-step") continue;
+      return value.type === "error" ? { result, error: value.error } : { result };
+    }
+  } finally {
+    // Only this peeking branch is cancelled; the response reads its own branch of the same stream.
+    void reader.cancel().catch(() => undefined);
+  }
 }
 
 /** POST /api/chat: validates the request, then streams the answer with read-only tools. */
@@ -106,17 +166,39 @@ export async function handleChat(request: Request, deps: ChatDeps): Promise<Resp
   while (recent.length > 0 && recent[0].role !== "user") recent = recent.slice(1);
   if (recent.length === 0) return json(400, "La solicitud no es válida.");
 
-  const webTools = webSearch ? (lookup.webSearchTools ?? {}) : {};
-  const tools: ToolSet = { ...deps.tools({ thresholds, webSearch }), ...webTools };
-  const result = streamText({
-    model: lookup.model,
-    instructions: buildSystemPrompt({ mode, pageContext, webSearch: Object.keys(webTools).length > 0 }),
-    messages: await convertToModelMessages(recent as unknown as UIMessage[], { tools }),
-    tools,
-    stopWhen: stepCountIs(MAX_STEPS),
-    maxOutputTokens: MAX_OUTPUT_TOKENS,
-    abortSignal: request.signal,
-  });
+  const attempt = (candidate: ChatModel, willFallBack: boolean) => {
+    const webTools = webSearch ? (candidate.webSearchTools ?? {}) : {};
+    const hasWeb = Object.keys(webTools).length > 0;
+    const tools: ToolSet = { ...deps.tools({ thresholds, webSearch }), ...webTools };
+    return convertToModelMessages(recent as unknown as UIMessage[], { tools }).then((modelMessages) =>
+      openStream({
+        model: candidate.model,
+        instructions: buildSystemPrompt({ mode, pageContext, webSearch: hasWeb, webSearchUnavailable: webSearch && !hasWeb }),
+        messages: modelMessages,
+        tools,
+        stopWhen: stepCountIs(MAX_STEPS),
+        maxOutputTokens: MAX_OUTPUT_TOKENS,
+        abortSignal: request.signal,
+        // With a fallback ready, fail fast instead of retrying the same provider with backoff.
+        ...(willFallBack ? { maxRetries: 0 } : {}),
+      }),
+    );
+  };
 
-  return result.toUIMessageStreamResponse({ onError: describeChatError });
+  const respond = ({ result }: OpenedStream, candidate: ChatModel, fallbackUsed: boolean) => {
+    const headers: Record<string, string> = {};
+    if (candidate.provider) headers["x-ai-provider"] = candidate.provider;
+    if (fallbackUsed) headers["x-ai-fallback"] = "1";
+    return result.toUIMessageStreamResponse({ onError: describeChatError, headers });
+  };
+
+  const fallback = lookup.fallback;
+  const first = await attempt(lookup, fallback !== undefined);
+  if (!fallback || first.error === undefined || request.signal.aborted || !shouldFallBack(first.error)) {
+    return respond(first, lookup, lookup.usingFallback === true);
+  }
+
+  // Logs the provider names and the HTTP status only: never keys, prompts or provider messages.
+  console.warn(`[ai] ${lookup.provider ?? "primary"} unavailable (status ${statusOf(first.error) ?? "none"}); answering with ${fallback.provider ?? "fallback"}`);
+  return respond(await attempt(fallback, false), fallback, true);
 }

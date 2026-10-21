@@ -1,6 +1,6 @@
 import { simulateReadableStream } from "ai";
 import { MockLanguageModelV4 } from "ai/test";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { handleChat, MAX_MESSAGES, type ChatDeps } from "./handle-chat";
 import { MAX_PAGE_CONTEXT_BYTES } from "./page-context";
 
@@ -207,5 +207,120 @@ describe("handleChat tools", () => {
       expect(off.model.doStreamCalls[0].tools ?? []).toHaveLength(0);
       expect(JSON.stringify(off.model.doStreamCalls[0].prompt)).not.toContain("Fuentes de internet");
     });
+  });
+});
+
+describe("handleChat provider fallback", () => {
+  const apiError = (statusCode: number) => Object.assign(new Error(`status ${statusCode}`), { statusCode, name: "AI_APICallError" });
+  const failing = (error: unknown) =>
+    new MockLanguageModelV4({
+      doStream: async () => {
+        throw error;
+      },
+    });
+  const webTool = { web_search: { type: "provider", id: "openai.web_search", args: {} } as never };
+  const run = async (deps: ChatDeps, body: object = {}) => {
+    const response = await handleChat(post({ messages: [userMessage("hola")], mode: "page", ...body }), deps);
+    return { response, text: await response.text() };
+  };
+  const withFallback = (primary: MockLanguageModelV4, fallback: MockLanguageModelV4): ChatDeps => ({
+    resolve: () => ({
+      ok: true,
+      model: primary,
+      provider: "openai",
+      webSearchTools: webTool,
+      fallback: { model: fallback, provider: "openrouter" },
+    }),
+    tools: () => ({}),
+  });
+
+  it("answers with the primary and no fallback when it works", async () => {
+    const primary = textModel("primario");
+    const fallback = textModel("respaldo");
+    const { response, text } = await run(withFallback(primary, fallback));
+    expect(text).toContain("primario");
+    expect(response.headers.get("x-ai-provider")).toBe("openai");
+    expect(fallback.doStreamCalls).toHaveLength(0);
+  });
+
+  it.each([
+    ["429 insufficient_quota", apiError(429)],
+    ["401", apiError(401)],
+    ["402", apiError(402)],
+    ["403", apiError(403)],
+    ["503", apiError(503)],
+    ["a network error", new TypeError("fetch failed")],
+  ])("falls back to OpenRouter on %s", async (_name, error) => {
+    const fallback = textModel("respaldo");
+    const { response, text } = await run(withFallback(failing(error), fallback));
+    expect(text).toContain("respaldo");
+    expect(response.headers.get("x-ai-provider")).toBe("openrouter");
+    expect(response.headers.get("x-ai-fallback")).toBe("1");
+  });
+
+  it("does not fall back on a 400 request error and surfaces the error", async () => {
+    const fallback = textModel("respaldo");
+    const { response, text } = await run(withFallback(failing(apiError(400)), fallback));
+    expect(fallback.doStreamCalls).toHaveLength(0);
+    expect(text).toContain('"type":"error"');
+    expect(response.headers.get("x-ai-provider")).toBe("openai");
+  });
+
+  it("drops web search and says so in the prompt when the fallback answers", async () => {
+    const fallback = textModel("respaldo");
+    await run(withFallback(failing(apiError(429)), fallback), { webSearch: true });
+    expect(fallback.doStreamCalls[0].tools ?? []).toHaveLength(0);
+    const prompt = JSON.stringify(fallback.doStreamCalls[0].prompt);
+    expect(prompt).toContain("no está disponible");
+    expect(prompt).not.toContain("Fuentes de internet");
+  });
+
+  it("does not fall back after the model has started streaming text", async () => {
+    const usage = {
+      inputTokens: { total: 1, noCache: 1, cacheRead: undefined, cacheWrite: undefined },
+      outputTokens: { total: 1, text: 1, reasoning: undefined },
+    };
+    const broken = new MockLanguageModelV4({
+      doStream: async () => ({
+        stream: new ReadableStream({
+          start(controller) {
+            controller.enqueue({ type: "text-start", id: "t" });
+            controller.enqueue({ type: "text-delta", id: "t", delta: "parcial" });
+            controller.enqueue({ type: "error", error: apiError(503) });
+            controller.enqueue({ type: "finish", finishReason: { unified: "error", raw: undefined }, usage });
+            controller.close();
+          },
+        }),
+      }),
+    });
+    const fallback = textModel("respaldo");
+    const { response, text } = await run(withFallback(broken, fallback));
+    expect(fallback.doStreamCalls).toHaveLength(0);
+    expect(text).toContain("parcial");
+    expect(text).not.toContain("respaldo");
+    expect(response.headers.get("x-ai-provider")).toBe("openai");
+  });
+
+  it("surfaces the error when the fallback fails too", async () => {
+    const { text } = await run(withFallback(failing(apiError(429)), failing(apiError(401))));
+    expect(text).toContain('"type":"error"');
+  });
+
+  it("reports the provider and fallback flag of a lookup that starts on the fallback", async () => {
+    const model = textModel("directo");
+    const { response } = await run({
+      resolve: () => ({ ok: true, model, provider: "openrouter", usingFallback: true }),
+      tools: () => ({}),
+    });
+    expect(response.headers.get("x-ai-provider")).toBe("openrouter");
+    expect(response.headers.get("x-ai-fallback")).toBe("1");
+  });
+
+  it("logs one line without secrets or prompts when the fallback fires", async () => {
+    const info = vi.spyOn(console, "warn").mockImplementation(() => {});
+    await run(withFallback(failing(apiError(429)), textModel()));
+    expect(info).toHaveBeenCalledTimes(1);
+    expect(String(info.mock.calls[0][0])).toMatch(/openai.*429.*openrouter/);
+    info.mockRestore();
   });
 });
