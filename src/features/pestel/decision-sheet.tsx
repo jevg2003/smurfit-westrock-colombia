@@ -44,7 +44,7 @@ export function DecisionSheet({ target, signals, onTargetChange }: Props) {
 
   return (
     <Sheet open={target !== null} onOpenChange={(open) => !open && onTargetChange(null)}>
-      <SheetContent className="w-full overflow-y-auto sm:max-w-xl">
+      <SheetContent className="overflow-y-auto sm:max-w-2xl">
         {target === NEW_DECISION && <CreateForm onCreated={onTargetChange} />}
         {decision && (
           <EditForm key={decision.id} decision={decision} signals={signals} onClose={() => onTargetChange(null)} />

@@ -42,7 +42,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 export function SignalDetailSheet({ signal, onOpenChange }: Props) {
   return (
     <Sheet open={signal !== null} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
+      <SheetContent className="overflow-y-auto">
         {signal && <SheetBody key={signal.id} signal={signal} onDone={() => onOpenChange(false)} />}
       </SheetContent>
     </Sheet>
