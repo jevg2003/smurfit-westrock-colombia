@@ -1,7 +1,9 @@
 "use client";
 
 import { DownloadIcon, ZapIcon } from "lucide-react";
-import { useMemo, useState } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useMemo, useState } from "react";
 import { PageIntro } from "@/components/shell/page-intro";
 import { ProvenanceNote } from "@/components/shell/provenance-note";
 import { ErrorState } from "@/components/states/error-state";
@@ -14,6 +16,8 @@ import { AlertToolbar } from "@/features/alertas/alert-toolbar";
 import { alertRowsToCsv } from "@/features/alertas/alerts-csv";
 import { AlertsGrid, type AlertRow } from "@/features/alertas/alerts-grid";
 import { useRowFilters } from "@/features/alertas/use-row-filters";
+import { PESTEL_ORDER } from "@/core/usecases/build-pestel";
+import { PESTEL_LABELS } from "@/features/entorno/labels";
 import { SOURCES } from "@/features/entorno/sources";
 import { useAlertRows, useSignals } from "@/features/entorno/use-signals";
 import { downloadCsv } from "@/lib/download";
@@ -22,14 +26,24 @@ import { SignalDetailSheet } from "./signal-detail-sheet";
 
 /** Every signal the rules produce today, with filters, a detail sheet and CSV export. */
 export function SenalesView() {
+  return (
+    <Suspense fallback={null}>
+      <SenalesContent />
+    </Suspense>
+  );
+}
+
+function SenalesContent() {
   const data = useSignals();
+  const pestelParam = useSearchParams()?.get("pestel");
+  const pestel = PESTEL_ORDER.find((factor) => factor === pestelParam);
   const alertRows = useAlertRows(data.signals);
   const [open, setOpen] = useState<Signal | null>(null);
 
   const rows = useMemo<AlertRow[]>(() => {
     const live = new Set(data.signals.map((signal) => signal.id));
-    return alertRows.filter((row) => live.has(row.signal.id));
-  }, [alertRows, data.signals]);
+    return alertRows.filter((row) => live.has(row.signal.id) && (!pestel || row.signal.pestel === pestel));
+  }, [alertRows, data.signals, pestel]);
 
   const filters = useRowFilters(rows, { withState: true });
   const ready = data.hasHydrated && !data.isPending;
@@ -40,6 +54,15 @@ export function SenalesView() {
         title="Señales"
         description="Cada señal sale de una regla escrita. Ábrela para ver la regla, la evidencia y el registro original."
       />
+
+      {pestel && (
+        <p className="text-sm">
+          Mostrando solo el factor PESTEL <span className="font-medium">{PESTEL_LABELS[pestel]}</span>.{" "}
+          <Link href="/senales" className="underline underline-offset-4">
+            Ver todas las señales
+          </Link>
+        </p>
+      )}
 
       <div className="flex flex-col gap-2">
         {data.trm.status === "error" && (

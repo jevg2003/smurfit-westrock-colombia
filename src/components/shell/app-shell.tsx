@@ -7,6 +7,7 @@ import {
   HistoryIcon,
   LandmarkIcon,
   LineChartIcon,
+  LayoutGridIcon,
   ListOrderedIcon,
   PanelLeftIcon,
   RadarIcon,
@@ -50,6 +51,7 @@ const NAV_GROUPS = [
     items: [
       { href: "/", label: "Radar", icon: RadarIcon },
       { href: "/senales", label: "Señales", icon: ZapIcon },
+      { href: "/pestel", label: "PESTEL", icon: LayoutGridIcon },
       { href: "/alertas", label: "Alertas", icon: BellRingIcon },
       { href: "/linea-de-tiempo", label: "Línea de tiempo", icon: HistoryIcon },
       { href: "/briefing", label: "Briefing", icon: FileTextIcon },
