@@ -98,6 +98,19 @@ describe("MacroView", () => {
     expect(within(exportsCard).getByText(/MinCIT vía datos.gov.co · CC BY-SA 4.0/)).toBeInTheDocument();
   });
 
+  it("shows the spot electricity price card (XM), labelled as electricity, with provenance", async () => {
+    const days = Array.from({ length: 10 }, (_, index) => ({ date: `2026-10-${String(10 + index).padStart(2, "0")}`, value: 250 + index }));
+    const provenance = { url: "https://servapibi.xm.com.co/hourly", license: "sin licencia abierta declarada", attribution: "XM S.A. E.S.P.", fetchedAt: "2026-10-20T15:00:00.000Z" };
+    const fetchStub = vi.fn().mockResolvedValue(new Response(JSON.stringify({ status: "ok", unit: "COP/kWh", days, provenance })));
+    window.fetch = fetchStub;
+    renderMacro();
+
+    const card = (await screen.findByText("Precio de bolsa de energía (XM)")).closest("[data-slot=card]") as HTMLElement;
+    expect(await within(card).findByText(/Electricidad, no gas/)).toBeInTheDocument();
+    expect(within(card).getByText(/XM S.A. E.S.P. · sin licencia abierta declarada/)).toBeInTheDocument();
+    expect(within(card).getByText(/COP\/kWh/)).toBeInTheDocument();
+  });
+
   it("shows the TRM next to the macro figures", async () => {
     renderMacro();
     expect(await screen.findByText("TRM hoy")).toBeInTheDocument();

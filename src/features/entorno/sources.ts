@@ -22,6 +22,7 @@ export const SOURCES = {
     attribution: "Ministerio de Comercio, Industria y Turismo - MinCIT vía datos.gov.co",
     license: "CC BY-SA 4.0",
   },
+  xm: { name: "XM", attribution: "XM S.A. E.S.P.", license: "sin licencia abierta declarada" },
   supersociedades: {
     name: "Supersociedades",
     attribution: "Superintendencia de Sociedades vía datos.gov.co",

@@ -13,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { Observation } from "@/core/domain/observation";
 import type { SourceView } from "@/features/entorno/source-view";
 import { SOURCES, type SourceInfo } from "@/features/entorno/sources";
+import { useEnergy } from "@/features/entorno/use-energy";
 import { useExports } from "@/features/entorno/use-exports";
 import { useWorldBank, type ObservationsData } from "@/features/entorno/use-world-bank";
 import { Delta } from "@/features/trm/delta";
@@ -22,6 +23,7 @@ import { TrmData } from "@/features/trm/trm-data";
 import { formatFecha } from "@/lib/date";
 import { formatCop } from "@/lib/money";
 import { AnnualChart } from "./annual-chart";
+import { EnergyChart } from "./energy-chart";
 import { ExportsChart } from "./exports-chart";
 import { formatMillionsUsd, formatPct, formatQuarter, lastTwo } from "./format";
 
@@ -97,6 +99,25 @@ function TrmSection() {
   );
 }
 
+/** Spot electricity price (XM) with its own loading, error, stale and switched-off states. */
+function EnergySection({ energy }: { energy: ReturnType<typeof useEnergy> }) {
+  const { view, data, observations } = energy;
+  if (data?.off) return null;
+  if (view.status === "pending") {
+    return <Skeleton role="status" aria-label="Consultando XM (precio de bolsa de energía)" className="h-72 rounded-xl" />;
+  }
+  if (view.status === "error") {
+    return <ErrorState source="XM (precio de bolsa de energía)" message={view.errorMessage ?? "Error desconocido."} onRetry={view.retry} />;
+  }
+  if (observations.length === 0) return null;
+  return (
+    <div className="flex min-w-0 flex-col gap-2">
+      <EnergyChart observations={observations} fetchedAt={view.updatedAt} />
+      {view.isStale && <StaleNotice source="XM (precio de bolsa de energía)" updatedAt={view.updatedAt} />}
+    </div>
+  );
+}
+
 function previousYearHint(lead: string) {
   return (_: Observation, previous: Observation | undefined) =>
     previous ? `${lead} Año anterior (${previous.date}): ${formatPct(previous.value)}` : lead;
@@ -107,6 +128,7 @@ export function MacroView() {
   const gdp = useWorldBank("pib");
   const cpi = useWorldBank("ipc_anual");
   const exportsQuery = useExports();
+  const energy = useEnergy();
 
   const gdpRows = gdp.data?.observations ?? [];
   const cpiRows = cpi.data?.observations ?? [];
@@ -171,6 +193,8 @@ export function MacroView() {
           emptyText="La fuente no devolvió datos de exportaciones."
         />
       </div>
+
+      <EnergySection energy={energy} />
 
       {(showAnnual || exportRows.length > 0) && (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
