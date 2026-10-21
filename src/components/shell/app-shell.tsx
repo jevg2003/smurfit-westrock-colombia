@@ -2,9 +2,11 @@
 
 import {
   BellRingIcon,
+  DatabaseIcon,
   FileTextIcon,
   GlobeIcon,
   HistoryIcon,
+  InfoIcon,
   LandmarkIcon,
   LineChartIcon,
   NewspaperIcon,
@@ -77,7 +79,11 @@ const NAV_GROUPS = [
   },
   {
     label: "Confianza",
-    items: [{ href: "/preferencias", label: "Preferencias", icon: SlidersHorizontalIcon }],
+    items: [
+      { href: "/preferencias", label: "Preferencias", icon: SlidersHorizontalIcon },
+      { href: "/fuentes", label: "Fuentes", icon: DatabaseIcon },
+      { href: "/acerca", label: "Acerca de", icon: InfoIcon },
+    ],
   },
 ];
 
