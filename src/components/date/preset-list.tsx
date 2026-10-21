@@ -22,6 +22,7 @@ export function PresetList({ items, label, className }: Props) {
         {items.map((item) => (
           <Button
             key={item.id}
+            type="button"
             size="sm"
             variant={item.active ? "secondary" : "ghost"}
             aria-pressed={item.active}

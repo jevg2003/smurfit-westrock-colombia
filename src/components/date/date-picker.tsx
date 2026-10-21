@@ -42,9 +42,11 @@ export function DatePicker({
   clearable = false,
   disabled,
   invalid,
-  today = bogotaDateKey(new Date()),
+  today: todayProp,
 }: Props) {
   const [open, setOpen] = useState(false);
+  const [currentDay] = useState(() => bogotaDateKey(new Date()));
+  const today = todayProp ?? currentDay;
   const selected = value ? keyToDate(value) : undefined;
   const todayDate = keyToDate(today);
   const [month, setMonth] = useState(selected ?? todayDate);
@@ -101,6 +103,7 @@ export function DatePicker({
         {clearable && value && (
           <div className="flex justify-end border-t p-2">
             <Button
+              type="button"
               variant="ghost"
               size="sm"
               onClick={() => {

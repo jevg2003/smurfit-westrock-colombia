@@ -2,7 +2,7 @@
 
 import { revalidateLogic, useForm } from "@tanstack/react-form";
 import { ExternalLinkIcon } from "lucide-react";
-import { useId, useRef, useState } from "react";
+import { useId, useState } from "react";
 import { Badge } from "@/components/reui/badge";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
@@ -55,19 +55,18 @@ function SheetBody({ signal, onDone }: { signal: Signal; onDone: () => void }) {
   const noteId = useId();
   const formId = useId();
   const alert = useAlertsStore((state) => state.alerts.find((item) => item.signalId === signal.id));
-  // Which button was pressed; the schema reads it, so only "Descartar" demands a note.
-  const intent = useRef<NoteIntent>("review");
   const [storeError, setStoreError] = useState<string | null>(null);
 
   const state = alert?.state ?? "new";
   const canAct = state !== "dismissed";
 
   const form = useForm({
-    defaultValues: { note: "" },
+    // `intent` is the button pressed; only "Descartar" demands a note.
+    defaultValues: { note: "", intent: "review" as NoteIntent },
     validationLogic: revalidateLogic(),
-    validators: { onDynamic: noteSchema(() => intent.current) },
+    validators: { onDynamic: noteSchema },
     onSubmit: ({ value }) => {
-      const result = intent.current === "dismiss" ? dismissSignal(signal, value.note) : reviewSignal(signal, value.note);
+      const result = value.intent === "dismiss" ? dismissSignal(signal, value.note) : reviewSignal(signal, value.note);
       if (!result.ok) return setStoreError(result.error.message);
       onDone();
     },
@@ -209,7 +208,7 @@ function SheetBody({ signal, onDone }: { signal: Signal; onDone: () => void }) {
               form={formId}
               variant="outline"
               onClick={() => {
-                intent.current = "review";
+                form.setFieldValue("intent", "review");
               }}
             >
               Marcar revisada
@@ -220,7 +219,7 @@ function SheetBody({ signal, onDone }: { signal: Signal; onDone: () => void }) {
             form={formId}
             variant="destructive"
             onClick={() => {
-              intent.current = "dismiss";
+              form.setFieldValue("intent", "dismiss");
             }}
           >
             Descartar

@@ -29,8 +29,10 @@ interface Props {
 const short = (key: string) => format(keyToDate(key), "d MMM yyyy", { locale: es });
 
 /** Period picker: week / 7 days / month / 12 months shortcuts or a custom range, on the calendar-15 layout. */
-export function DateRangePicker({ label, value, onChange, id, placeholder = "Elegir período", today = bogotaDateKey(new Date()) }: Props) {
+export function DateRangePicker({ label, value, onChange, id, placeholder = "Elegir período", today: todayProp }: Props) {
   const [open, setOpen] = useState(false);
+  const [currentDay] = useState(() => bogotaDateKey(new Date()));
+  const today = todayProp ?? currentDay;
   const [custom, setCustom] = useState(false);
   // While the user is picking the second day of a custom range, the first one lives here.
   const [draft, setDraft] = useState<DateRange | undefined>();
