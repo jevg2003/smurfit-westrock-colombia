@@ -32,4 +32,16 @@ describe("SenalesView", () => {
 
     expect(await screen.findByText(/La TRM subió 2,56% el 2026-10-19/)).toBeInTheDocument();
   });
+
+  it("lists a weekly move of the spot electricity price read from /api/energia", async () => {
+    const days = Array.from({ length: 14 }, (_, index) => ({ date: `2026-10-${String(4 + index).padStart(2, "0")}`, value: index < 7 ? 100 : 140 }));
+    const provenance = { url: "https://servapibi.xm.com.co/hourly", license: "sin licencia abierta declarada", attribution: "XM S.A. E.S.P.", fetchedAt: "2026-10-20T15:00:00.000Z" };
+    const fetchStub = vi.fn().mockResolvedValue(new Response(JSON.stringify({ status: "ok", unit: "COP/kWh", days, provenance })));
+    vi.stubGlobal("fetch", fetchStub);
+    window.fetch = fetchStub;
+    renderWithQuery(<SenalesView />);
+
+    expect(await screen.findByText(/El precio de bolsa de energía subió 40,0% semana a semana/)).toBeInTheDocument();
+    expect(fetchStub.mock.calls[0][0]).toBe("/api/energia?days=30");
+  });
 });

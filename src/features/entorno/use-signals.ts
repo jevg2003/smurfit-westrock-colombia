@@ -10,6 +10,7 @@ import { useAlertsStore } from "@/stores/alerts.store";
 import { useHydrationStore } from "@/stores/hydration.store";
 import { usePreferencesStore } from "@/stores/preferences.store";
 import { getContainer } from "./container";
+import { useEnergy } from "./use-energy";
 import { useNews } from "./use-news";
 import { REGULATION_TERMS, useRegulation } from "./use-regulation";
 import { useSecop } from "./use-secop";
@@ -33,6 +34,7 @@ export function useSignals() {
   const secop = useSecop();
   const news = useNews();
   const regulation = useRegulation();
+  const energy = useEnergy();
 
   const contracts = secop.data?.contracts;
   const trmRecords = trm.data;
@@ -40,9 +42,10 @@ export function useSignals() {
   const newsItems = news.items;
   const newsGroups = news.groups;
   const regulationItems = regulation.items;
+  const energySpot = energy.observations;
 
   const signals = useMemo<Signal[]>(() => {
-    if (!contracts && !trmRecords && newsItems.length === 0 && regulationItems.length === 0) return [];
+    if (!contracts && !trmRecords && newsItems.length === 0 && regulationItems.length === 0 && energySpot.length === 0) return [];
     const clock = getContainer().clock;
     return detectSignals(
       {
@@ -55,12 +58,13 @@ export function useSignals() {
         newsTermGroups: newsGroups,
         regulationItems,
         regulationTerms: REGULATION_TERMS,
+        energySpot,
       },
       DEFAULT_SIGNAL_RULES,
       clock,
       thresholds,
     );
-  }, [contracts, trmRecords, trmUpdatedAt, thresholds, newsItems, newsGroups, regulationItems]);
+  }, [contracts, trmRecords, trmUpdatedAt, thresholds, newsItems, newsGroups, regulationItems, energySpot]);
 
   useEffect(() => {
     if (!hasHydrated) return;
@@ -78,6 +82,8 @@ export function useSignals() {
     newsOff: news.data?.off === true,
     regulation: regulation.view,
     regulationOff: regulation.data?.off === true,
+    energy: energy.view,
+    energyOff: energy.data?.off === true,
     isPending: trm.view.status === "pending" && secop.view.status === "pending",
     hasHydrated,
   };
