@@ -129,7 +129,7 @@ with verifiable sources and explicit rules.
 | T3 | delegated | same | 0a18d3e | architecture test + self-check (22 tests); lint, typecheck, build ok | medium |
 | T4 | delegated | same | b222572 | RED: stores/rules suites failed with missing modules (`alerts.store`, `preferences.store`, `trmDaySignalId`), then GREEN 49 tests; lint, typecheck, build ok | medium |
 | T4b | delegated | R1 logic writer (2+ non-trivial files) | 535c0cc | RED: hydrate-stores, toggle-saved-day suites failed with missing modules and 3 cap tests failed; GREEN 59 tests; lint, typecheck, build ok. (d) is a refactor with no new behavior, so no RED. | medium |
-| T5 | delegated | same | PENDING_T5 | RED: bogota, fetcher and secop adapter suites failed with missing modules; GREEN 84 tests; lint, typecheck, build ok. Live curl HTTP 200 (3.3 s). | medium |
+| T5 | delegated | same | f1ab4c8 | RED: bogota, fetcher and secop adapter suites failed with missing modules; GREEN 84 tests; lint, typecheck, build ok. Live curl HTTP 200 (3.3 s). | medium |
 
 ### R0 review
 - First review attempt (base 0aeb1f7, which included docs): declined, then `lens_context_budget_exceeded`.
