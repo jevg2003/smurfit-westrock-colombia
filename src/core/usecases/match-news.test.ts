@@ -84,3 +84,37 @@ describe("sortByRelevance", () => {
     expect(items).toEqual(copy);
   });
 });
+
+describe("sortByRelevance with Colombian outlets", () => {
+  const groups = [
+    { id: "company", label: "Empresa", terms: ["Smurfit Westrock"] },
+    { id: "sector", label: "Sector", terms: ["celulosa"] },
+  ];
+  const outlets = ["Portafolio", "Portafolio.co", "El Tiempo"];
+  const make = (id: string, title: string, outlet: string, publishedAt: string) => ({ ...base, id, title, outlet, publishedAt });
+
+  it("puts a Colombian outlet first inside the same group, even if older", () => {
+    const items = matchNewsItems(
+      [
+        make("foreign-new", "Smurfit Westrock anuncia", "Heraldo", "2026-10-20T10:00:00.000Z"),
+        make("co-old", "Smurfit Westrock anuncia", "portafolio.co", "2026-10-10T10:00:00.000Z"),
+        make("co-new", "Smurfit Westrock anuncia", "El Tiempo", "2026-10-15T10:00:00.000Z"),
+      ],
+      groups,
+    );
+    expect(sortByRelevance(items, outlets).map((item) => item.id)).toEqual(["co-new", "co-old", "foreign-new"]);
+  });
+
+  it("never lets the outlet beat the group", () => {
+    const items = matchNewsItems(
+      [make("sector-co", "Sube la celulosa", "Portafolio", "2026-10-20T10:00:00.000Z"), make("company-foreign", "Smurfit Westrock anuncia", "Heraldo", "2026-10-01T10:00:00.000Z")],
+      groups,
+    );
+    expect(sortByRelevance(items, outlets).map((item) => item.id)).toEqual(["company-foreign", "sector-co"]);
+  });
+
+  it("does not match an outlet by a partial name", () => {
+    const items = matchNewsItems([make("a", "Smurfit Westrock", "Portafolio Madrid", "2026-10-01T10:00:00.000Z"), make("b", "Smurfit Westrock", "Heraldo", "2026-10-02T10:00:00.000Z")], groups);
+    expect(sortByRelevance(items, outlets).map((item) => item.id)).toEqual(["b", "a"]);
+  });
+});

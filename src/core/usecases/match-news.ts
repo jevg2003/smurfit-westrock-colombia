@@ -1,5 +1,5 @@
 import type { NewsItem } from "../domain/news";
-import { matchTermGroups, type TermGroup } from "../text/match";
+import { matchTermGroups, normalizeText, type TermGroup } from "../text/match";
 
 /** Headlines with the terms of the current groups that appear in their title. Pure; the input is not changed. */
 export function matchNewsItems(items: readonly NewsItem[], groups: readonly TermGroup[]): NewsItem[] {
@@ -22,7 +22,17 @@ const rank = (item: NewsItem) => {
   return ranks.length > 0 ? Math.min(...ranks) : RELEVANCE_ORDER.length + 1;
 };
 
-/** Most relevant group first (company > sector > regulation > operations > unmatched), then newest first. */
-export function sortByRelevance(items: readonly NewsItem[]): NewsItem[] {
-  return [...items].sort((a, b) => rank(a) - rank(b) || Date.parse(b.publishedAt) - Date.parse(a.publishedAt) || a.id.localeCompare(b.id));
+const outletKey = (name: string) => normalizeText(name);
+
+/**
+ * Most relevant group first (company > sector > regulation > operations > unmatched). Inside a group, items from
+ * the given Colombian outlets (matched by whole outlet name, ignoring case, accents and punctuation) come first,
+ * then newest first.
+ */
+export function sortByRelevance(items: readonly NewsItem[], colombianOutlets: readonly string[] = []): NewsItem[] {
+  const local = new Set(colombianOutlets.map(outletKey));
+  const abroad = (item: NewsItem) => (local.has(outletKey(item.outlet)) ? 0 : 1);
+  return [...items].sort(
+    (a, b) => rank(a) - rank(b) || abroad(a) - abroad(b) || Date.parse(b.publishedAt) - Date.parse(a.publishedAt) || a.id.localeCompare(b.id),
+  );
 }

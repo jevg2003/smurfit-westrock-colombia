@@ -160,6 +160,23 @@ export const LEGACY_NEWS_TERM_GROUPS: Readonly<Record<NewsTermGroup["id"], reado
   operations: ["gas natural", "Yumbo", "Cauca", "paro camionero", "TRM", "dólar"],
 };
 
+/**
+ * Colombian outlets, as they appear in the media feeds and in the `<source>` of Google News items (checked
+ * against the RSS fixtures). Matched as whole names ignoring case, accents and punctuation. Items from these
+ * come first inside the same term group on the Noticias screen.
+ */
+export const COLOMBIAN_OUTLETS: readonly string[] = [
+  "Portafolio",
+  "Portafolio.co",
+  "La República",
+  "El Tiempo",
+  "Valora Analitik",
+  "El Colombiano",
+  "Revista Semana",
+  "Semana",
+  "Caracol Radio",
+];
+
 export const DEFAULT_NEWS_TERMS: readonly string[] = NEWS_TERM_GROUPS.flatMap((group) => group.terms);
 
 /**
