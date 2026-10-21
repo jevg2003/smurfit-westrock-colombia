@@ -85,7 +85,7 @@ with verifiable sources and explicit rules.
   - clarify the toggle;
   - use a single threshold source;
   - widen the forbidden imports in the architecture test.
-- [ ] T5 SECOP II contracts adapter: filter by NIT, Zod, a real fixture; confirm the end-date field.
+- [x] T5 SECOP II contracts adapter: filter by NIT, Zod, a real fixture; confirm the end-date field.
 - [ ] T6 Rules `secop.expiring-contract` and `secop.competitor-new-contract`, plus dedupe and severity,
       with an injected Clock and thresholds from preferences.
 - [ ] T7 Usecases `detect-signals`, `build-timeline`, `build-briefing` (Bogota calendar week).
@@ -129,6 +129,7 @@ with verifiable sources and explicit rules.
 | T3 | delegated | same | 0a18d3e | architecture test + self-check (22 tests); lint, typecheck, build ok | medium |
 | T4 | delegated | same | b222572 | RED: stores/rules suites failed with missing modules (`alerts.store`, `preferences.store`, `trmDaySignalId`), then GREEN 49 tests; lint, typecheck, build ok | medium |
 | T4b | delegated | R1 logic writer (2+ non-trivial files) | 535c0cc | RED: hydrate-stores, toggle-saved-day suites failed with missing modules and 3 cap tests failed; GREEN 59 tests; lint, typecheck, build ok. (d) is a refactor with no new behavior, so no RED. | medium |
+| T5 | delegated | same | PENDING_T5 | RED: bogota, fetcher and secop adapter suites failed with missing modules; GREEN 84 tests; lint, typecheck, build ok. Live curl HTTP 200 (3.3 s). | medium |
 
 ### R0 review
 - First review attempt (base 0aeb1f7, which included docs): declined, then `lens_context_budget_exceeded`.
@@ -143,6 +144,13 @@ with verifiable sources and explicit rules.
   - duplicated threshold constant in `use-trm.ts`.
   - architecture test misses `react-dom`, `next-themes`, `@tanstack/react-*`.
   - hydration flash on `/alertas` (no `hasHydrated` gate).
+
+### T5 confirmed SECOP facts
+- Live query (HTTP 200, 4 rows): `https://www.datos.gov.co/resource/jbjy-vk9h.json?$where=documento_proveedor in('890300406','860026759','890319047','890925108') AND fecha_de_firma>'2025-10-01'&$order=fecha_de_firma DESC&$limit=10`.
+- End-date field is `fecha_de_fin_del_contrato` (not `fecha_de_fin`). Dates are floating local timestamps, anchored to Bogota by the adapter. `valor_del_contrato` is a string; `urlproceso` is `{url}`.
+- Dataset metadata: `licenseId` CC_40_BY_SA; attribution "Agencia Nacional de Contratación Pública - Colombia Compra Eficiente".
+- Fixture `secop-contratos.sample.json` is the real response; personal fields (legal representative, spending officer, supervisor, bank account) were removed, all other fields are verbatim.
+- Added dependency `zod` (was missing).
 
 ## Next step
 R1: T4b (R0 follow-ups), then T5–T8.
