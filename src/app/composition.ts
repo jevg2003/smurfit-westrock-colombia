@@ -9,6 +9,7 @@ import { createExportsAdapter } from "@/infrastructure/sources/datos-gov-co/expo
 import { createSupersociedadesAdapter } from "@/infrastructure/sources/datos-gov-co/supersociedades/adapter";
 import { createSecopContractsAdapter } from "@/infrastructure/sources/datos-gov-co/secop-contratos/adapter";
 import { createWorldBankAdapter } from "@/infrastructure/sources/world-bank/adapter";
+import { createXmAdapter } from "@/infrastructure/sources/xm/adapter";
 
 export interface ContainerOptions {
   fetcher?: Fetcher;
@@ -28,6 +29,7 @@ export function createContainer({ fetcher, clock = systemClock, logger = console
     analyzer,
     secop: createSecopContractsAdapter({ fetcher }),
     worldBank: createWorldBankAdapter({ fetcher }),
+    xm: createXmAdapter({ fetcher }),
     exports: createExportsAdapter({ fetcher }),
     supersociedades: createSupersociedadesAdapter({ fetcher }),
   };

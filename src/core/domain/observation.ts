@@ -1,6 +1,6 @@
 import type { Provenance } from "./provenance";
 
-export type IndicatorId = "trm" | "pib" | "ipc_anual" | "exportaciones";
+export type IndicatorId = "trm" | "pib" | "ipc_anual" | "exportaciones" | "precio_bolsa_energia";
 
 export interface Observation {
   indicatorId: IndicatorId;

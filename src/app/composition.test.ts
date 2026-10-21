@@ -4,6 +4,7 @@ import sample from "@/infrastructure/sources/datos-gov-co/secop-contratos/fixtur
 import exportsSample from "@/infrastructure/sources/datos-gov-co/exportaciones/fixtures/exportaciones.sample.json";
 import supersociedades from "@/infrastructure/sources/datos-gov-co/supersociedades/fixtures/supersociedades.sample.json";
 import gdp from "@/infrastructure/sources/world-bank/fixtures/gdp-growth.col.json";
+import xmPrice from "@/infrastructure/sources/xm/fixtures/prec-bols-naci.json";
 import { COMPANY, COMPETITORS } from "@/content/config/empresa";
 import { createContainer } from "./composition";
 
@@ -54,6 +55,13 @@ describe("createContainer", () => {
     const fetchImpl = vi.fn().mockResolvedValue(new Response(JSON.stringify(supersociedades), { status: 200 }));
     const container = createContainer({ fetcher: createFetcher({ fetchImpl, retryDelayMs: 0 }) });
     const result = await container.supersociedades.fetch({ nits: [COMPANY.nit] }, { now: container.clock.now() });
+    expect(result.ok).toBe(true);
+  });
+
+  it("wires the XM spot energy price adapter", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(new Response(JSON.stringify(xmPrice), { status: 200 }));
+    const container = createContainer({ fetcher: createFetcher({ fetchImpl, retryDelayMs: 0 }) });
+    const result = await container.xm.fetch({}, { now: container.clock.now() });
     expect(result.ok).toBe(true);
   });
 });

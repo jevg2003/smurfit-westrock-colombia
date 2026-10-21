@@ -32,6 +32,7 @@ export const INDICATOR_LABELS: Record<IndicatorId, string> = {
   pib: "PIB real",
   ipc_anual: "Inflación anual (IPC)",
   exportaciones: "Exportaciones",
+  precio_bolsa_energia: "Precio de bolsa de energía",
 };
 
 export const IMPACT_LABELS: Record<Impact, string> = {
