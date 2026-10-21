@@ -89,7 +89,7 @@ with verifiable sources and explicit rules.
 - [x] T6 Rules `secop.expiring-contract` and `secop.competitor-new-contract`, plus dedupe and severity,
       with an injected Clock and thresholds from preferences.
 - [x] T7 Usecases `detect-signals`, `build-timeline`, `build-briefing` (Bogota calendar week).
-- [ ] T8 Screens: Radar, Señales (detail sheet), Alertas, Línea de tiempo, Contratación, Briefing
+- [x] T8 Screens: Radar, Señales (detail sheet), Alertas, Línea de tiempo, Contratación, Briefing
       export, Preferencias. Include the disclaimer and loading/error/empty states.
 
 ### R2 — Macro + competitors
@@ -132,6 +132,11 @@ with verifiable sources and explicit rules.
 | T5 | delegated | same | f1ab4c8 | RED: bogota, fetcher and secop adapter suites failed with missing modules; GREEN 84 tests; lint, typecheck, build ok. Live curl HTTP 200 (3.3 s). | medium |
 | T6 | delegated | same | 734d262 | RED: severity, dedupe, expiring, competitor and TRM signal suites failed with missing modules (plus a thresholds-merge test); GREEN 107 tests; lint, typecheck, build ok. Boundaries at 90/91, 30/31, 0/-1 days and Bogota midnight covered. | medium |
 | T7 | delegated | same | 5fa3fb1 | RED: 7 suites failed with missing modules (detect-signals, build-timeline, build-briefing, serializers, csv, noop analyzer, composition); GREEN 141 tests; lint, typecheck, build ok. Week boundaries covered (Mon 00:00, Sun 23:59:59.999 Bogota). | medium |
+| T8 shell + radar | delegated | R1 screens writer (2+ non-trivial files) | e5526ec | RED: detail-sheet suite failed with a missing module, then 4 GREEN; radar tests written after the view (no RED); lint, typecheck ok | medium |
+| T8 señales + alertas | delegated | same | 15812ed | RED: senales and alertas suites failed (missing module, missing provider), then GREEN 28 tests; lint, typecheck ok | medium |
+| T8 línea de tiempo + contratación | delegated | same | fb2e4ec | RED: expiry, contratación and timeline suites failed with missing modules, then GREEN; lint, typecheck ok | medium |
+| T8 briefing | delegated | same | d4f67dc | RED: briefing view suite (missing module) and CSV BOM test (test-side Blob.text strips BOM, fixed to read bytes); GREEN; lint, typecheck ok | medium |
+| T8 preferencias | delegated | same | ff7c074 | RED: news-groups store tests, validators and preferences view failed (missing members/modules), then GREEN; `pnpm test` 38 files / 183 tests, lint, typecheck, build ok; dev routes HTTP 200 | medium |
 
 ### R0 review
 - First review attempt (base 0aeb1f7, which included docs): declined, then `lens_context_budget_exceeded`.
@@ -162,4 +167,4 @@ with verifiable sources and explicit rules.
   25 files, 141 tests passed. Next assessment base for slicing: 0f5b95e (declined range closed by the user).
 
 ## Next step
-R1: T8 (screens). Logic part (T4b–T7) is done. Note: `src/lib/csv.ts` now uses the pure `toCsv` from `src/core/format/csv.ts`; the TRM saved-day signal dimension changed from market to macro to match proposal §4.6.
+R1 is complete (T4b–T8). Next: native review assessment of the T8 slice (base 0f5b95e), then R2. Notes: `src/features/trm/resumen-view.tsx` (old summary) is no longer routed; reuse it for the Macro screen (T11). Note: `src/lib/csv.ts` now uses the pure `toCsv` from `src/core/format/csv.ts`; the TRM saved-day signal dimension changed from market to macro to match proposal §4.6.
