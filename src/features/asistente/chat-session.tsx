@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Marker, MarkerContent } from "@/components/ui/marker";
 import { Trace, TraceIcon, TraceLine, TraceTitle } from "@/components/ui/trace";
 import { useChatStore, type ChatMode } from "@/stores/chat.store";
+import { SESSION_EXPIRED_ACTION, reenterSession } from "@/components/states/session-expired";
 import { describeChatFailure } from "./chat-errors";
 import { ChatMessage } from "./chat-message";
 import { useChatRuntime } from "./chat-runtime";
@@ -107,11 +108,15 @@ export function ChatSession({ conversationId, mode, initialPrompt, onInitialProm
                   variant="outline"
                   size="xs"
                   onClick={() => {
+                    if (failure.reenter) {
+                      reenterSession();
+                      return;
+                    }
                     clearError();
                     void regenerate();
                   }}
                 >
-                  Reintentar
+                  {failure.reenter ? SESSION_EXPIRED_ACTION : "Reintentar"}
                 </Button>
               </AlertAction>
             </Alert>

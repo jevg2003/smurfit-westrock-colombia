@@ -2,7 +2,7 @@ import type { SourceId } from "./provenance";
 
 export interface SourceError {
   sourceId: SourceId;
-  kind: "network" | "rate_limited" | "schema" | "empty" | "disabled" | "unknown";
+  kind: "network" | "rate_limited" | "unauthorized" | "schema" | "empty" | "disabled" | "unknown";
   status?: number;
   message: string;
 }

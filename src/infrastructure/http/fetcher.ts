@@ -26,6 +26,21 @@ const DEFAULT_RETRY_DELAY_MS = 300;
 const sleep = (ms: number) => (ms > 0 ? new Promise<void>((resolve) => setTimeout(resolve, ms)) : Promise.resolve());
 
 /**
+ * True for a relative URL or an absolute URL of the page's own origin. Cross-origin calls
+ * (datos.gov.co, World Bank) must stay "simple" requests, so they never get custom headers.
+ */
+function isSameOrigin(url: string): boolean {
+  if (url.startsWith("/") && !url.startsWith("//")) return true;
+  const pageOrigin = (globalThis as { location?: { origin?: string } }).location?.origin;
+  if (!pageOrigin) return false;
+  try {
+    return new URL(url).origin === pageOrigin;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Fetch with a per-attempt timeout and exactly one retry on a 5xx response.
  * A 429 and any other status are returned as they are (no retry).
  * Network errors and timeouts throw `FetchFailure` and are not retried.
@@ -38,8 +53,11 @@ export function createFetcher({
   const attempt = async (url: string, init: RequestInit | undefined): Promise<Response> => {
     const timeout = AbortSignal.timeout(timeoutMs);
     const signal = init?.signal ? AbortSignal.any([timeout, init.signal]) : timeout;
+    // Cloudflare Access answers an expired session with a 401 (not a login redirect) only for XHR-style calls.
+    const headers = new Headers(init?.headers);
+    if (isSameOrigin(url)) headers.set("X-Requested-With", "XMLHttpRequest");
     try {
-      return await fetchImpl(url, { ...init, signal });
+      return await fetchImpl(url, { ...init, headers, signal });
     } catch (error) {
       if (timeout.aborted) throw new FetchFailure("timeout", `Timed out after ${timeoutMs} ms`, { cause: error });
       if (init?.signal?.aborted) throw new FetchFailure("aborted", "Request aborted", { cause: error });

@@ -23,3 +23,19 @@ describe("describeChatFailure", () => {
     });
   });
 });
+
+describe("describeChatFailure: expired access session", () => {
+  it("tells the user to log in again and flags the re-entry action", async () => {
+    const { SessionExpiredError } = await import("./chat-fetch");
+    expect(describeChatFailure(new SessionExpiredError())).toEqual({
+      title: "Sesión vencida",
+      message: "Tu sesión de acceso venció. Vuelve a entrar para seguir.",
+      reenter: true,
+    });
+  });
+
+  it("also recognises the proxy's 401 JSON body", () => {
+    const failure = describeChatFailure(new Error(JSON.stringify({ error: "unauthorized" })));
+    expect(failure.reenter).toBe(true);
+  });
+});

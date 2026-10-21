@@ -22,4 +22,16 @@ describe("buildFuentesStatus", () => {
   it("treats an unknown provider as not configured", () => {
     expect(buildFuentesStatus({ AI_PROVIDER: "foo", OPENAI_API_KEY: "x" }).ai.configured).toBe(false);
   });
+
+  it("reports whether Cloudflare Access is enforced, as a boolean only", () => {
+    const env = { CF_ACCESS_TEAM_DOMAIN: "team.cloudflareaccess.com", CF_ACCESS_AUD: "aud-secret-tag" };
+    expect(buildFuentesStatus(env).access).toEqual({ enforced: true });
+    expect(JSON.stringify(buildFuentesStatus(env))).not.toContain("aud-secret-tag");
+    expect(JSON.stringify(buildFuentesStatus(env))).not.toContain("team.cloudflareaccess.com");
+  });
+
+  it("reports Access as not enforced when it is not configured or switched off", () => {
+    expect(buildFuentesStatus({}).access).toEqual({ enforced: false });
+    expect(buildFuentesStatus({ CF_ACCESS_TEAM_DOMAIN: "t", CF_ACCESS_AUD: "a", CF_ACCESS_ENFORCE: "off" }).access).toEqual({ enforced: false });
+  });
 });

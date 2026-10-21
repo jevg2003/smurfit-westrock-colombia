@@ -150,6 +150,16 @@ export const CATALOG = {
     access: "server",
     frequency: "Bajo demanda",
   },
+  access: {
+    id: "access",
+    name: "Cloudflare Access",
+    organization: "Cloudflare",
+    url: "https://developers.cloudflare.com/cloudflare-one/policies/access/",
+    license: "No aplica: protege el acceso a la app, no entrega datos",
+    attribution: "Inicio de sesión con código de un solo uso",
+    access: "server",
+    frequency: "En cada visita",
+  },
 } as const satisfies Record<string, SourceCatalogEntry>;
 
 /** One entry per media RSS feed, from the same closed list the server proxy uses. */

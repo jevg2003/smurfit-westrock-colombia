@@ -6,6 +6,7 @@ import { createContext, useContext, useState, type ReactNode } from "react";
 import type { PageContext } from "@/infrastructure/ai/page-context";
 import { useChatStore, type ChatMode } from "@/stores/chat.store";
 import { usePreferencesStore } from "@/stores/preferences.store";
+import { createChatFetch } from "./chat-fetch";
 
 /** What the screen currently showing a conversation tells the runtime at send time. */
 export interface ChatBinding {
@@ -23,6 +24,7 @@ export interface ChatRuntime {
 }
 
 const API = "/api/chat";
+const chatFetch = createChatFetch();
 
 /**
  * Holds the AI SDK `Chat` objects above the routes. The saved conversation in `chat.store` is the
@@ -42,6 +44,7 @@ export function createChatRuntime(): ChatRuntime {
       messages: saved?.messages ?? [],
       transport: new DefaultChatTransport({
         api: API,
+        fetch: chatFetch,
         // Read at send time, so the latest preferences and the current screen are always used.
         body: () => {
           const binding = bindings.get(id);

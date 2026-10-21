@@ -1,6 +1,11 @@
+import { SESSION_EXPIRED_MESSAGE, SESSION_EXPIRED_TITLE } from "@/components/states/session-expired";
+import { SessionExpiredError } from "./chat-fetch";
+
 export interface ChatFailure {
   title: string;
   message: string;
+  /** True when the fix is to log in again (reload), not to retry the message. */
+  reenter?: boolean;
 }
 
 const GENERIC = "No pude responder en este momento. Vuelve a intentarlo.";
@@ -17,6 +22,9 @@ function serverMessage(error: Error): string | undefined {
 
 /** Turns a `useChat` error into Spanish copy for the error state. 503, 429 and network are told apart. */
 export function describeChatFailure(error: Error): ChatFailure {
+  if (error instanceof SessionExpiredError || serverMessage(error) === "unauthorized") {
+    return { title: SESSION_EXPIRED_TITLE, message: SESSION_EXPIRED_MESSAGE, reenter: true };
+  }
   if (error instanceof TypeError || /failed to fetch|network/i.test(error.message)) {
     return { title: "Sin conexión", message: "No hay conexión con el servidor. Revisa tu internet y vuelve a intentarlo." };
   }

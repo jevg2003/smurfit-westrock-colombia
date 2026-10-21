@@ -4,7 +4,7 @@ import type { Snapshot } from "./snapshots";
 
 const retry = () => {};
 const ok: Snapshot = { state: "ok", lastSuccess: 10, retry };
-const status = { flags: { newsRss: true, googleNews: true, minambiente: true, presidencia: true, xm: true }, ai: { configured: true, provider: "openai", webSearch: true } };
+const status = { flags: { newsRss: true, googleNews: true, minambiente: true, presidencia: true, xm: true }, ai: { configured: true, provider: "openai", webSearch: true }, access: { enforced: true } };
 
 function inputs(overrides: Partial<GroupInputs> = {}): GroupInputs {
   return {
@@ -29,7 +29,7 @@ const find = (groups: ReturnType<typeof buildGroups>, id: string) => flat(groups
 describe("buildGroups", () => {
   it("lists every source of the catalog once", () => {
     const ids = flat(buildGroups(inputs())).map((row) => row.entry.id);
-    expect(ids).toEqual(expect.arrayContaining(["trm", "secop", "pib", "ipc", "exports", "supersociedades", "portafolio", "larepublica", "eltiempo", "valora", "elcolombiano", "google-news", "minambiente", "presidencia", "curated", "xm", "ai"]));
+    expect(ids).toEqual(expect.arrayContaining(["trm", "secop", "pib", "ipc", "exports", "supersociedades", "portafolio", "larepublica", "eltiempo", "valora", "elcolombiano", "google-news", "minambiente", "presidencia", "curated", "xm", "ai", "access"]));
     expect(new Set(ids).size).toBe(ids.length);
   });
 
@@ -68,6 +68,14 @@ describe("buildGroups", () => {
     expect(configured?.snapshot.detail).toContain("openai");
     const missing = find(buildGroups(inputs({ status: { state: "ok", data: { ...status, ai: { configured: false, provider: "openai", webSearch: false } } } })), "ai");
     expect(missing?.snapshot).toMatchObject({ state: "disabled", error: { kind: "disabled" } });
+  });
+
+  it("reports Cloudflare Access as protected or not configured", () => {
+    expect(find(buildGroups(inputs()), "access")?.snapshot).toMatchObject({ state: "ok", detail: "protegido" });
+    const off = find(buildGroups(inputs({ status: { state: "ok", data: { ...status, access: { enforced: false } } } })), "access");
+    expect(off?.snapshot).toMatchObject({ state: "disabled", detail: "sin configurar" });
+    expect(find(buildGroups(inputs({ status: { state: "pending" } })), "access")?.snapshot.state).toBe("pending");
+    expect(find(buildGroups(inputs({ status: { state: "error" } })), "access")?.snapshot.state).toBe("unchecked");
   });
 
   it("keeps the assistant pending while the status loads and unchecked when it fails", () => {

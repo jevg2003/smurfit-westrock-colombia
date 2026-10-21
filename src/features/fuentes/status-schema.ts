@@ -10,6 +10,7 @@ export const fuentesStatusSchema = z.object({
     xm: z.boolean(),
   }),
   ai: z.object({ configured: z.boolean(), provider: z.string(), webSearch: z.boolean() }),
+  access: z.object({ enforced: z.boolean() }),
 });
 
 export type FuentesStatus = z.infer<typeof fuentesStatusSchema>;

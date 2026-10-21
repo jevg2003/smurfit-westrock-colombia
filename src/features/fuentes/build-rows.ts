@@ -74,6 +74,13 @@ export function buildGroups(input: GroupInputs): FuenteGroup[] {
     return row(CATALOG.ai, { state: "ok", detail: `Configurado · proveedor: ${provider} · búsqueda en internet: ${webSearch ? "sí" : "no"}`, ...retry });
   };
 
+  const accessRow = (): FuenteRow => {
+    const retry = input.retryStatus ? { retry: input.retryStatus } : {};
+    if (input.status.state !== "ok") return row(CATALOG.access, { state: input.status.state === "pending" ? "pending" : "unchecked", ...retry });
+    if (input.status.data.access.enforced) return row(CATALOG.access, { state: "ok", detail: "protegido", ...retry });
+    return row(CATALOG.access, { state: "disabled", detail: "sin configurar", ...retry });
+  };
+
   const xmRow = (): FuenteRow => {
     const xm = row(CATALOG.xm, input.xm);
     return xm.snapshot.state === "disabled" ? { ...xm, snapshot: { ...xm.snapshot, detail: "desactivada por configuración" } } : xm;
@@ -102,7 +109,7 @@ export function buildGroups(input: GroupInputs): FuenteGroup[] {
     {
       id: "otras",
       title: "Energía y asistente",
-      rows: [xmRow(), ai()],
+      rows: [xmRow(), ai(), accessRow()],
     },
   ];
 }

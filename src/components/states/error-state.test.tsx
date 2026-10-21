@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { ErrorState } from "./error-state";
 
 afterEach(cleanup);
@@ -18,5 +19,22 @@ describe("ErrorState", () => {
   it("adds no hint for an unknown or missing kind", () => {
     render(<ErrorState message="Falló." kind="unknown" />);
     expect(screen.getAllByText(/./, { selector: "p" })).toHaveLength(1);
+  });
+
+  it("shows the expired-session message and a reload button for the unauthorized kind", async () => {
+    const reload = vi.fn();
+    vi.stubGlobal("location", { reload });
+    try {
+      const onRetry = vi.fn();
+      render(<ErrorState message="La fuente respondió 401." kind="unauthorized" onRetry={onRetry} />);
+      expect(screen.getByText("Tu sesión de acceso venció. Vuelve a entrar para seguir.")).toBeInTheDocument();
+      expect(screen.queryByText("La fuente respondió 401.")).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Reintentar" })).not.toBeInTheDocument();
+      await userEvent.click(screen.getByRole("button", { name: "Volver a entrar" }));
+      expect(reload).toHaveBeenCalledTimes(1);
+      expect(onRetry).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

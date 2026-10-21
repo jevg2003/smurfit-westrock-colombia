@@ -1,3 +1,4 @@
+import { isAccessConfigured } from "@/lib/access-handler";
 import { readFlags, type SourceFlags } from "@/infrastructure/flags";
 import { resolveModel, type ModelEnv } from "@/infrastructure/ai/model";
 
@@ -9,6 +10,8 @@ export interface FuentesStatus {
     provider: string;
     webSearch: boolean;
   };
+  /** Whether the Cloudflare Access check is active. A boolean only: never the team domain or the AUD. */
+  access: { enforced: boolean };
 }
 
 /** Booleans and the provider name only: nothing here may carry a secret. */
@@ -22,5 +25,6 @@ export function buildFuentesStatus(env: ModelEnv): FuentesStatus {
       provider,
       webSearch: resolution.ok && resolution.webSearchTools !== undefined,
     },
+    access: { enforced: isAccessConfigured(env) },
   };
 }
