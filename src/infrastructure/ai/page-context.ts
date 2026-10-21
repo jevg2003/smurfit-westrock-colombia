@@ -35,3 +35,15 @@ export function fitsPageContextBudget(context: unknown): boolean {
     return false;
   }
 }
+
+/** Drops trailing rows, then key numbers, until the context fits the budget. */
+export function fitToBudget(context: PageContext): PageContext {
+  let current = context;
+  while (!fitsPageContextBudget(current) && (current.rows?.length ?? 0) > 0) {
+    current = { ...current, rows: current.rows?.slice(0, -1) };
+  }
+  while (!fitsPageContextBudget(current) && (current.keyNumbers?.length ?? 0) > 0) {
+    current = { ...current, keyNumbers: current.keyNumbers?.slice(0, -1) };
+  }
+  return current;
+}
