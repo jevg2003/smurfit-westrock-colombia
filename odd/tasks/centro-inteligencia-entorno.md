@@ -121,8 +121,8 @@ with verifiable sources and explicit rules.
 - [x] PESTEL: `/pestel` matrix, decision log with templates (`swc:decisions:v1`), PESTEL section in the briefing.
 - [x] Forms: TanStack Form + Zod 4, `DatePicker`/`DateRangePicker` (c-calendar-15 layout), wider Sheets by default.
 - [x] Fixes: stale container after HMR (`e5d9b60`), hydration #418 from the theme toggler (`c5a3f29`), `/dias` missing h1 (`b945aff`), Zod JIT `unsafe-eval` CSP violations 37 -> 0 (`d2c8269`).
-- [ ] News relevance (generic term "papel" produced noise in Google News results) - in progress.
-- [ ] `/fuentes`: typed `SourceFailure` kinds and XM row - in progress.
+- [x] News relevance: specific phrases instead of generic words, one Google News query per group (`when:30d`), relevance filter with "Ver todas", context/exclusion words editable in Preferencias, Colombian outlets ranked first and exempt from the context rule (`e56504b`..`969e829`, wired in `8057d21`). Live sample: 38 relevant of 150, all about Colombia.
+- [x] `/fuentes`: typed `SourceFailure` kinds, XM row, "N de M fuentes funcionando" (`e561b48`..`4261092`); `ErrorState` shows a hint per kind on the screens (`0219f0b`).
 
 ## Acceptance criteria (release level)
 - Every screen shows source, date and license, and every signal links to its original record.
@@ -222,13 +222,13 @@ with verifiable sources and explicit rules.
 - Curated norm links (all HTTP 200 on 2026-10-20): Res. 1407/2018 Cancillería normograma; Res. 803/2024 (Diario Oficial 52.799, dated 2024-06-24) MinTIC normograma; Ley 2232/2022 (dated 2022-07-07) ANLA page; Ley 1581/2012 Función Pública gestor normativo `norma.php?i=49981`. These are official entity pages, not SUIN/Función Pública for 1407, 803 and 2232 (not verified there); reviewedAt 2026-10-20.
 - Parser: `fast-xml-parser` 5.11.2, MIT. Flags are server-only (`FEATURE_NEWS_RSS`, `FEATURE_GOOGLE_NEWS`, `FEATURE_MINAMBIENTE`, `FEATURE_PRESIDENCIA`).
 
+### Final verification (2026-10-21)
+- `pnpm test` 114 files / 712 tests, `pnpm lint`, `pnpm typecheck` and `pnpm build` clean. Playwright against the production build: 30 passed, 1 skipped (`@live`).
+- CSP Report-Only violations: 0 on `/`, `/macro`, `/noticias`, `/asistente`, `/fuentes` after `z.config({ jitless: true })`.
+- All RDD reviews were declined by the user except R0, which was approved. Nothing was pushed and nothing was deployed.
+
 ## Next step
-R2 is complete (T9–T11).
-
-**R2 review:**
-- Assessed against base 09d920b: 50 files, 2,440 lines, medium risk.
-- The user declined the review (`declined_this_candidate`, lineage `review-3bfdc0f0df80de7f`).
-- Parent spot check: `pnpm test` ran 47 files, 265 tests, all passed.
-- The next assessment base is fbdf0ab.
-
-Next: R3 (T12–T14). Note: `src/features/trm/resumen-view.tsx` (old summary) is still unrouted; the Macro screen reuses `TrmChart` and `TrmData` instead. Note: `src/lib/csv.ts` now uses the pure `toCsv` from `src/core/format/csv.ts`; the TRM saved-day signal dimension changed from market to macro to match proposal §4.6.
+All planned releases (R0–R5) and the requested additions are done on `feat/centro-inteligencia-entorno`. Open items for the user:
+- Decide whether to push, open the PR chain (`feature-branch-chain`) and switch the CSP from Report-Only to enforcing.
+- Check the AI assistant and the layouts in a browser with the real key (the Trace shimmer, mobile at 375px, the Sheet history dropdown).
+- Pending polish: news signals still need Colombian words in the title even for Colombian outlets; the regulation feed sections and the TRM wrapper do not show a typed error kind; the energy rule text is duplicated in `rule-texts.ts`; the `script tag` dev warning from `next-themes` is unconfirmed.
