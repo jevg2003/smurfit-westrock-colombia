@@ -88,7 +88,7 @@ with verifiable sources and explicit rules.
 - [x] T5 SECOP II contracts adapter: filter by NIT, Zod, a real fixture; confirm the end-date field.
 - [x] T6 Rules `secop.expiring-contract` and `secop.competitor-new-contract`, plus dedupe and severity,
       with an injected Clock and thresholds from preferences.
-- [ ] T7 Usecases `detect-signals`, `build-timeline`, `build-briefing` (Bogota calendar week).
+- [x] T7 Usecases `detect-signals`, `build-timeline`, `build-briefing` (Bogota calendar week).
 - [ ] T8 Screens: Radar, Señales (detail sheet), Alertas, Línea de tiempo, Contratación, Briefing
       export, Preferencias. Include the disclaimer and loading/error/empty states.
 
@@ -131,6 +131,7 @@ with verifiable sources and explicit rules.
 | T4b | delegated | R1 logic writer (2+ non-trivial files) | 535c0cc | RED: hydrate-stores, toggle-saved-day suites failed with missing modules and 3 cap tests failed; GREEN 59 tests; lint, typecheck, build ok. (d) is a refactor with no new behavior, so no RED. | medium |
 | T5 | delegated | same | f1ab4c8 | RED: bogota, fetcher and secop adapter suites failed with missing modules; GREEN 84 tests; lint, typecheck, build ok. Live curl HTTP 200 (3.3 s). | medium |
 | T6 | delegated | same | 734d262 | RED: severity, dedupe, expiring, competitor and TRM signal suites failed with missing modules (plus a thresholds-merge test); GREEN 107 tests; lint, typecheck, build ok. Boundaries at 90/91, 30/31, 0/-1 days and Bogota midnight covered. | medium |
+| T7 | delegated | same | PENDING_T7 | RED: 7 suites failed with missing modules (detect-signals, build-timeline, build-briefing, serializers, csv, noop analyzer, composition); GREEN 141 tests; lint, typecheck, build ok. Week boundaries covered (Mon 00:00, Sun 23:59:59.999 Bogota). | medium |
 
 ### R0 review
 - First review attempt (base 0aeb1f7, which included docs): declined, then `lens_context_budget_exceeded`.
@@ -154,4 +155,4 @@ with verifiable sources and explicit rules.
 - Added dependency `zod` (was missing).
 
 ## Next step
-R1: T4b (R0 follow-ups), then T5–T8.
+R1: T8 (screens). Logic part (T4b–T7) is done. Note: `src/lib/csv.ts` now uses the pure `toCsv` from `src/core/format/csv.ts`; the TRM saved-day signal dimension changed from market to macro to match proposal §4.6.

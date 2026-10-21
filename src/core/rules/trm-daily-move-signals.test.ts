@@ -32,6 +32,7 @@ describe("detectTrmDailyMoveSignals", () => {
     expect(signals[1].title).toContain("bajó");
     expect(signals[0].title).toContain("subió");
     expect(signals[0].ruleText).toContain("1%");
+    expect(signals[0].occurredAt).toBe("2026-10-02T00:00:00.000-05:00");
     expect(signals[0].provenance[0].fetchedAt).toBe(FETCHED);
     expect(signals[0].evidence).toEqual([{ kind: "observation", ref: "trm:2026-10-02T00:00:00.000" }]);
   });

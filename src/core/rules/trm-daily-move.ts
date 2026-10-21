@@ -1,4 +1,5 @@
 import type { Signal } from "../domain/signal";
+import { floatingToBogotaIso } from "../time/bogota";
 
 /** Default daily move (in percent) from which a TRM day is flagged as atypical. */
 export const DEFAULT_TRM_DAILY_MOVE_PCT = 1;
@@ -77,6 +78,8 @@ export function detectTrmDailyMoveSignals({ records, thresholds, fetchedAt }: De
     return [
       {
         ...buildTrmDaySignal({ date: move.date, thresholdPct: thresholds.trmDailyMovePct, fetchedAt }),
+        // The source date has no zone; anchor it to Bogota so it sorts with other signals.
+        occurredAt: floatingToBogotaIso(move.date) ?? move.date,
         severity: Math.abs(move.changePct) >= thresholds.trmDailyAlertPct ? "alert" : "watch",
         title: `La TRM ${direction} ${pct}% el ${move.date.slice(0, 10)}`,
         detail: `Cerró en COP ${move.value} frente al día anterior. Alerta desde ${thresholds.trmDailyAlertPct}%.`,
