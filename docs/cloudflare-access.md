@@ -13,7 +13,9 @@ Solo es público el landing `/` y sus archivos estáticos. Todo lo demás, `/api
 | `/` | exacta | Landing público. |
 | `/_next/static/` | prefijo | Archivos de la build (JS, CSS, fuentes) que usa el landing. |
 | `/landing/` | prefijo | Imágenes y medios del landing. |
-| `/favicon.svg` | exacta | Ícono del sitio. |
+| `/icon.svg` | exacta | Ícono del sitio (SVG). |
+| `/favicon.ico` | exacta | Ícono para navegadores que piden el `.ico`. |
+| `/apple-touch-icon.png` | exacta | Ícono para la pantalla de inicio de iOS. |
 
 La fuente de verdad es `PUBLIC_PATH_RULES` en `src/lib/access-paths.ts`. Si cambias esa lista, cambia también las reglas Bypass de Cloudflare.
 
@@ -52,7 +54,7 @@ Aplicado y verificado el 2026-10-21 en la cuenta de Cloudflare del proyecto. No 
 ### b) Aplicación pública: `SWC Landing (pública)`
 
 - Política `swc-public-bypass` (reutilizable, acción Bypass, Include > Everyone).
-- Destinos: `swc.mecateo.co/`, `swc.mecateo.co/_next/static/*`, `swc.mecateo.co/landing/*` y `swc.mecateo.co/favicon.svg`. Es el mismo contrato que `PUBLIC_PATH_RULES`.
+- Destinos: `swc.mecateo.co/`, `swc.mecateo.co/_next/static/*`, `swc.mecateo.co/landing/*`, `swc.mecateo.co/icon.svg`, `swc.mecateo.co/favicon.ico` y `swc.mecateo.co/apple-touch-icon.png`. Es el mismo contrato que `PUBLIC_PATH_RULES`.
 
 ### c) Por qué una lista de rutas y no una regla para todo el host
 
@@ -88,7 +90,9 @@ Haz estas pruebas en orden, sin cookies de sesión.
 curl -s -o /dev/null -w "%{http_code}\n" https://swc.mecateo.co/
 
 # 2. Archivos públicos: 200.
-curl -s -o /dev/null -w "%{http_code}\n" https://swc.mecateo.co/favicon.svg
+curl -s -o /dev/null -w "%{http_code}\n" https://swc.mecateo.co/icon.svg
+curl -s -o /dev/null -w "%{http_code}\n" https://swc.mecateo.co/favicon.ico
+curl -s -o /dev/null -w "%{http_code}\n" https://swc.mecateo.co/apple-touch-icon.png
 
 # 3. Páginas y API privadas: 302 a cloudflareaccess.com.
 curl -s -o /dev/null -w "%{http_code} %{redirect_url}\n" https://swc.mecateo.co/home

@@ -11,7 +11,9 @@ export const PUBLIC_PATH_RULES: readonly PublicPathRule[] = [
   { kind: "exact", path: "/", description: "Public landing page." },
   { kind: "prefix", path: "/_next/static/", description: "Hashed build assets (JS, CSS, fonts) used by the landing." },
   { kind: "prefix", path: "/landing/", description: "Static images and media of the landing page." },
-  { kind: "exact", path: "/favicon.svg", description: "Site icon." },
+  { kind: "exact", path: "/icon.svg", description: "Site icon (SVG)." },
+  { kind: "exact", path: "/favicon.ico", description: "Site icon for browsers that ask for the .ico file." },
+  { kind: "exact", path: "/apple-touch-icon.png", description: "Icon for iOS home screens." },
 ];
 
 /**

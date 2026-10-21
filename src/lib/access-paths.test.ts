@@ -8,7 +8,9 @@ describe("isPublicPath", () => {
     "/_next/static/media/font.woff2",
     "/landing/hero.webp",
     "/landing/img/a/b.png",
-    "/favicon.svg",
+    "/icon.svg",
+    "/favicon.ico",
+    "/apple-touch-icon.png",
   ])("is public: %s", (path) => {
     expect(isPublicPath(path)).toBe(true);
   });
@@ -41,12 +43,17 @@ describe("isPublicPath", () => {
     "//landing/a.png",
     "/landing//a.png",
     "/_next//static/a.js",
-    "/favicon.svg.",
-    "/favicon.svg/",
-    "/favicon.svg/x",
-    "/favicon.svg%00",
-    "/Favicon.svg",
-    "/FAVICON.SVG",
+    "/favicon.svg",
+    "/icon.svg.",
+    "/icon.svg/",
+    "/icon.svg/x",
+    "/icon.svg%00",
+    "/Icon.svg",
+    "/FAVICON.ICO",
+    "/favicon.ico/x",
+    "/apple-touch-icon.png.",
+    "/apple-touch-icon.png/x",
+    "/Apple-Touch-Icon.png",
     "/Landing/a.png",
     "/LANDING/a.png",
     "/_NEXT/static/a.js",
@@ -65,7 +72,7 @@ describe("isPublicPath", () => {
   });
 
   it("documents each rule", () => {
-    expect(PUBLIC_PATH_RULES.length).toBe(4);
+    expect(PUBLIC_PATH_RULES.length).toBe(6);
     for (const rule of PUBLIC_PATH_RULES) {
       expect(rule.description.length).toBeGreaterThan(5);
     }

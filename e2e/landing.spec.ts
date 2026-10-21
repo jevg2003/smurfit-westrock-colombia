@@ -1,8 +1,8 @@
 import { expect, test } from "@playwright/test";
 
-/** Paths Cloudflare Access lets through without a login: the landing, its static assets and the favicon. */
+/** Paths Cloudflare Access lets through without a login: the landing, its static assets and the site icons. */
 function isPublicPath(pathname: string): boolean {
-  return pathname === "/" || pathname === "/favicon.svg" || pathname.startsWith("/_next/static/") || pathname.startsWith("/landing/");
+  return ["/", "/icon.svg", "/favicon.ico", "/apple-touch-icon.png"].includes(pathname) || pathname.startsWith("/_next/static/") || pathname.startsWith("/landing/");
 }
 
 const baseOrigin = new URL(process.env.E2E_BASE_URL ?? "http://localhost:3000").origin;

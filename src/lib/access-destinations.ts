@@ -5,7 +5,7 @@
  * destination and to the root bypass, so protecting `swc.mecateo.co/*` also protects `/` and the
  * public landing never opens. Verified live on 2026-10-21. The private application therefore names
  * every private path, and the Bypass application opens `/`, `/_next/static/*`, `/landing/*` and
- * `/favicon.svg` (see `PUBLIC_PATH_RULES` in `access-paths.ts`).
+ * the site icons `/icon.svg`, `/favicon.ico`, `/apple-touch-icon.png` (see `PUBLIC_PATH_RULES` in `access-paths.ts`).
  *
  * A path that is in neither application is public at the Cloudflare edge, but the app's own proxy
  * (`proxy.ts`) still rejects it with 401, so the JWT check is the second barrier. A unit test keeps

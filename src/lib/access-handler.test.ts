@@ -25,7 +25,7 @@ beforeAll(async () => {
 const req = (path: string, headers: Record<string, string> = {}) => new Request(`https://swc.mecateo.co${path}`, { headers });
 
 describe("handleAccess: public paths", () => {
-  it.each(["/", "/_next/static/a.js", "/landing/a.webp", "/favicon.svg"])("passes %s without any token or config", async (path) => {
+  it.each(["/", "/_next/static/a.js", "/landing/a.webp", "/icon.svg", "/favicon.ico", "/apple-touch-icon.png"])("passes %s without any token or config", async (path) => {
     const result = await handleAccess(req(path), unconfiguredProd, jwks);
     expect(result.type).toBe("pass");
   });
