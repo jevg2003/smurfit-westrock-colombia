@@ -1,10 +1,8 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport } from "ai";
 import { SparklesIcon } from "lucide-react";
-import type { UIMessage } from "ai";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Marker, MarkerContent } from "@/components/ui/marker";
@@ -12,6 +10,7 @@ import { Trace, TraceIcon, TraceLine, TraceTitle } from "@/components/ui/trace";
 import { useChatStore, type ChatMode } from "@/stores/chat.store";
 import { describeChatFailure } from "./chat-errors";
 import { ChatMessage } from "./chat-message";
+import { useChatRuntime } from "./chat-runtime";
 import { Composer } from "./composer";
 import { usePageContextGetter } from "./page-context";
 
@@ -28,53 +27,37 @@ interface Props {
 
 /**
  * One conversation: the message scroller, the composer and the error state. It is remounted per
- * conversation (`key`), starts from the saved messages and saves them again when an answer settles.
+ * conversation (`key`). The `Chat` itself lives in the shared runtime, so it keeps streaming if this view goes away.
  */
 export function ChatSession({ conversationId, mode, initialPrompt, onInitialPromptSent }: Props) {
   const conversation = useChatStore((state) => state.conversations.find((item) => item.id === conversationId));
   const setMessages = useChatStore((state) => state.setMessages);
   const setFeedback = useChatStore((state) => state.setFeedback);
   const getPageContext = usePageContextGetter();
+  const runtime = useChatRuntime();
+  runtime.bind(conversationId, { mode, getPageContext });
+  const chat = runtime.get(conversationId);
 
-  const transport = useMemo(
-    () =>
-      new DefaultChatTransport({
-        api: "/api/chat",
-        // Read at send time: the sheet always sends what the screen shows right now.
-        body: () => ({ mode, pageContext: mode === "sheet" ? (getPageContext() ?? undefined) : undefined }),
-      }),
-    [mode, getPageContext],
-  );
+  const { messages, sendMessage, status, error, regenerate, stop, clearError } = useChat({ chat });
 
-  // A first prompt seeds the chat with its user message so it shows at once.
-  const [seed] = useState<UIMessage[] | undefined>(() =>
-    conversation && conversation.messages.length > 0
-      ? conversation.messages
-      : initialPrompt
-        ? [{ id: crypto.randomUUID(), role: "user", parts: [{ type: "text", text: initialPrompt }] }]
-        : undefined,
-  );
-  const { messages, sendMessage, status, error, regenerate, stop, clearError } = useChat({
-    id: conversationId,
-    messages: seed,
-    transport,
-  });
-
-  // Save once an answer settles (not on every streamed token).
+  // Save once an answer settles (not on every streamed token), and not just for looking at a conversation.
+  // The runtime also saves on finish, so an answer that ends while this view is gone is kept.
+  const opened = useRef(messages);
   useEffect(() => {
-    if (messages.length > 0 && status !== "streaming") setMessages(conversationId, messages);
+    if (messages === opened.current || messages.length === 0 || status === "streaming") return;
+    setMessages(conversationId, messages);
   }, [messages, status, conversationId, setMessages]);
 
-  // Ask for the first answer once, on mount. This must be safe to run twice: React StrictMode (next dev)
-  // mounts, cleans up (useChat aborts the request) and mounts again, so a "sent" guard would lose the answer.
+  // Send the first prompt once. The chat is shared, so a remount (StrictMode, navigation) must not send it twice.
   const firstPrompt = useRef(initialPrompt);
   const onSent = useRef(onInitialPromptSent);
-  const answer = useRef(regenerate);
   useEffect(() => {
-    if (!firstPrompt.current) return;
-    void answer.current();
+    const text = firstPrompt.current;
+    if (!text) return;
+    firstPrompt.current = undefined;
+    if (chat.messages.length === 0) void chat.sendMessage({ text });
     onSent.current?.();
-  }, []);
+  }, [chat]);
 
   const endRef = useRef<HTMLDivElement>(null);
   useEffect(() => {

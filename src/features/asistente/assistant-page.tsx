@@ -1,13 +1,15 @@
 "use client";
 
 import { HistoryIcon, SparklesIcon } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 import { PageIntro } from "@/components/shell/page-intro";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { selectResumeList, useChatStore } from "@/stores/chat.store";
+import { useChatRuntime } from "./chat-runtime";
 import { ChatSession } from "./chat-session";
 import { Composer } from "./composer";
 import { ConversationHistory } from "./conversation-history";
@@ -22,13 +24,24 @@ export function AssistantPage() {
   const newConversation = useChatStore((state) => state.newConversation);
   const selectConversation = useChatStore((state) => state.selectConversation);
   const deleteConversation = useChatStore((state) => state.deleteConversation);
+  const runtime = useChatRuntime();
+  const router = useRouter();
+  const requestedId = useSearchParams()?.get("c") ?? null;
   const renameConversation = useChatStore((state) => state.renameConversation);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [pending, setPending] = useState<{ id: string; text: string } | null>(null);
   const clearPending = useCallback(() => setPending(null), []);
 
-  const active = conversations.find((conversation) => conversation.id === activeId && conversation.mode === "page");
-  const history = selectResumeList({ conversations }, "page");
+  // Any conversation can be opened here, also one that started in the side panel.
+  const active = conversations.find((conversation) => conversation.id === activeId);
+  const history = selectResumeList({ conversations });
+
+  // "Abrir en página completa" arrives as /asistente?c=<id>: open it once the store is ready, then tidy the URL.
+  useEffect(() => {
+    if (!hydrated || !requestedId) return;
+    selectConversation(requestedId);
+    router.replace("/asistente");
+  }, [hydrated, requestedId, selectConversation, router]);
 
   const start = (text: string) => {
     const id = newConversation("page");
@@ -48,7 +61,10 @@ export function AssistantPage() {
         afterPick?.();
       }}
       onRename={renameConversation}
-      onDelete={deleteConversation}
+      onDelete={(id) => {
+        runtime.discard(id);
+        deleteConversation(id);
+      }}
     />
   );
 

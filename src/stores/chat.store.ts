@@ -27,7 +27,17 @@ export interface Conversation {
 
 export interface ChatState {
   conversations: Conversation[];
+  /** Conversation open on the /asistente page. */
   activeId: string | null;
+  /** Conversation open in the side panel. Survives navigation and reloads. */
+  sheetActiveId: string | null;
+  /** Whether the side panel is open. Session only: it is never saved. */
+  sheetOpen: boolean;
+  /** Ask the assistant to search the internet. On unless the user turns it off. */
+  webSearch: boolean;
+  setSheetOpen(open: boolean): void;
+  selectSheetConversation(id: string | null): void;
+  setWebSearch(on: boolean): void;
   /** Creates an empty conversation, makes it active and returns its id. */
   newConversation(mode: ChatMode): string;
   selectConversation(id: string | null): void;
@@ -101,11 +111,22 @@ export function createChatStore({
       (set, get) => ({
         conversations: [],
         activeId: null,
+        sheetActiveId: null,
+        sheetOpen: false,
+        webSearch: true,
+        setSheetOpen: (open) => set({ sheetOpen: open }),
+        selectSheetConversation: (id) => {
+          if (id === null || get().conversations.some((conversation) => conversation.id === id)) set({ sheetActiveId: id });
+        },
+        setWebSearch: (on) => set({ webSearch: on }),
         newConversation: (mode) => {
           const id = newId();
           const stamp = now();
           const conversation: Conversation = { id, title: DEFAULT_CHAT_TITLE, mode, createdAt: stamp, updatedAt: stamp, messages: [], feedback: {} };
-          set((state) => ({ conversations: pruneConversations([conversation, ...state.conversations]), activeId: id }));
+          set((state) => ({
+            conversations: pruneConversations([conversation, ...state.conversations]),
+            ...(mode === "sheet" ? { sheetActiveId: id } : { activeId: id }),
+          }));
           return id;
         },
         selectConversation: (id) => {
@@ -122,6 +143,7 @@ export function createChatStore({
           set((state) => ({
             conversations: state.conversations.filter((conversation) => conversation.id !== id),
             activeId: state.activeId === id ? null : state.activeId,
+            sheetActiveId: state.sheetActiveId === id ? null : state.sheetActiveId,
           })),
         setMessages: (id, messages) =>
           set((state) => ({
@@ -145,7 +167,12 @@ export function createChatStore({
         version: 1,
         storage: browserStorage(storage),
         skipHydration: true,
-        partialize: (state) => ({ conversations: state.conversations, activeId: state.activeId }),
+        partialize: (state) => ({
+          conversations: state.conversations,
+          activeId: state.activeId,
+          sheetActiveId: state.sheetActiveId,
+          webSearch: state.webSearch,
+        }),
         // Anything that does not look like a conversation is dropped, so corrupt JSON never breaks the app.
         merge: (persisted, current) => {
           const saved = isRecord(persisted) ? persisted : {};
@@ -154,7 +181,12 @@ export function createChatStore({
             typeof saved.activeId === "string" && conversations.some((conversation) => conversation.id === saved.activeId)
               ? saved.activeId
               : null;
-          return { ...current, conversations: pruneConversations(conversations), activeId };
+          const sheetActiveId =
+            typeof saved.sheetActiveId === "string" && conversations.some((conversation) => conversation.id === saved.sheetActiveId)
+              ? saved.sheetActiveId
+              : null;
+          const webSearch = typeof saved.webSearch === "boolean" ? saved.webSearch : true;
+          return { ...current, conversations: pruneConversations(conversations), activeId, sheetActiveId, webSearch };
         },
       },
     ),

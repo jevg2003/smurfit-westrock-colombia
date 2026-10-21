@@ -112,4 +112,46 @@ describe("chat store", () => {
     await store.persist.rehydrate();
     expect(store.getState().conversations).toEqual([]);
   });
+
+  describe("assistant sheet state", () => {
+    it("keeps the sheet conversation apart from the page one and does not persist the open state", async () => {
+      const { store, storage } = makeStore();
+      const page = store.getState().newConversation("page");
+      const sheet = store.getState().newConversation("sheet");
+      expect(store.getState().activeId).toBe(page);
+      expect(store.getState().sheetActiveId).toBe(sheet);
+
+      store.getState().setSheetOpen(true);
+      expect(store.getState().sheetOpen).toBe(true);
+
+      const { store: reloaded } = makeStore(storage);
+      await reloaded.persist.rehydrate();
+      expect(reloaded.getState().sheetActiveId).toBe(sheet);
+      expect(reloaded.getState().sheetOpen).toBe(false);
+    });
+
+    it("selects a sheet conversation, ignores unknown ids and clears it when deleted", () => {
+      const { store } = makeStore();
+      const a = store.getState().newConversation("sheet");
+      const b = store.getState().newConversation("sheet");
+      store.getState().selectSheetConversation(a);
+      expect(store.getState().sheetActiveId).toBe(a);
+      store.getState().selectSheetConversation("nope");
+      expect(store.getState().sheetActiveId).toBe(a);
+      store.getState().deleteConversation(a);
+      expect(store.getState().sheetActiveId).toBeNull();
+      store.getState().selectSheetConversation(null);
+      expect(store.getState().sheetActiveId).toBeNull();
+      expect(b).not.toBe(a);
+    });
+
+    it("keeps web search on by default and remembers the choice", async () => {
+      const { store, storage } = makeStore();
+      expect(store.getState().webSearch).toBe(true);
+      store.getState().setWebSearch(false);
+      const { store: reloaded } = makeStore(storage);
+      await reloaded.persist.rehydrate();
+      expect(reloaded.getState().webSearch).toBe(false);
+    });
+  });
 });
