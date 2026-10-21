@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { toSourceView } from "@/features/entorno/source-view";
+import { useEnergy } from "@/features/entorno/use-energy";
 import { useExports } from "@/features/entorno/use-exports";
 import { useNews } from "@/features/entorno/use-news";
 import { useCuratedNorms, useRegulation } from "@/features/entorno/use-regulation";
@@ -42,6 +43,7 @@ export function useFuentes(): { groups: FuenteGroup[]; total: number } {
   const ipc = useWorldBank("ipc_anual");
   const exportsHook = useExports();
   const supersociedades = useSupersociedades();
+  const energy = useEnergy();
   const news = useNews();
   const regulation = useRegulation();
   const norms = useCuratedNorms();
@@ -56,6 +58,7 @@ export function useFuentes(): { groups: FuenteGroup[]; total: number } {
       ipc: fromView(ipc.view, { empty: ipc.data?.observations.length === 0, error: ipc.query.error }),
       exports: fromView(exportsHook.view, { empty: exportsHook.data?.observations.length === 0, error: exportsHook.query.error }),
       supersociedades: fromView(supersociedades.view, { empty: supersociedades.data?.financials.length === 0, error: supersociedades.query.error }),
+      xm: fromView(energy.view, { empty: energy.observations.length === 0, off: energy.data?.off, error: energy.query.error }),
       news: {
         snapshot: fromView(news.view, { off: news.data?.off, error: news.query.error }),
         feeds: news.data?.feeds ?? [],
@@ -71,7 +74,7 @@ export function useFuentes(): { groups: FuenteGroup[]; total: number } {
       status,
       retryStatus: () => void statusQuery.refetch(),
     });
-  }, [trm, secop.view, secop.data, pib.view, pib.data, ipc.view, ipc.data, exportsHook.view, exportsHook.data, supersociedades.view, supersociedades.data, news.view, news.data, regulation.view, regulation.data, norms, statusQuery]);
+  }, [trm, secop.view, secop.data, pib.view, pib.data, ipc.view, ipc.data, exportsHook.view, exportsHook.data, supersociedades.view, supersociedades.data, energy.view, energy.data, energy.observations, news.view, news.data, regulation.view, regulation.data, norms, statusQuery]);
 
   return { groups, total: groups.reduce((sum, group) => sum + group.rows.length, 0) };
 }

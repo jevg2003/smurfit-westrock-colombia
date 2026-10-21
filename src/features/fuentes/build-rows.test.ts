@@ -14,6 +14,7 @@ function inputs(overrides: Partial<GroupInputs> = {}): GroupInputs {
     ipc: ok,
     exports: ok,
     supersociedades: ok,
+    xm: ok,
     news: { snapshot: ok, feeds: [{ id: "portafolio", outlet: "Portafolio", status: "ok", count: 4 }, { id: "google-news", outlet: "Google News", status: "error", count: 0, httpStatus: 429, message: "Google News limitó las consultas." }], off: false, fetchedAt: 10 },
     regulation: { snapshot: ok, data: { minambiente: { status: "ok", items: [] }, presidencia: { status: "disabled", items: [] } }, fetchedAt: 10 },
     curatedCount: 12,
@@ -83,5 +84,18 @@ describe("buildGroups", () => {
     const failed: Snapshot = { state: "error", error: { kind: "network", message: "x" }, retry };
     const groups = buildGroups(inputs({ news: { snapshot: failed, feeds: [], off: false } }));
     expect(find(groups, "portafolio")?.snapshot.state).toBe("error");
+  });
+
+  it("takes the XM state from the energy hook instead of leaving it unchecked", () => {
+    const groups = buildGroups(inputs({ xm: { state: "error", error: { kind: "network", message: "XM no respondió." }, retry } }));
+    expect(find(groups, "xm")?.snapshot).toMatchObject({ state: "error", error: { kind: "network" }, retry });
+    expect(find(buildGroups(inputs()), "xm")?.snapshot).toMatchObject({ state: "ok", lastSuccess: 10 });
+  });
+
+  it("says XM is disabled by configuration when the server flag is off or the answer says so", () => {
+    const byFlag = buildGroups(inputs({ status: { state: "ok", data: { ...status, flags: { ...status.flags, xm: false } } } }));
+    expect(find(byFlag, "xm")?.snapshot).toMatchObject({ state: "disabled", detail: "desactivada por configuración" });
+    const byAnswer = buildGroups(inputs({ xm: { state: "disabled", retry } }));
+    expect(find(byAnswer, "xm")?.snapshot.detail).toBe("desactivada por configuración");
   });
 });

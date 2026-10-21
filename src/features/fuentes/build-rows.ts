@@ -26,6 +26,7 @@ export interface GroupInputs {
   ipc: Snapshot;
   exports: Snapshot;
   supersociedades: Snapshot;
+  xm: Snapshot;
   news: { snapshot: Snapshot; feeds: FeedHealth[]; off: boolean; fetchedAt?: number };
   regulation: { snapshot: Snapshot; data?: RegulationFeedData; fetchedAt?: number };
   curatedCount: number;
@@ -73,6 +74,11 @@ export function buildGroups(input: GroupInputs): FuenteGroup[] {
     return row(CATALOG.ai, { state: "ok", detail: `Configurado · proveedor: ${provider} · búsqueda en internet: ${webSearch ? "sí" : "no"}`, ...retry });
   };
 
+  const xmRow = (): FuenteRow => {
+    const xm = row(CATALOG.xm, input.xm);
+    return xm.snapshot.state === "disabled" ? { ...xm, snapshot: { ...xm.snapshot, detail: "desactivada por configuración" } } : xm;
+  };
+
   const googleEntry = CATALOG.googleNews;
   const feedEntries = FEED_CATALOG;
 
@@ -96,7 +102,7 @@ export function buildGroups(input: GroupInputs): FuenteGroup[] {
     {
       id: "otras",
       title: "Energía y asistente",
-      rows: [row(CATALOG.xm, { state: "unchecked", detail: "Se consulta desde las señales de energía, no desde esta pantalla." }), ai()],
+      rows: [xmRow(), ai()],
     },
   ];
 }
