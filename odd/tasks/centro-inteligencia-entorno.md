@@ -108,13 +108,21 @@ with verifiable sources and explicit rules.
       `/regulacion` screen.
 
 ### R4 — Hardening + deploy prep
-- [ ] T15 `/fuentes` health screen, Report-Only CSP, Noop AI port.
-- [ ] T16 Playwright smoke test, verified build/Vercel config, deploy docs (no deploy).
+- [x] T15 `/fuentes` health screen, `/acerca`, Report-Only CSP and hardening headers, Noop AI port (superseded by the real assistant).
+- [x] T16 Playwright smoke test (31 tests), Dockerfile + standalone output (`NEXT_OUTPUT=standalone`), `docs/deploy.md`, README. No deploy was run.
 
 ### R5 — Extra dimensions (verify first; drop if unverifiable)
-- [ ] T17 Spike: gas/energy (BMC/UPME).
-- [ ] T18 Spike: recycling and fiber (SUI/Superservicios).
-- [ ] T19 Spike: IDEAM climate and fires.
+- [x] T17 Spike: gas not usable (stale, residential only); built XM electricity spot price instead (adapter, `/api/energia`, rule `energy.spot-weekly-move.v1`, `/macro` card).
+- [x] T18 Spike: dropped (only a static registry of sorting stations; no time series or prices).
+- [x] T19 Spike: dropped (no fire/hotspot dataset; IDEAM rainfall keeps only ~70 days). NASA FIRMS needs a MAP_KEY, documented as a future option.
+
+### Beyond the original plan (user requests 2026-10-20/21)
+- [x] AI assistant: `/asistente` page and a Sheet on every screen (page context, read-only tools, web search on by default, shared `Chat` across routes, history sidebar and dropdown, local persistence `swc:chats:v1`). Fixes: StrictMode first-send bug, contract window using the user's thresholds.
+- [x] PESTEL: `/pestel` matrix, decision log with templates (`swc:decisions:v1`), PESTEL section in the briefing.
+- [x] Forms: TanStack Form + Zod 4, `DatePicker`/`DateRangePicker` (c-calendar-15 layout), wider Sheets by default.
+- [x] Fixes: stale container after HMR (`e5d9b60`), hydration #418 from the theme toggler (`c5a3f29`), `/dias` missing h1 (`b945aff`), Zod JIT `unsafe-eval` CSP violations 37 -> 0 (`d2c8269`).
+- [ ] News relevance (generic term "papel" produced noise in Google News results) - in progress.
+- [ ] `/fuentes`: typed `SourceFailure` kinds and XM row - in progress.
 
 ## Acceptance criteria (release level)
 - Every screen shows source, date and license, and every signal links to its original record.
