@@ -16,7 +16,7 @@ import { usePeriodo } from "./periodo";
 import { TrmChart } from "./trm-chart";
 import { TrmData } from "./trm-data";
 import type { PuntoTrm } from "./types";
-import { UMBRAL_ATIPICO_PCT } from "./use-trm";
+import { useTrmThreshold } from "./use-trm";
 
 const CONFIG_SPARK = { valor: { label: "TRM", color: "var(--info)" } } satisfies ChartConfig;
 const DIAS_BARRAS = 14;
@@ -54,8 +54,9 @@ function Sparkline({ datos }: { datos: PuntoTrm[] }) {
 }
 
 function BarrasAtipicas({ datos }: { datos: PuntoTrm[] }) {
+  const umbral = useTrmThreshold();
   const recientes = datos.slice(-DIAS_BARRAS);
-  const tope = Math.max(...recientes.map((punto) => Math.abs(punto.variacionPct ?? 0)), UMBRAL_ATIPICO_PCT);
+  const tope = Math.max(...recientes.map((punto) => Math.abs(punto.variacionPct ?? 0)), umbral);
   const resumen = recientes
     .map((punto) => (punto.variacionPct === null ? "sin dato" : `${punto.variacionPct.toFixed(2)}%`))
     .join(", ");
@@ -87,6 +88,7 @@ function BarrasAtipicas({ datos }: { datos: PuntoTrm[] }) {
 }
 
 function Resumen({ datos }: { datos: PuntoTrm[] }) {
+  const umbral = useTrmThreshold();
   const { ids, estaGuardado, alternar } = useAlertas();
   const ultimo = datos[datos.length - 1];
   const anterior = datos[datos.length - 2];
@@ -131,7 +133,7 @@ function Resumen({ datos }: { datos: PuntoTrm[] }) {
               <span className="text-base font-normal text-muted-foreground">/{datos.length}</span>
             </>
           }
-          hint={`Variación de ${UMBRAL_ATIPICO_PCT}% o más frente al día anterior`}
+          hint={`Variación de ${umbral}% o más frente al día anterior`}
           action={{ label: "Ver días y variaciones", href: "/dias" }}
         >
           <BarrasAtipicas datos={datos} />

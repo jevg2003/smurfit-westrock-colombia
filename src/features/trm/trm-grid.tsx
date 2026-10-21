@@ -24,7 +24,7 @@ import { formatCop } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { Delta } from "./delta";
 import type { PuntoTrm } from "./types";
-import { UMBRAL_ATIPICO_PCT } from "./use-trm";
+import { useTrmThreshold } from "./use-trm";
 
 interface Props {
   title: string;
@@ -37,6 +37,7 @@ interface Props {
 }
 
 export function TrmGrid({ title, icon, datos, estaGuardado, onAlternarAlerta, ocultarFiltro = false }: Props) {
+  const umbral = useTrmThreshold();
   const [soloAtipicos, setSoloAtipicos] = useState(false);
   const [sorting, setSorting] = useState<SortingState>([{ id: "fecha", desc: true }]);
   const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 10 });
@@ -146,7 +147,7 @@ export function TrmGrid({ title, icon, datos, estaGuardado, onAlternarAlerta, oc
                   setPagination((actual) => ({ ...actual, pageIndex: 0 }));
                 }}
               />
-              Solo variaciones de {UMBRAL_ATIPICO_PCT}% o más
+              Solo variaciones de {umbral}% o más
             </Label>
           )}
           <Button

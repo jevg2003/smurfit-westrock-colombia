@@ -10,7 +10,7 @@ import { formatFecha } from "@/lib/date";
 import { cn } from "@/lib/utils";
 import { Delta } from "./delta";
 import type { PuntoTrm } from "./types";
-import { UMBRAL_ATIPICO_PCT } from "./use-trm";
+import { useTrmThreshold } from "./use-trm";
 
 const MAXIMO_FILAS = 5;
 
@@ -21,6 +21,7 @@ interface Props {
 }
 
 export function AtipicosCard({ datos, estaGuardado, onAlternarAlerta }: Props) {
+  const umbral = useTrmThreshold();
   const atipicos = datos
     .filter((punto) => punto.atipico)
     .sort((a, b) => Math.abs(b.variacionPct ?? 0) - Math.abs(a.variacionPct ?? 0));
@@ -33,7 +34,7 @@ export function AtipicosCard({ datos, estaGuardado, onAlternarAlerta }: Props) {
           <CardTitle className="text-sm leading-5 font-semibold">Variaciones atípicas</CardTitle>
           <CardDescription>
             {atipicos.length === 0
-              ? `Ningún día llegó a ${UMBRAL_ATIPICO_PCT}%`
+              ? `Ningún día llegó a ${umbral}%`
               : `${visibles.length} de ${atipicos.length}, mayor variación primero`}
           </CardDescription>
         </div>
@@ -45,7 +46,7 @@ export function AtipicosCard({ datos, estaGuardado, onAlternarAlerta }: Props) {
             <EmptyHeader>
               <EmptyTitle>Sin variaciones atípicas</EmptyTitle>
               <EmptyDescription>
-                Se marcan los días con {UMBRAL_ATIPICO_PCT}% o más de cambio frente al día anterior.
+                Se marcan los días con {umbral}% o más de cambio frente al día anterior.
               </EmptyDescription>
             </EmptyHeader>
           </Empty>

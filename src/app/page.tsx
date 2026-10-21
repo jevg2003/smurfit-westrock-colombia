@@ -1,5 +1,5 @@
-import { ResumenView } from "@/features/trm/resumen-view";
+import { RadarView } from "@/features/radar/radar-view";
 
-export default function ResumenPage() {
-  return <ResumenView />;
+export default function RadarPage() {
+  return <RadarView />;
 }

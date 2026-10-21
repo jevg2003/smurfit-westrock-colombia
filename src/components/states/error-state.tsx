@@ -5,13 +5,15 @@ import { Button } from "@/components/ui/button";
 interface Props {
   message: string;
   onRetry?: () => void;
+  /** Name of the failing source, for example "SECOP II". */
+  source?: string;
 }
 
-export function ErrorState({ message, onRetry }: Props) {
+export function ErrorState({ message, onRetry, source }: Props) {
   return (
     <Alert variant="destructive">
       <AlertCircleIcon />
-      <AlertTitle>No pudimos traer los datos</AlertTitle>
+      <AlertTitle>{source ? `No pudimos consultar ${source}` : "No pudimos traer los datos"}</AlertTitle>
       <AlertDescription>
         <p>{message}</p>
         {onRetry && (

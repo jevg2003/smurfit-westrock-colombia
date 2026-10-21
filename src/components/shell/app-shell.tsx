@@ -1,6 +1,17 @@
 "use client";
 
-import { LayoutDashboardIcon, LineChartIcon, ListOrderedIcon, PanelLeftIcon, StarIcon } from "lucide-react";
+import {
+  BellRingIcon,
+  FileTextIcon,
+  HistoryIcon,
+  LandmarkIcon,
+  LineChartIcon,
+  ListOrderedIcon,
+  PanelLeftIcon,
+  RadarIcon,
+  SlidersHorizontalIcon,
+  ZapIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { CSSProperties, ReactNode } from "react";
@@ -20,6 +31,7 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
@@ -29,11 +41,31 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
-const NAV = [
-  { href: "/", label: "Resumen", icon: LayoutDashboardIcon },
-  { href: "/dias", label: "Días y variaciones", icon: ListOrderedIcon },
-  { href: "/alertas", label: "Alertas guardadas", icon: StarIcon },
+const NAV_GROUPS = [
+  {
+    label: "Operación",
+    items: [
+      { href: "/", label: "Radar", icon: RadarIcon },
+      { href: "/senales", label: "Señales", icon: ZapIcon },
+      { href: "/alertas", label: "Alertas", icon: BellRingIcon },
+      { href: "/linea-de-tiempo", label: "Línea de tiempo", icon: HistoryIcon },
+      { href: "/briefing", label: "Briefing", icon: FileTextIcon },
+    ],
+  },
+  {
+    label: "Dimensiones",
+    items: [
+      { href: "/dias", label: "TRM: días y variaciones", icon: ListOrderedIcon },
+      { href: "/contratacion", label: "Contratación", icon: LandmarkIcon },
+    ],
+  },
+  {
+    label: "Confianza",
+    items: [{ href: "/preferencias", label: "Preferencias", icon: SlidersHorizontalIcon }],
+  },
 ];
+
+const NAV = NAV_GROUPS.flatMap((group) => group.items);
 
 function Logo() {
   return (
@@ -74,31 +106,34 @@ export function AppShell({ actions, children }: Props) {
       className="h-dvh [--header-height:50px]"
       style={{ "--sidebar-width-icon": "3rem" } as CSSProperties}
     >
-      <Sidebar variant="inset" collapsible="icon">
+      <Sidebar variant="inset" collapsible="icon" className="print:hidden">
         <SidebarHeader className="items-center justify-center py-3 in-data-[mobile=true]:items-start in-data-[mobile=true]:px-4">
           <Logo />
         </SidebarHeader>
 
         <SidebarContent>
-          <SidebarGroup>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {NAV.map(({ href, label, icon: Icon }) => (
-                  <SidebarMenuItem key={href}>
-                    <SidebarMenuButton
-                      isActive={pathname === href}
-                      tooltip={label}
-                      aria-label={label}
-                      render={<Link href={href} />}
-                    >
-                      <Icon aria-hidden="true" />
-                      <span className="group-data-[collapsible=icon]:sr-only">{label}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
+          {NAV_GROUPS.map((group) => (
+            <SidebarGroup key={group.label}>
+              <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {group.items.map(({ href, label, icon: Icon }) => (
+                    <SidebarMenuItem key={href}>
+                      <SidebarMenuButton
+                        isActive={pathname === href}
+                        tooltip={label}
+                        aria-label={label}
+                        render={<Link href={href} />}
+                      >
+                        <Icon aria-hidden="true" />
+                        <span className="group-data-[collapsible=icon]:sr-only">{label}</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          ))}
         </SidebarContent>
 
         <SidebarFooter className="items-center justify-center py-3 in-data-[mobile=true]:items-start in-data-[mobile=true]:px-4">
@@ -107,7 +142,7 @@ export function AppShell({ actions, children }: Props) {
       </Sidebar>
 
       <SidebarInset className="overflow-hidden border border-border shadow-none md:peer-data-[variant=inset]:shadow-none">
-        <header className="sticky top-0 z-10 flex h-(--header-height) w-full shrink-0 items-center gap-2 border-b border-border bg-background ps-3 pe-2">
+        <header className="print:hidden sticky top-0 z-10 flex h-(--header-height) w-full shrink-0 items-center gap-2 border-b border-border bg-background ps-3 pe-2">
           <div className="flex min-w-0 flex-1 items-center gap-2">
             <MobileTrigger />
             <Breadcrumb className="min-w-0">
@@ -122,15 +157,18 @@ export function AppShell({ actions, children }: Props) {
               </BreadcrumbList>
             </Breadcrumb>
           </div>
-          <div className="ml-auto flex shrink-0 items-center gap-2">{actions}</div>
+          <div className="ml-auto flex shrink-0 items-center gap-2">{pathname === "/dias" && actions}</div>
         </header>
 
-        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-x-hidden overflow-y-auto p-4 print:overflow-visible">
           <div className="flex flex-1 flex-col gap-4">{children}</div>
-          <p className="max-w-prose text-xs text-muted-foreground">
-            Prototipo no oficial construido sobre el perfil público de Smurfit Westrock Colombia. Sin relación ni aval
-            de la empresa. Fuente de datos: datos.gov.co, serie histórica de la TRM.
-          </p>
+          <footer className="max-w-prose text-xs text-muted-foreground print:hidden">
+            <p className="font-medium">Prototipo no oficial, sin relación ni aval de Smurfit Westrock.</p>
+            <p>
+              Construido con datos públicos (datos.gov.co: TRM y SECOP II). No usa inteligencia artificial: las señales
+              salen de reglas escritas y visibles.
+            </p>
+          </footer>
         </div>
       </SidebarInset>
     </SidebarProvider>

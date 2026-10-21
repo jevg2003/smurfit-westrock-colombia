@@ -22,6 +22,11 @@ export function procesar(registros: TrmRegistro[], umbralPct: number = UMBRAL_AT
   }));
 }
 
+/** Active daily-move threshold (percent), from preferences. */
+export function useTrmThreshold(): number {
+  return usePreferencesStore((state) => state.thresholds.trmDailyMovePct);
+}
+
 export function useTrm(dias: number) {
   const umbralPct = usePreferencesStore((state) => state.thresholds.trmDailyMovePct);
   return useQuery({
