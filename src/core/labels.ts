@@ -1,6 +1,6 @@
 import type { DecisionStatus } from "./domain/decision";
 import type { AlertState } from "./domain/alert";
-import type { Dimension, Severity } from "./domain/dimension";
+import type { Dimension, Pestel, Severity } from "./domain/dimension";
 import type { IndicatorId } from "./domain/observation";
 import type { Impact } from "./rules/pestel-mapping";
 
@@ -46,4 +46,14 @@ export const DECISION_STATUS_LABELS: Record<DecisionStatus, string> = {
   evaluating: "En evaluación",
   decided: "Decidida",
   discarded: "Descartada",
+};
+
+/** Same texts as `features/entorno/labels.ts`; the core cannot import from features. */
+export const PESTEL_FACTOR_LABELS: Record<Pestel, string> = {
+  political: "Político",
+  economic: "Económico",
+  social: "Social",
+  technological: "Tecnológico",
+  environmental: "Ambiental",
+  legal: "Legal",
 };

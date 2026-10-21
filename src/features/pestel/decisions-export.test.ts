@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Decision } from "@/core/domain/decision";
+import { PESTEL_FACTOR_LABELS } from "@/core/labels";
+import { PESTEL_LABELS } from "@/features/entorno/labels";
 import { decisionsToCsv, decisionsToMarkdown } from "./decisions-export";
 
 const DECISION: Decision = {
@@ -55,5 +57,11 @@ describe("decisionsToMarkdown", () => {
 
   it("says so when there are no decisions", () => {
     expect(decisionsToMarkdown([])).toContain("Sin decisiones");
+  });
+});
+
+describe("PESTEL labels", () => {
+  it("the core copy matches the feature labels", () => {
+    expect(PESTEL_FACTOR_LABELS).toEqual(PESTEL_LABELS);
   });
 });

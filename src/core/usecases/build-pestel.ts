@@ -1,6 +1,8 @@
 import type { Pestel, Severity } from "../domain/dimension";
 import type { Signal } from "../domain/signal";
 import { type Impact, impactForRule } from "../rules/pestel-mapping";
+import type { Decision } from "../domain/decision";
+import { IMPACT_LABELS, SEVERITY_LABELS } from "../labels";
 import { compareSignals } from "./detect-signals";
 
 export const PESTEL_ORDER: readonly Pestel[] = [
@@ -90,4 +92,32 @@ export function buildPestel(signals: readonly Signal[], period: PestelPeriod): P
       impacts,
     };
   });
+}
+
+/** What the briefing adds on top of its dimension sections. */
+export interface BriefingPestelExtras {
+  pestel: readonly PestelFactorSummary[];
+  decisions: readonly Decision[];
+}
+
+/** Decisions that still need work: open or being evaluated. */
+export function openDecisions(decisions: readonly Decision[]): Decision[] {
+  return decisions.filter((decision) => decision.status === "open" || decision.status === "evaluating");
+}
+
+/** `Señales: 3 (1 alerta, 2 vigilar)`, or the empty-period sentence. */
+export function describeCounts(summary: PestelFactorSummary): string {
+  if (summary.total === 0) return "Sin señales en este período.";
+  const parts = (["alert", "watch", "info"] as const)
+    .filter((severity) => summary.bySeverity[severity] > 0)
+    .map((severity) => `${summary.bySeverity[severity]} ${SEVERITY_LABELS[severity].toLowerCase()}`);
+  return `Señales: ${summary.total} (${parts.join(", ")})`;
+}
+
+/** `Amenaza: 1, Por evaluar: 2`, or an empty string when there are no signals. */
+export function describeImpacts(summary: PestelFactorSummary): string {
+  return (["threat", "opportunity", "to_evaluate"] as const)
+    .filter((impact) => summary.impacts[impact] > 0)
+    .map((impact) => `${IMPACT_LABELS[impact]}: ${summary.impacts[impact]}`)
+    .join(", ");
 }

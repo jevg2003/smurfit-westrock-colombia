@@ -1,12 +1,13 @@
 import type { Briefing } from "@/core/domain/briefing";
-import { ALERT_STATE_LABELS, DIMENSION_LABELS, SEVERITY_LABELS } from "@/core/labels";
+import { ALERT_STATE_LABELS, DECISION_STATUS_LABELS, DIMENSION_LABELS, PESTEL_FACTOR_LABELS, SEVERITY_LABELS } from "@/core/labels";
 import { bogotaDateKey } from "@/core/time/bogota";
+import { type BriefingPestelExtras, describeCounts, describeImpacts, openDecisions } from "@/core/usecases/build-pestel";
 import { SOURCE_NAMES } from "@/features/entorno/sources";
 import { formatHoraBogota } from "@/lib/date";
 import { safeHttpUrl } from "@/lib/safe-url";
 
 /** Printable preview. Plain markup on purpose: it must look the same on paper. */
-export function BriefingDocument({ briefing }: { briefing: Briefing }) {
+export function BriefingDocument({ briefing, extras }: { briefing: Briefing; extras?: BriefingPestelExtras }) {
   const total = briefing.sections.reduce((sum, section) => sum + section.signals.length, 0);
 
   return (
@@ -62,6 +63,8 @@ export function BriefingDocument({ briefing }: { briefing: Briefing }) {
         </section>
       ))}
 
+      {extras && <PestelReading extras={extras} />}
+
       {briefing.alerts.length > 0 && (
         <section className="flex flex-col gap-2 break-inside-avoid-page">
           <h3 className="text-base font-semibold">Alertas del período</h3>
@@ -81,5 +84,73 @@ export function BriefingDocument({ briefing }: { briefing: Briefing }) {
         Prototipo no oficial, sin relación ni aval de Smurfit Westrock. {briefing.note}.
       </footer>
     </article>
+  );
+}
+
+function PestelReading({ extras }: { extras: BriefingPestelExtras }) {
+  const open = openDecisions(extras.decisions);
+
+  return (
+    <>
+      <section aria-label="Lectura PESTEL" className="flex flex-col gap-3 break-inside-avoid-page">
+        <h3 className="text-base font-semibold">Lectura PESTEL</h3>
+        <p className="text-xs text-muted-foreground">
+          El factor de cada señal sale de la regla que la generó. La tendencia compara conteos con el período anterior de
+          igual duración; no es un pronóstico.
+        </p>
+        <ul className="flex flex-col gap-3">
+          {extras.pestel.map((factor) => (
+            <li key={factor.pestel} className="flex min-w-0 flex-col gap-0.5 break-inside-avoid text-sm">
+              <span className="font-medium">{PESTEL_FACTOR_LABELS[factor.pestel]}</span>
+              <span>{describeCounts(factor)}</span>
+              {factor.total > 0 && (
+                <>
+                  {describeImpacts(factor) && (
+                    <span className="text-xs text-muted-foreground">Impacto según la regla: {describeImpacts(factor)}</span>
+                  )}
+                  <span className="text-xs text-muted-foreground">{factor.trend.label}</span>
+                  <ul className="mt-1 flex flex-col gap-1">
+                    {factor.top.map((signal) => {
+                      const source = signal.provenance[0];
+                      const url = safeHttpUrl(source?.url);
+                      return (
+                        <li key={signal.id} className="text-xs break-words">
+                          {signal.title} ({SEVERITY_LABELS[signal.severity]}, {bogotaDateKey(signal.occurredAt)})
+                          {url && (
+                            <>
+                              {" · "}
+                              <a href={url} target="_blank" rel="noopener noreferrer" className="underline underline-offset-4">
+                                Registro original
+                              </a>
+                            </>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </>
+              )}
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {open.length > 0 && (
+        <section aria-label="Decisiones abiertas" className="flex flex-col gap-2 break-inside-avoid-page">
+          <h3 className="text-base font-semibold">Decisiones abiertas</h3>
+          <ul className="flex flex-col gap-1.5 text-sm">
+            {open.map((decision) => (
+              <li key={decision.id} className="break-words">
+                <span className="font-medium">{decision.title}</span> · {DECISION_STATUS_LABELS[decision.status]}
+                {decision.pestelFactors.length > 0 && (
+                  <> · {decision.pestelFactors.map((factor) => PESTEL_FACTOR_LABELS[factor]).join(", ")}</>
+                )}
+                {decision.reviewAt && <> · Revisar el {decision.reviewAt}</>}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </>
   );
 }

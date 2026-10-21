@@ -13,12 +13,14 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { briefingToCsv } from "@/core/usecases/briefing-to-csv";
 import { briefingToMarkdown } from "@/core/usecases/briefing-to-markdown";
 import { buildBriefing } from "@/core/usecases/build-briefing";
+import { buildPestel } from "@/core/usecases/build-pestel";
 import { getContainer } from "@/features/entorno/container";
 import { useSignals } from "@/features/entorno/use-signals";
 import { DateRangeFilter, rangeOf } from "@/features/filtros/date-range-filter";
 import { bogotaDateKey } from "@/core/time/bogota";
 import { downloadCsv, downloadText } from "@/lib/download";
 import { useAlertsStore } from "@/stores/alerts.store";
+import { useDecisionsStore } from "@/stores/decisions.store";
 import { usePreferencesStore } from "@/stores/preferences.store";
 import { BriefingDocument } from "./briefing-document";
 
@@ -36,6 +38,14 @@ export function BriefingView() {
     [data.signals, alerts, range],
   );
   const briefing = result.ok ? result.value : undefined;
+  const decisions = useDecisionsStore((state) => state.decisions);
+  const extras = useMemo(
+    () =>
+      briefing
+        ? { pestel: buildPestel(data.signals, { from: briefing.periodFrom, to: briefing.periodTo }), decisions }
+        : undefined,
+    [briefing, data.signals, decisions],
+  );
   const stem = briefing ? `briefing-${bogotaDateKey(briefing.periodFrom)}-${bogotaDateKey(briefing.periodTo)}` : "briefing";
   const hasContent = briefing ? briefing.sections.length > 0 || briefing.alerts.length > 0 : false;
 
@@ -54,7 +64,7 @@ export function BriefingView() {
               variant="outline"
               size="sm"
               disabled={!briefing}
-              onClick={() => briefing && downloadText(`${stem}.md`, briefingToMarkdown(briefing), { mime: "text/markdown" })}
+              onClick={() => briefing && downloadText(`${stem}.md`, briefingToMarkdown(briefing, extras), { mime: "text/markdown" })}
             >
               <FileTextIcon aria-hidden="true" data-icon="inline-start" />
               Descargar Markdown
@@ -63,7 +73,7 @@ export function BriefingView() {
               variant="outline"
               size="sm"
               disabled={!briefing}
-              onClick={() => briefing && downloadCsv(`${stem}.csv`, briefingToCsv(briefing))}
+              onClick={() => briefing && downloadCsv(`${stem}.csv`, briefingToCsv(briefing, extras))}
             >
               <DownloadIcon aria-hidden="true" data-icon="inline-start" />
               Descargar CSV
@@ -120,7 +130,7 @@ export function BriefingView() {
               </EmptyHeader>
             </Empty>
           )}
-          <BriefingDocument briefing={briefing} />
+          <BriefingDocument briefing={briefing} extras={extras} />
         </>
       ) : null}
     </div>
