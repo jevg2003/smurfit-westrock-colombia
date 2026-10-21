@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useSyncExternalStore } from 'react';
 import { useTheme } from 'next-themes';
 import { Monitor, Moon, Sun } from 'lucide-react';
 import { VariantProps } from 'class-variance-authority';
@@ -13,6 +14,17 @@ import {
 } from '@/components/animate-ui/primitives/effects/theme-toggler';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+
+const noopSubscribe = () => () => {};
+
+/** False on the server and during hydration, true afterwards (no effect, no extra state). */
+function useMounted() {
+  return useSyncExternalStore(
+    noopSubscribe,
+    () => true,
+    () => false,
+  );
+}
 
 const getIcon = (
   effective: ThemeSelection,
@@ -56,6 +68,8 @@ function ThemeTogglerButton({
   ...props
 }: ThemeTogglerButtonProps) {
   const { theme, resolvedTheme, setTheme } = useTheme();
+  // The theme is only known in the browser, so the icon waits for mount to keep the server markup identical.
+  const mounted = useMounted();
 
   return (
     <ThemeTogglerPrimitive
@@ -75,7 +89,7 @@ function ThemeTogglerButton({
           }}
           {...props}
         >
-          {getIcon(effective, resolved, modes)}
+          {mounted ? getIcon(effective, resolved, modes) : <span className="size-4" aria-hidden="true" />}
         </button>
       )}
     </ThemeTogglerPrimitive>
