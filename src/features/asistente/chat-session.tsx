@@ -3,7 +3,8 @@
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { SparklesIcon } from "lucide-react";
-import { useEffect, useMemo, useRef } from "react";
+import type { UIMessage } from "ai";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Marker, MarkerContent } from "@/components/ui/marker";
@@ -45,9 +46,17 @@ export function ChatSession({ conversationId, mode, initialPrompt, onInitialProm
     [mode, getPageContext],
   );
 
+  // A first prompt seeds the chat with its user message so it shows at once.
+  const [seed] = useState<UIMessage[] | undefined>(() =>
+    conversation && conversation.messages.length > 0
+      ? conversation.messages
+      : initialPrompt
+        ? [{ id: crypto.randomUUID(), role: "user", parts: [{ type: "text", text: initialPrompt }] }]
+        : undefined,
+  );
   const { messages, sendMessage, status, error, regenerate, stop, clearError } = useChat({
     id: conversationId,
-    messages: conversation?.messages,
+    messages: seed,
     transport,
   });
 
@@ -56,13 +65,16 @@ export function ChatSession({ conversationId, mode, initialPrompt, onInitialProm
     if (messages.length > 0 && status !== "streaming") setMessages(conversationId, messages);
   }, [messages, status, conversationId, setMessages]);
 
-  const promptSent = useRef(false);
+  // Ask for the first answer once, on mount. This must be safe to run twice: React StrictMode (next dev)
+  // mounts, cleans up (useChat aborts the request) and mounts again, so a "sent" guard would lose the answer.
+  const firstPrompt = useRef(initialPrompt);
+  const onSent = useRef(onInitialPromptSent);
+  const answer = useRef(regenerate);
   useEffect(() => {
-    if (!initialPrompt || promptSent.current) return;
-    promptSent.current = true;
-    void sendMessage({ text: initialPrompt });
-    onInitialPromptSent?.();
-  }, [initialPrompt, sendMessage, onInitialPromptSent]);
+    if (!firstPrompt.current) return;
+    void answer.current();
+    onSent.current?.();
+  }, []);
 
   const endRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
