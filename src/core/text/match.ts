@@ -1,8 +1,22 @@
+/** A term that counts only when the title also has one of the context words (whole words). */
+export interface ContextTerm {
+  term: string;
+  requireAny: readonly string[];
+}
+
+/** A plain string is a term without context rules. */
+export type TermSpec = string | ContextTerm;
+
 export interface TermGroup {
   id: string;
   label: string;
-  terms: readonly string[];
+  terms: readonly TermSpec[];
+  /** The group never matches a title that has any of these words. */
+  excludeAny?: readonly string[];
 }
+
+/** The name of a term, whichever way it is written. */
+export const termName = (spec: TermSpec): string => (typeof spec === "string" ? spec : spec.term);
 
 export interface TermMatch {
   groupId: string;
@@ -19,16 +33,28 @@ export function normalizeText(text: string): string {
     .trim();
 }
 
+const hasPhrase = (haystack: string, phrase: string) => haystack.includes(` ${phrase} `);
+
+/** Normalized, non-empty phrases of a word list. */
+const phrasesOf = (words: readonly string[] | undefined) => (words ?? []).map(normalizeText).filter((word) => word.length > 0);
+
 /**
  * Terms of each group found in `text`, ignoring case and accents and only on whole words
  * (so "papel" does not match "papeleo"). One entry per matching term, in group order.
+ * A group with `excludeAny` words is skipped when the text has one of them, and a term with
+ * `requireAny` words only counts when the text has one of those too.
  */
 export function matchTermGroups(text: string, groups: readonly TermGroup[]): TermMatch[] {
   const haystack = ` ${normalizeText(text)} `;
-  return groups.flatMap((group) =>
-    group.terms.flatMap((term) => {
+  return groups.flatMap((group) => {
+    if (phrasesOf(group.excludeAny).some((phrase) => hasPhrase(haystack, phrase))) return [];
+    return group.terms.flatMap((spec) => {
+      const term = termName(spec);
       const needle = normalizeText(term);
-      return needle && haystack.includes(` ${needle} `) ? [{ groupId: group.id, term }] : [];
-    }),
-  );
+      if (!needle || !hasPhrase(haystack, needle)) return [];
+      const context = typeof spec === "string" ? [] : phrasesOf(spec.requireAny);
+      if (context.length > 0 && !context.some((phrase) => hasPhrase(haystack, phrase))) return [];
+      return [{ groupId: group.id, term }];
+    });
+  });
 }

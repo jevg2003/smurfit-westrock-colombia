@@ -24,6 +24,13 @@ describe("buildGoogleNewsQueries", () => {
     for (const query of queries) expect(query).toMatch(/\) when:30d$/);
   });
 
+  it("asks Google for the first context words of a term that needs context", () => {
+    const [query] = buildGoogleNewsQueries([
+      { id: "a", label: "A", terms: [{ term: "Smurfit Westrock", requireAny: ["Colombia", "Yumbo", "Cali", "Bogotá"] }, "Cartones América"] },
+    ]);
+    expect(query).toBe('(("Smurfit Westrock" ("Colombia" OR "Yumbo" OR "Cali")) OR "Cartones América") when:30d');
+  });
+
   it("quotes single words too, so a generic word is never searched on its own", () => {
     const [query] = buildGoogleNewsQueries([{ id: "a", label: "A", terms: ["celulosa", "Yumbo"] }]);
     expect(query).toBe('("celulosa" OR "Yumbo") when:30d');

@@ -32,3 +32,39 @@ describe("matchTermGroups", () => {
     expect(found.map((m) => m.groupId)).toEqual(["company", "sector"]);
   });
 });
+
+describe("context rules", () => {
+  const groups: TermGroup[] = [
+    {
+      id: "company",
+      label: "Empresa",
+      terms: [{ term: "Smurfit Westrock", requireAny: ["Colombia", "Yumbo", "Medellín"] }, "Cartones América"],
+      excludeAny: ["fútbol", "CD", "Liga"],
+    },
+  ];
+
+  it("keeps plain string terms working next to context terms", () => {
+    expect(matchTermGroups("Cartones América invierte", groups)).toEqual([{ groupId: "company", term: "Cartones América" }]);
+  });
+
+  it("matches a context term only when the title has one of its context words", () => {
+    expect(matchTermGroups("Smurfit Westrock cierra planta en Málaga", groups)).toEqual([]);
+    expect(matchTermGroups("Smurfit Westrock amplía planta en Yumbo", groups)).toEqual([{ groupId: "company", term: "Smurfit Westrock" }]);
+    expect(matchTermGroups("Smurfit Westrock en MEDELLIN", groups)).toHaveLength(1);
+  });
+
+  it("respects word boundaries in context words", () => {
+    expect(matchTermGroups("Smurfit Westrock y la colombiana Alpina", groups)).toEqual([]);
+  });
+
+  it("drops the whole group when the title has an excluded word", () => {
+    expect(matchTermGroups("CD Iberfurgo Smurfit Westrock Colombia fútbol", groups)).toEqual([]);
+    expect(matchTermGroups("Cartones América gana la Liga", groups)).toEqual([]);
+    expect(matchTermGroups("Cartones América y el cdt", groups)).toHaveLength(1);
+  });
+
+  it("ignores empty context and exclusion words", () => {
+    const lax: TermGroup[] = [{ id: "g", label: "G", terms: [{ term: "alfa", requireAny: [" "] }], excludeAny: ["", " "] }];
+    expect(matchTermGroups("alfa", lax)).toEqual([{ groupId: "g", term: "alfa" }]);
+  });
+});

@@ -1,11 +1,15 @@
-import { NEWS_TERM_GROUPS } from "@/content/config/empresa";
+import { DEFAULT_NEWS_CONTEXT, NEWS_TERM_GROUPS } from "@/content/config/empresa";
 import { matchTermGroups, type TermGroup } from "@/core/text/match";
+import { buildTermGroup } from "@/core/text/term-groups";
 import type { Fetcher } from "@/infrastructure/http/fetcher";
 import type { SourceFlags } from "@/infrastructure/flags";
 import { fetchFeed } from "./fetch-feed";
 import { GOOGLE_NEWS_ID, NEWS_FEEDS, type NewsSourceId } from "./feeds";
 import { GOOGLE_NEWS_MAX_ITEMS_PER_GROUP, buildGoogleNewsSearches, buildGoogleNewsUrl, parseGoogleNews } from "./google-news";
 import { mergeHeadlines, type SourcedHeadline } from "./merge";
+
+/** The default groups with their Colombian context and exclusion words. The server searches with these. */
+export const DEFAULT_SEARCH_GROUPS: readonly TermGroup[] = NEWS_TERM_GROUPS.map((group) => buildTermGroup(group, DEFAULT_NEWS_CONTEXT[group.id]));
 
 export interface NewsApiItem {
   id: string;
@@ -57,7 +61,7 @@ export async function loadNews({
   flags,
   feedId,
   limit,
-  termGroups = NEWS_TERM_GROUPS,
+  termGroups = DEFAULT_SEARCH_GROUPS,
   googleItemsPerGroup = GOOGLE_NEWS_MAX_ITEMS_PER_GROUP,
 }: LoadNewsOptions): Promise<NewsResponse> {
   const selected = NEWS_FEEDS.filter((feed) => !feedId || feed.id === feedId);
@@ -118,8 +122,11 @@ async function loadGoogleNews(fetcher: Fetcher, enabled: boolean, termGroups: re
   }
   const searches = buildGoogleNewsSearches(termGroups);
   const results = await Promise.all(searches.map((search) => fetchFeed(fetcher, buildGoogleNewsUrl(search.query), parseGoogleNews)));
-  const headlines = results.flatMap((result) =>
+  // A headline that does not pass its group's context rules (a football sponsorship, news from Spain) is dropped
+  // before the per-group cap, so it can never push a Colombian headline out.
+  const headlines = results.flatMap((result, index) =>
     [...result.items]
+      .filter((item) => matchTermGroups(item.title, termGroups.filter((group) => group.id === searches[index]?.groupId)).length > 0)
       .sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt))
       .slice(0, perGroup)
       .map(

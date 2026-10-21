@@ -1,4 +1,4 @@
-import type { TermGroup } from "@/core/text/match";
+import { termName, type TermGroup, type TermSpec } from "@/core/text/match";
 import { parseFeed } from "./parse";
 import { toPlainText } from "./sanitize";
 
@@ -18,10 +18,20 @@ export const GOOGLE_NEWS_MAX_QUERY_LENGTH = 400;
 export const GOOGLE_NEWS_RECENCY = "when:30d";
 /** One noisy query can never flood the list: at most this many newest items are kept per group. */
 export const GOOGLE_NEWS_MAX_ITEMS_PER_GROUP = 25;
+/** A term with context words asks Google for at most this many of them, so the query stays short. */
+export const GOOGLE_NEWS_MAX_CONTEXT_WORDS = 3;
 const FALLBACK_OUTLET = "Google News";
 
 /** Characters that could change the structure of a search query are removed from every term. */
 const cleanTerm = (term: string) => term.replace(/[^\p{L}\p{N} .&'-]+/gu, " ").replace(/\s+/g, " ").trim();
+
+/** `"term"`, or `"term" (word OR word)` for a term that needs context, so Google ranks Colombian results first. */
+function phraseOf(spec: TermSpec): string {
+  const term = cleanTerm(termName(spec));
+  if (!term) return "";
+  const context = typeof spec === "string" ? [] : spec.requireAny.map(cleanTerm).filter((word) => word.length > 0).slice(0, GOOGLE_NEWS_MAX_CONTEXT_WORDS);
+  return context.length > 0 ? `("${term}" (${context.map((word) => `"${word}"`).join(" OR ")}))` : `"${term}"`;
+}
 
 export interface GoogleNewsSearch {
   groupId: string;
@@ -38,9 +48,9 @@ export function buildGoogleNewsSearches(groups: readonly TermGroup[]): GoogleNew
   return groups
     .map((group) => {
       const phrases: string[] = [];
-      for (const term of group.terms.map(cleanTerm).filter((value) => value.length > 0)) {
-        if (wrap([...phrases, `"${term}"`]).length > GOOGLE_NEWS_MAX_QUERY_LENGTH) break;
-        phrases.push(`"${term}"`);
+      for (const phrase of group.terms.map(phraseOf).filter((value) => value.length > 0)) {
+        if (wrap([...phrases, phrase]).length > GOOGLE_NEWS_MAX_QUERY_LENGTH) break;
+        phrases.push(phrase);
       }
       return { groupId: group.id, query: phrases.length > 0 ? wrap(phrases) : "" };
     })

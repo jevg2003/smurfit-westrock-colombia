@@ -34,18 +34,67 @@ export interface NewsTermGroup {
   id: "company" | "sector" | "regulation" | "operations";
   label: string;
   terms: readonly string[];
+  /** Terms of this group that count only with a context word in the title (see `DEFAULT_NEWS_CONTEXT`). */
+  contextTerms: readonly string[];
+}
+
+/** The context rules a user can edit for each group. */
+export interface NewsContextRules {
+  /** A context term counts only if the title also has one of these words. */
+  requireAny: string[];
+  /** The group ignores a title that has any of these words. */
+  excludeAny: string[];
 }
 
 /**
+ * Words that tie a global company name to the Colombian operation. "Smurfit Westrock" is a worldwide
+ * name: without one of these in the title, Google's Colombia edition also returns Spanish football
+ * sponsorships and plant news from Spain or Argentina.
+ */
+export const COLOMBIA_CONTEXT_WORDS: readonly string[] = [
+  "Colombia",
+  "colombiana",
+  "colombiano",
+  "Yumbo",
+  "Cali",
+  "Valle del Cauca",
+  "Cauca",
+  "Cartón de Colombia",
+  "Bogotá",
+  "Barranquilla",
+  "Medellín",
+  "Latinoamérica",
+  "LatAm",
+  "Américas",
+];
+
+/** Words of headlines that are never about the business (sports, horoscopes). Applied to every group. */
+export const DEFAULT_EXCLUDE_WORDS: readonly string[] = [
+  "fútbol",
+  "futsal",
+  "Tercera División",
+  "Liga",
+  "CD",
+  "Villalba",
+  "baloncesto",
+  "horóscopo",
+  "partido",
+  "goles",
+];
+
+const NO_CONTEXT_TERMS: readonly string[] = [];
+
+/**
  * Default terms. They are specific phrases on purpose: single generic words ("papel", "empaques")
- * match unrelated headlines. The matcher has no AND, so a place name such as Cauca only appears
- * inside a longer phrase.
+ * match unrelated headlines. A place name such as Cauca only appears inside a longer phrase, and the
+ * global company names carry context words (`contextTerms`).
  */
 export const NEWS_TERM_GROUPS: readonly NewsTermGroup[] = [
   {
     id: "company",
     label: "Empresa y competidores",
     terms: [COMPANY.name, "Smurfit Westrock", "Smurfit Kappa", ...COMPETITORS.map((competitor) => competitor.name)],
+    contextTerms: ["Smurfit Westrock", "Smurfit Kappa"],
   },
   {
     id: "sector",
@@ -61,6 +110,7 @@ export const NEWS_TERM_GROUPS: readonly NewsTermGroup[] = [
       "bag-in-box",
       "papel reciclado",
     ],
+    contextTerms: NO_CONTEXT_TERMS,
   },
   {
     id: "regulation",
@@ -73,6 +123,7 @@ export const NEWS_TERM_GROUPS: readonly NewsTermGroup[] = [
       "aprovechamiento de residuos",
       "economía circular",
     ],
+    contextTerms: NO_CONTEXT_TERMS,
   },
   {
     id: "operations",
@@ -86,8 +137,17 @@ export const NEWS_TERM_GROUPS: readonly NewsTermGroup[] = [
       "tasa de cambio",
       "dólar en Colombia",
     ],
+    contextTerms: NO_CONTEXT_TERMS,
   },
 ];
+
+/** Default context rules of each group: Colombian context for the company group, the same exclusions for all. */
+export const DEFAULT_NEWS_CONTEXT: Readonly<Record<NewsTermGroup["id"], NewsContextRules>> = Object.fromEntries(
+  NEWS_TERM_GROUPS.map((group) => [
+    group.id,
+    { requireAny: group.contextTerms.length > 0 ? [...COLOMBIA_CONTEXT_WORDS] : [], excludeAny: [...DEFAULT_EXCLUDE_WORDS] },
+  ]),
+) as Record<NewsTermGroup["id"], NewsContextRules>;
 
 /**
  * The defaults shipped before the phrases above. A saved group that still equals its legacy default

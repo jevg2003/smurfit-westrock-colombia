@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import { createFetcher } from "@/infrastructure/http/fetcher";
-import { NEWS_TERM_GROUPS } from "@/content/config/empresa";
+import { DEFAULT_SEARCH_GROUPS as NEWS_TERM_GROUPS } from "./service";
 import { NEWS_FEEDS } from "./feeds";
 import { buildGoogleNewsQueries, buildGoogleNewsUrl } from "./google-news";
 import { loadNews } from "./service";
@@ -136,15 +136,28 @@ describe("loadNews", () => {
     const body = rss([
       ["Titular sin relación uno", "https://example.test/1", "Tue, 20 Oct 2026 12:00:00 GMT"],
       ["Titular sin relación dos", "https://example.test/2", "Tue, 20 Oct 2026 11:00:00 GMT"],
-      ["Smurfit Westrock inaugura una línea", "https://example.test/3", "Mon, 05 Oct 2026 11:00:00 GMT"],
+      ["Smurfit Westrock inaugura una línea en Yumbo", "https://example.test/3", "Mon, 05 Oct 2026 11:00:00 GMT"],
     ]);
     const fetchImpl = vi.fn(async () => new Response(body, { status: 200 })) as unknown as typeof fetch;
     const result = await run(fetchImpl, { feedId: "valora", limit: 1 });
-    expect(result.items.map((i) => i.title)).toEqual(["Smurfit Westrock inaugura una línea"]);
+    expect(result.items.map((i) => i.title)).toEqual(["Smurfit Westrock inaugura una línea en Yumbo"]);
   });
 
   it("applies the limit", async () => {
     const { fetchImpl } = fakeFetch();
     expect((await run(fetchImpl, { limit: 5 })).items).toHaveLength(5);
+  });
+
+  it("drops Google News headlines that fail the context rules before the per-group cap", async () => {
+    const rss = (titles: string[]) =>
+      `<?xml version="1.0"?><rss version="2.0"><channel>${titles
+        .map((title, i) => `<item><title>${title} - Heraldo</title><link>https://example.test/${i}</link><pubDate>Mon, 19 Oct 2026 1${i}:00:00 GMT</pubDate><source url="https://heraldo.test">Heraldo</source></item>`)
+        .join("")}</channel></rss>`;
+    const body = rss(["CD Iberfurgo Villalba, patrocinado por Smurfit Westrock", "Smurfit Westrock cierra planta en Málaga", "Smurfit Westrock amplía su planta en Yumbo"]);
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL) =>
+      new Response(new URL(String(input)).host === "news.google.com" ? body : "nope", { status: new URL(String(input)).host === "news.google.com" ? 200 : 404 }),
+    ) as unknown as typeof fetch;
+    const result = await run(fetchImpl, { feedId: "google-news", googleItemsPerGroup: 1 });
+    expect(result.items.map((i) => i.title)).toEqual(["Smurfit Westrock amplía su planta en Yumbo"]);
   });
 });

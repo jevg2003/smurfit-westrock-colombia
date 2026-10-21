@@ -89,4 +89,17 @@ describe("news.keyword-mention.v1", () => {
     ];
     expect(detectNewsKeywordMentions({ news, groups, clock: fixedClock(NOW) })).toEqual([]);
   });
+
+  it("raises no signal for a company mention without Colombian context or with an excluded word", () => {
+    const groups = [
+      { id: "company", label: "Empresa", terms: [{ term: "Smurfit Westrock", requireAny: ["Colombia"] }], excludeAny: ["fútbol"] },
+    ];
+    const news = [
+      makeNews("es", "Smurfit Westrock cierra planta en Málaga", "2026-10-19T10:00:00.000Z"),
+      makeNews("ball", "Fútbol: Smurfit Westrock Colombia patrocina", "2026-10-19T10:00:00.000Z"),
+      makeNews("co", "Smurfit Westrock Colombia invierte", "2026-10-19T10:00:00.000Z"),
+    ];
+    const signals = detectNewsKeywordMentions({ news, groups, clock: fixedClock(NOW) });
+    expect(signals.map((signal) => signal.evidence[0].ref)).toEqual(["co"]);
+  });
 });
