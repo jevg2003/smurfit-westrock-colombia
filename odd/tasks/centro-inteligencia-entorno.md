@@ -166,5 +166,13 @@ with verifiable sources and explicit rules.
 - Off path, medium tier: writer self-verification plus a parent spot check. Observed: `pnpm test`
   25 files, 141 tests passed. Next assessment base for slicing: 0f5b95e (declined range closed by the user).
 
+### T8 review
+- Assessment: base 0f5b95e, 102 files / 24,681 lines, medium risk. About 15k of those lines are
+  vendored ReUI components (cascader, filters, date-selector).
+- Consent **declined** by the user (`declined_this_candidate`, lineage `review-d54e358144bfc0fe`).
+- Parent spot check: `pnpm test` 38 files, 183 tests passed.
+- Pending manual check: a 375px browser walkthrough.
+- Next assessment base: 09d920b.
+
 ## Next step
-R1 is complete (T4b–T8). Next: native review assessment of the T8 slice (base 0f5b95e), then R2. Notes: `src/features/trm/resumen-view.tsx` (old summary) is no longer routed; reuse it for the Macro screen (T11). Note: `src/lib/csv.ts` now uses the pure `toCsv` from `src/core/format/csv.ts`; the TRM saved-day signal dimension changed from market to macro to match proposal §4.6.
+R1 is complete (T4b–T8). Next: R2 (T9, T9b, T10, T11). Notes: `src/features/trm/resumen-view.tsx` (old summary) is no longer routed; reuse it for the Macro screen (T11). Note: `src/lib/csv.ts` now uses the pure `toCsv` from `src/core/format/csv.ts`; the TRM saved-day signal dimension changed from market to macro to match proposal §4.6.
