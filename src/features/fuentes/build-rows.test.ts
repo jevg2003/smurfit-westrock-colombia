@@ -4,7 +4,7 @@ import type { Snapshot } from "./snapshots";
 
 const retry = () => {};
 const ok: Snapshot = { state: "ok", lastSuccess: 10, retry };
-const status = { flags: { newsRss: true, googleNews: true, minambiente: true, presidencia: true }, ai: { configured: true, provider: "openai", webSearch: true } };
+const status = { flags: { newsRss: true, googleNews: true, minambiente: true, presidencia: true, xm: true }, ai: { configured: true, provider: "openai", webSearch: true } };
 
 function inputs(overrides: Partial<GroupInputs> = {}): GroupInputs {
   return {

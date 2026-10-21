@@ -7,6 +7,7 @@ export const fuentesStatusSchema = z.object({
     googleNews: z.boolean(),
     minambiente: z.boolean(),
     presidencia: z.boolean(),
+    xm: z.boolean(),
   }),
   ai: z.object({ configured: z.boolean(), provider: z.string(), webSearch: z.boolean() }),
 });

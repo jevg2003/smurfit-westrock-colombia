@@ -13,7 +13,7 @@ export interface SourceCatalogEntry {
   /** How often the origin publishes new data, in plain Spanish. */
   frequency: string;
   /** Name of the server flag that can switch the source off, when there is one. */
-  flag?: "newsRss" | "googleNews" | "minambiente" | "presidencia";
+  flag?: "newsRss" | "googleNews" | "minambiente" | "presidencia" | "xm";
 }
 
 const DATOS = "datos.gov.co";
@@ -138,6 +138,7 @@ export const CATALOG = {
     attribution: "XM S.A. E.S.P.",
     access: "server",
     frequency: "Diaria",
+    flag: "xm",
   },
   ai: {
     id: "ai",

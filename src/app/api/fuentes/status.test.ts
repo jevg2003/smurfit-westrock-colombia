@@ -4,10 +4,9 @@ import { buildFuentesStatus } from "./status";
 describe("buildFuentesStatus", () => {
   it("reports only booleans and the provider name, never a key", () => {
     const status = buildFuentesStatus({ OPENAI_API_KEY: "sk-secret-value", FEATURE_GOOGLE_NEWS: "false" });
-    expect(status).toEqual({
-      flags: { newsRss: true, googleNews: false, minambiente: true, presidencia: true },
-      ai: { configured: true, provider: "openai", webSearch: true },
-    });
+    expect(status.flags).toMatchObject({ newsRss: true, googleNews: false, minambiente: true, presidencia: true });
+    expect(Object.values(status.flags).every((value) => typeof value === "boolean")).toBe(true);
+    expect(status.ai).toEqual({ configured: true, provider: "openai", webSearch: true });
     expect(JSON.stringify(status)).not.toContain("sk-secret-value");
   });
 
