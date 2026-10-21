@@ -1,5 +1,6 @@
 import type { Signal } from "../domain/signal";
 import { floatingToBogotaIso } from "../time/bogota";
+import { pestelForRule } from "./pestel-mapping";
 
 /** Default daily move (in percent) from which a TRM day is flagged as atypical. */
 export const DEFAULT_TRM_DAILY_MOVE_PCT = 1;
@@ -106,7 +107,7 @@ export function buildTrmDaySignal({
     ruleId: TRM_DAILY_MOVE_RULE_ID,
     ruleText: `Variación diaria de la TRM de ${thresholdPct}% o más frente al día anterior`,
     dimension: "macro",
-    pestel: "economic",
+    pestel: pestelForRule(TRM_DAILY_MOVE_RULE_ID),
     severity: "info",
     kind: "event",
     title: `TRM del ${date.slice(0, 10)}`,

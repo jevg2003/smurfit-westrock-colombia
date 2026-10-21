@@ -4,6 +4,7 @@ import type { Clock } from "../ports/clock";
 import { addDaysToKey, bogotaDateKey, bogotaStartOfDay, daysUntil } from "../time/bogota";
 import { makeSignalId } from "./dedupe";
 import { daysLabel, formatCop } from "./format";
+import { pestelForRule } from "./pestel-mapping";
 
 export const SECOP_EXPIRING_CONTRACT_RULE_ID = "secop.expiring-contract.v1";
 
@@ -58,7 +59,7 @@ export function detectExpiringContracts({
         ruleId: SECOP_EXPIRING_CONTRACT_RULE_ID,
         ruleText,
         dimension: "procurement",
-        pestel: "economic",
+        pestel: pestelForRule(SECOP_EXPIRING_CONTRACT_RULE_ID),
         severity,
         kind: "event",
         title: `Contrato con ${contract.entity} ${remaining}`,

@@ -4,6 +4,7 @@ import type { Clock } from "../ports/clock";
 import { bogotaDateKey, daysUntil } from "../time/bogota";
 import { makeSignalId } from "./dedupe";
 import { daysLabel, formatCop } from "./format";
+import { pestelForRule } from "./pestel-mapping";
 
 export const SECOP_COMPETITOR_NEW_CONTRACT_RULE_ID = "secop.competitor-new-contract.v1";
 
@@ -46,7 +47,7 @@ export function detectCompetitorNewContracts({
         ruleId: SECOP_COMPETITOR_NEW_CONTRACT_RULE_ID,
         ruleText,
         dimension: "competitors",
-        pestel: "economic",
+        pestel: pestelForRule(SECOP_COMPETITOR_NEW_CONTRACT_RULE_ID),
         severity: "watch",
         kind: "event",
         title: `${competitorName} firmó un contrato con ${contract.entity}`,
