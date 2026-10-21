@@ -81,6 +81,9 @@ export function createNewsAdapter({ fetcher = createFetcher() }: NewsAdapterOpti
           },
         ];
       });
+      if (news.length === 0 && feeds.length > 0 && feeds.every((feed) => feed.status !== "ok")) {
+        return failure("network", "No se pudo leer ninguna fuente de noticias. Intenta de nuevo más tarde.");
+      }
       if (news.length === 0) return failure("empty", "Las fuentes no devolvieron titulares.");
 
       const provenance: Provenance = {

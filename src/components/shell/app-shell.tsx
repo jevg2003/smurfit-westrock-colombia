@@ -7,10 +7,12 @@ import {
   HistoryIcon,
   LandmarkIcon,
   LineChartIcon,
+  NewspaperIcon,
   LayoutGridIcon,
   ListOrderedIcon,
   PanelLeftIcon,
   RadarIcon,
+  ScaleIcon,
   SlidersHorizontalIcon,
   SparklesIcon,
   StarIcon,
@@ -69,6 +71,8 @@ const NAV_GROUPS = [
       { href: "/dias", label: "TRM: días y variaciones", icon: ListOrderedIcon },
       { href: "/contratacion", label: "Contratación", icon: LandmarkIcon },
       { href: "/competidores", label: "Competidores", icon: UsersIcon },
+      { href: "/noticias", label: "Noticias", icon: NewspaperIcon },
+      { href: "/regulacion", label: "Regulación", icon: ScaleIcon },
     ],
   },
   {
@@ -181,7 +185,7 @@ export function AppShell({ actions, children }: Props) {
           <footer className="max-w-prose text-xs text-muted-foreground print:hidden">
             <p className="font-medium">Prototipo no oficial, sin relación ni aval de Smurfit Westrock.</p>
             <p>
-              Construido con datos públicos (datos.gov.co: TRM, SECOP II, Supersociedades y exportaciones; Banco Mundial: PIB e inflación). Las señales salen de reglas escritas y
+              Construido con datos públicos (datos.gov.co: TRM, SECOP II, Supersociedades y exportaciones; Banco Mundial: PIB e inflación; titulares de medios y Google News; Minambiente y decretos de Presidencia). Las señales salen de reglas escritas y
               visibles. El asistente de IA solo lee estos datos y puede equivocarse.
             </p>
           </footer>

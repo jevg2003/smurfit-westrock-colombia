@@ -31,6 +31,8 @@ import { DIMENSION_LABELS } from "@/core/labels";
 import { contractSubject, isFollowed, signalSubject } from "@/core/rules/watch-subject";
 import { bogotaDateKey } from "@/core/time/bogota";
 import { buildTimeline, type TimelineEvent } from "@/core/usecases/build-timeline";
+import { useNews } from "@/features/entorno/use-news";
+import { useRegulation } from "@/features/entorno/use-regulation";
 import { useSignals } from "@/features/entorno/use-signals";
 import { SOURCES } from "@/features/entorno/sources";
 import { applyFilters } from "@/features/filtros/apply-filters";
@@ -76,6 +78,8 @@ const ACCESSORS = {
 /** What happened and in what order, across every dimension that is connected today. */
 export function TimelineView() {
   const data = useSignals();
+  const news = useNews();
+  const regulation = useRegulation();
   const [query, setQuery] = useState<FilterQuery>(() => createFilterQuery());
   const [dates, setDates] = useState<DateSelectorValue | undefined>();
   const [visible, setVisible] = useState(PAGE_SIZE);
@@ -87,11 +91,13 @@ export function TimelineView() {
       buildTimeline({
         signals: data.signals,
         contracts: data.contracts,
-        news: [],
+        // Only headlines that mention the user's terms, so the timeline is not flooded.
+        news: news.items.filter((item) => item.matches.length > 0),
         regulations: [],
+        regulationItems: regulation.items,
         competitorNits: COMPETITORS.map((competitor) => competitor.nit),
       }),
-    [data.signals, data.contracts],
+    [data.signals, data.contracts, news.items, regulation.items],
   );
 
   const onlyFollowed = useWatchlistStore((state) => state.onlyFollowed);
@@ -128,7 +134,7 @@ export function TimelineView() {
     <div className="flex min-w-0 flex-col gap-4">
       <PageIntro
         title="Línea de tiempo"
-        description="Señales y contratos en orden, del más reciente al más antiguo. Las noticias y las normas llegan en próximas versiones."
+        description="Señales, contratos, noticias con tus términos y publicaciones de regulación en orden, del más reciente al más antiguo."
         actions={<FollowedFilterToggle />}
       />
 

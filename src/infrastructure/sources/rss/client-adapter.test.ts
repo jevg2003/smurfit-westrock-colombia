@@ -61,4 +61,10 @@ describe("news client adapter", () => {
     const { adapter } = adapterFor(new Response(JSON.stringify(empty), { status: 200 }));
     expect(await adapter.fetch({}, { now: NOW })).toMatchObject({ ok: false, error: { kind: "empty" } });
   });
+
+  it("reports a network error when every feed failed on the server", async () => {
+    const down = { items: [], feeds: [{ id: "portafolio", outlet: "Portafolio", status: "error", count: 0, message: "x" }], fetchedAt: body.fetchedAt };
+    const { adapter } = adapterFor(new Response(JSON.stringify(down), { status: 200 }));
+    expect(await adapter.fetch({}, { now: NOW })).toMatchObject({ ok: false, error: { kind: "network" } });
+  });
 });

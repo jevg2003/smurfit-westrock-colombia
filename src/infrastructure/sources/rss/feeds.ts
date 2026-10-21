@@ -28,3 +28,10 @@ export const GOOGLE_NEWS_ID = "google-news";
 export const NEWS_SOURCE_IDS = [...NEWS_FEED_IDS, GOOGLE_NEWS_ID] as [NewsFeedId | typeof GOOGLE_NEWS_ID, ...(NewsFeedId | typeof GOOGLE_NEWS_ID)[]];
 
 export type NewsSourceId = (typeof NEWS_SOURCE_IDS)[number];
+
+/** Regulation feeds served through the same closed proxy pattern (CORS limited to their own domain). */
+export const MINAMBIENTE_FEED: FeedConfig = {
+  id: "minambiente",
+  outlet: "Ministerio de Ambiente y Desarrollo Sostenible",
+  url: "https://www.minambiente.gov.co/feed/",
+};

@@ -10,6 +10,8 @@ export interface RegulationEntry {
   whyItMatters: string;
   /** Official link, or null when none could be verified. */
   url: string | null;
+  /** Name of the site the link points to, for example "Gestor normativo de Función Pública". */
+  urlLabel?: string;
   /** ISO date (`YYYY-MM-DD`) of the last manual review. */
   reviewedAt: string;
   curated: true;

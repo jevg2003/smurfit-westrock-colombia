@@ -17,6 +17,11 @@ import type { TrmRegistro } from "@/features/trm/types";
 
 export const TEST_NOW = "2026-10-20T15:00:00.000Z";
 
+const disabledNews: Result<never> = {
+  ok: false,
+  error: { sourceId: "news-rss", kind: "disabled", message: "Fuente desactivada." } satisfies SourceError,
+};
+
 export function fakeContainer(
   secop: SourceAdapter<SecopQuery, PublicContract[]>["fetch"],
   overrides: Partial<Container> = {},
@@ -24,6 +29,9 @@ export function fakeContainer(
   return {
     ...createContainer({ clock: createFakeClock(TEST_NOW) }),
     secop: { sourceId: "secop", fetch: secop } as SourceAdapter<SecopQuery, PublicContract[]>,
+    // News and regulation are switched off in screen tests unless a test overrides them: no network.
+    news: fakeAdapter("news-rss", async () => disabledNews) as Container["news"],
+    regulation: fakeAdapter("minambiente", async () => disabledNews) as Container["regulation"],
     ...overrides,
   };
 }

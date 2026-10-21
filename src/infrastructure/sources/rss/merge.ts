@@ -1,4 +1,4 @@
-import { canonicalUrl, titleKey } from "./sanitize";
+import { canonicalUrl, shortHash, titleKey } from "./sanitize";
 
 export type HeadlineVia = "rss" | "google-news";
 
@@ -16,16 +16,6 @@ export interface MergedHeadline extends SourcedHeadline {
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-
-/** FNV-1a, 32 bit: a short stable id, not a security hash. */
-function shortHash(text: string): string {
-  let hash = 0x811c9dc5;
-  for (let i = 0; i < text.length; i++) {
-    hash ^= text.charCodeAt(i);
-    hash = Math.imul(hash, 0x01000193) >>> 0;
-  }
-  return hash.toString(16).padStart(8, "0");
-}
 
 /**
  * One list from every feed: dedupes by canonical URL and by normalized title (a direct media link

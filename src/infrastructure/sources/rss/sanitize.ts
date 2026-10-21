@@ -74,3 +74,13 @@ export function titleKey(title: string, outlet?: string): string {
   const key = normalizeText(title);
   return outletKey && key.endsWith(` ${outletKey}`) ? key.slice(0, -(outletKey.length + 1)).trim() : key;
 }
+
+/** FNV-1a, 32 bit: a short stable id, not a security hash. */
+export function shortHash(text: string): string {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return hash.toString(16).padStart(8, "0");
+}

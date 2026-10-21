@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { NewsItem } from "../domain/news";
-import type { RegulationEntry } from "../domain/regulation";
+import type { RegulationEntry, RegulationItem } from "../domain/regulation";
 import { makeContract } from "../rules/test-fixtures";
 import { buildTimeline } from "./build-timeline";
 import { COMPETITORS, makeBriefingSignal } from "./test-data";
@@ -36,6 +36,24 @@ const regulation: RegulationEntry = {
   curated: true,
   provenance,
 };
+
+describe("buildTimeline regulation items", () => {
+  it("adds Minambiente posts and decrees as regulation events", () => {
+    const item: RegulationItem = {
+      id: "decree:1",
+      kind: "decree",
+      title: "DECRETO No. 970",
+      summary: "Residuos",
+      url: "https://dapre.test/d.pdf",
+      publishedAt: "2026-08-04T15:00:00.000Z",
+      provenance,
+    };
+    const events = buildTimeline({ signals: [], contracts: [], news: [], regulations: [], regulationItems: [item], competitorNits: [] });
+    expect(events).toEqual([
+      expect.objectContaining({ id: "regulation:decree:1", dimension: "regulation", kind: "regulation", title: "DECRETO No. 970", detail: "Residuos", url: "https://dapre.test/d.pdf" }),
+    ]);
+  });
+});
 
 describe("buildTimeline", () => {
   const events = buildTimeline({

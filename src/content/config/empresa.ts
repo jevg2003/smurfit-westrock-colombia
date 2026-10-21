@@ -56,3 +56,34 @@ export const NEWS_TERM_GROUPS: readonly NewsTermGroup[] = [
 ];
 
 export const DEFAULT_NEWS_TERMS: readonly string[] = NEWS_TERM_GROUPS.flatMap((group) => group.terms);
+
+/**
+ * Keywords that make a Minambiente publication or a Presidencia decree relevant (regulation and
+ * sustainability). Matched on whole words, ignoring case and accents, so plurals are listed.
+ * Used for the bounded filter of the decrees dataset and for the regulation signal rule.
+ */
+export const REGULATION_KEYWORDS: readonly string[] = [
+  "residuo",
+  "residuos",
+  "envase",
+  "envases",
+  "empaque",
+  "empaques",
+  "reciclaje",
+  "aprovechamiento",
+  "plástico",
+  "plásticos",
+  "responsabilidad extendida",
+  "economía circular",
+  "sostenibilidad",
+  "emisiones",
+  "carbono",
+  "arancel",
+  "aranceles",
+  "gas natural",
+  "energía",
+  "agua",
+];
+
+/** Terms that rule out a publication even if a keyword matches (appointments, temporary duties). */
+export const REGULATION_EXCLUDE_KEYWORDS: readonly string[] = ["nombramiento", "nombra", "encargo", "ad hoc", "posesión"];

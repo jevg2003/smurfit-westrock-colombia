@@ -10,6 +10,8 @@ import { useAlertsStore } from "@/stores/alerts.store";
 import { useHydrationStore } from "@/stores/hydration.store";
 import { usePreferencesStore } from "@/stores/preferences.store";
 import { getContainer } from "./container";
+import { useNews } from "./use-news";
+import { REGULATION_TERMS, useRegulation } from "./use-regulation";
 import { useSecop } from "./use-secop";
 import { useTrmRecords } from "./use-trm-records";
 
@@ -29,13 +31,18 @@ export function useSignals() {
   const createFromSignal = useAlertsStore((state) => state.createFromSignal);
   const trm = useTrmRecords();
   const secop = useSecop();
+  const news = useNews();
+  const regulation = useRegulation();
 
   const contracts = secop.data?.contracts;
   const trmRecords = trm.data;
   const trmUpdatedAt = trm.query.dataUpdatedAt;
+  const newsItems = news.items;
+  const newsGroups = news.groups;
+  const regulationItems = regulation.items;
 
   const signals = useMemo<Signal[]>(() => {
-    if (!contracts && !trmRecords) return [];
+    if (!contracts && !trmRecords && newsItems.length === 0 && regulationItems.length === 0) return [];
     const clock = getContainer().clock;
     return detectSignals(
       {
@@ -44,12 +51,16 @@ export function useSignals() {
         trmFetchedAt: new Date(trmUpdatedAt || clock.now().getTime()).toISOString(),
         companyNit: COMPANY.nit,
         competitors: COMPETITORS,
+        news: newsItems,
+        newsTermGroups: newsGroups,
+        regulationItems,
+        regulationTerms: REGULATION_TERMS,
       },
       DEFAULT_SIGNAL_RULES,
       clock,
       thresholds,
     );
-  }, [contracts, trmRecords, trmUpdatedAt, thresholds]);
+  }, [contracts, trmRecords, trmUpdatedAt, thresholds, newsItems, newsGroups, regulationItems]);
 
   useEffect(() => {
     if (!hasHydrated) return;
@@ -63,6 +74,10 @@ export function useSignals() {
     trm: trm.view,
     secop: secop.view,
     secopProvenance: secop.data?.provenance,
+    news: news.view,
+    newsOff: news.data?.off === true,
+    regulation: regulation.view,
+    regulationOff: regulation.data?.off === true,
     isPending: trm.view.status === "pending" && secop.view.status === "pending",
     hasHydrated,
   };

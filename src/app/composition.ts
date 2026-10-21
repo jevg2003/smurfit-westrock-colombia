@@ -8,6 +8,7 @@ import { consoleLogger } from "@/infrastructure/logging/console-logger";
 import { createExportsAdapter } from "@/infrastructure/sources/datos-gov-co/exportaciones/adapter";
 import { createSupersociedadesAdapter } from "@/infrastructure/sources/datos-gov-co/supersociedades/adapter";
 import { createSecopContractsAdapter } from "@/infrastructure/sources/datos-gov-co/secop-contratos/adapter";
+import { createRegulationAdapter } from "@/infrastructure/sources/regulation/client-adapter";
 import { createNewsAdapter } from "@/infrastructure/sources/rss/client-adapter";
 import { createWorldBankAdapter } from "@/infrastructure/sources/world-bank/adapter";
 import { createXmAdapter } from "@/infrastructure/sources/xm/adapter";
@@ -34,6 +35,7 @@ export function createContainer({ fetcher, clock = systemClock, logger = console
     exports: createExportsAdapter({ fetcher }),
     supersociedades: createSupersociedadesAdapter({ fetcher }),
     news: createNewsAdapter({ fetcher }),
+    regulation: createRegulationAdapter({ fetcher }),
   };
 }
 

@@ -57,6 +57,9 @@ with verifiable sources and explicit rules.
 | News terms | Company + competitors; sector; regulation and sustainability; operational risks. |
 | Mobile | Desktop first. Radar, alerts and briefing must be usable on mobile with no horizontal page scroll. |
 | Deploy | Prepare for Vercel and keep it portable to company production. No deploy yet. |
+| AI assistant (changed 2026-10-20) | The user overrode "no AI / no chat". Scope: a chat on the `/asistente` page, which has no screen context, plus a Sheet on every screen that sees the current page context and reads app data through read-only tools. Uses the Vercel AI SDK and ReUI chat components (c-bubble-3, c-marker-1, c-message-4, c-trace-8). Conversations are stored locally under `swc:chats:v1`. Keys stay server-only in `.env.local`, copied from the user's other project with the user's permission and never committed. Prompt-injection precautions are mandatory. |
+| PESTEL | A `/pestel` matrix of signals grouped by factor, with rule-based impact labels (oportunidad / amenaza / por evaluar), a local decision log (`swc:decisions:v1`) with templates, and a PESTEL section in the briefing. |
+| Execution | Parallel writers on the same branch with disjoint edit surfaces. Each one commits only its own paths. The parent runs build and smoke tests. |
 
 ## Delivery strategy
 - Strategy: `feature-branch-chain`. One PR per release into `feat/centro-inteligencia-entorno`, then a
@@ -99,9 +102,9 @@ with verifiable sources and explicit rules.
 - [x] T11 Screens: Macro, Competidores, Seguimiento.
 
 ### R3 — News + regulation
-- [ ] T12 `/api/news` route: a closed list of media RSS feeds, dedupe, rejection of unsafe links.
-- [ ] T13 Google News RSS (flag on), shared dedupe, "vía Google News" label.
-- [ ] T14 Regulation: `normas.json` (curated), the Minambiente feed, decrees `88h2-dykw`, the
+- [x] T12 `/api/news` route: a closed list of media RSS feeds, dedupe, rejection of unsafe links.
+- [x] T13 Google News RSS (flag on), shared dedupe, "vía Google News" label.
+- [x] T14 Regulation: `normas.json` (curated), the Minambiente feed, decrees `88h2-dykw`, the
       `/regulacion` screen.
 
 ### R4 — Hardening + deploy prep
@@ -144,6 +147,9 @@ with verifiable sources and explicit rules.
 | T11 macro | delegated | same | 500d7e8 | RED: macro view suite failed with a missing module, then GREEN 5 tests; format helpers written with their tests (no separate RED). | medium |
 | T11 competidores + nav | delegated | same | 4f03a4c | RED: competidores suite failed with a missing module, then GREEN 7 tests. | medium |
 | R2 close | delegated | same | (this commit) | `pnpm test` 47 files / 265 tests, lint, typecheck, build ok; `pnpm start -p 3100` /macro, /competidores, /seguimiento HTTP 200 (a second `next dev` is refused while the one on port 3000 runs). | pending assessment |
+| T12 | delegated | R3 writer (2+ non-trivial files) | d4865ad | RED: suites failed with missing modules (match, rss parse/sanitize/merge/service/handler/client, flags, news rule), then GREEN. Unknown feed ids and client URLs return 400 without fetching. `pnpm test` / lint / typecheck ok (build left to the parent). | medium |
+| T13 | delegated | same | e582027 | RED: google-news and service tests failed (missing module), then GREEN. Accepted terms-of-use risk (2026-10-20) recorded in `google-news.ts` and in the News row above. | medium |
+| T14 | delegated | same | (this commit) | RED: decrees, regulation service, curated norms, client adapter, rule, and the Noticias/Regulación view suites failed with missing modules, then GREEN; `pnpm test` 89 files / 507 tests, lint, typecheck ok. | medium |
 
 ### R0 review
 - First review attempt (base 0aeb1f7, which included docs): declined, then `lens_context_budget_exceeded`.
@@ -199,6 +205,14 @@ with verifiable sources and explicit rules.
   - The dataset description says "todas las cifras en este reporte se muestran en Billones de Pesos", but the amount columns declare no unit. The app keeps the "unidad no declarada por la fuente" note and adds that hint.
   - No Supersociedades rule was added: proposal §4.6 defines none. Only the pure helpers `latestFinancialsByNit` and `netMarginPct` exist.
 - Next dev note: `next dev` refuses to start a second server in the same project while one is running on port 3000, so the R2 smoke test used `next start -p 3100`.
+
+### R3 confirmed source facts (live curl 2026-10-20, all HTTP 200, RSS 2.0, no CORS for the browser)
+- Portafolio `https://www.portafolio.co/rss/economia.xml` (1.4 s, 10 items), La República `https://www.larepublica.co/rss` (0.3 s, 60), El Tiempo `https://www.eltiempo.com/rss/economia.xml` (0.8 s, 10), Valora Analitik `https://www.valoraanalitik.com/feed/` (3.2 s, 50; dates have no zone, read as UTC), El Colombiano `https://www.elcolombiano.com/rss/negocios.xml` (14.0 s once, 56 items; the per-feed timeout is 12 s, so it can show as a failing feed).
+- Google News `https://news.google.com/rss/search?q=...&hl=es-419&gl=CO&ceid=CO:es-419` (1.7 s, 62 items); original outlet in `<source>`; the feed copyright says personal, non-commercial use (accepted risk above). Flag `FEATURE_GOOGLE_NEWS`, default on.
+- Minambiente `https://www.minambiente.gov.co/feed/` (4.0 s, 12 items).
+- Presidencia decrees `88h2-dykw` (HTTP 200, 1-5 s): fields `titulo`, `descripcion`, `tipo`, `fecha`, `url`; license CC_40_BY_SA, attribution DAPRE (http://www.presidencia.gov.co). 10,538 DECRETOS in total; only 5 of 265 in the last 12 months match the regulation keywords. Query uses exact filters (`tipo='DECRETOS'`, `fecha>...`), keyword filter done on the server over at most 500 rows (no LIKE). The `url` points to a dapre.presidencia.gov.co PDF; a HEAD on one returned an HTML page (not verified as a PDF).
+- Curated norm links (all HTTP 200 on 2026-10-20): Res. 1407/2018 Cancillería normograma; Res. 803/2024 (Diario Oficial 52.799, dated 2024-06-24) MinTIC normograma; Ley 2232/2022 (dated 2022-07-07) ANLA page; Ley 1581/2012 Función Pública gestor normativo `norma.php?i=49981`. These are official entity pages, not SUIN/Función Pública for 1407, 803 and 2232 (not verified there); reviewedAt 2026-10-20.
+- Parser: `fast-xml-parser` 5.11.2, MIT. Flags are server-only (`FEATURE_NEWS_RSS`, `FEATURE_GOOGLE_NEWS`, `FEATURE_MINAMBIENTE`, `FEATURE_PRESIDENCIA`).
 
 ## Next step
 R2 is complete (T9–T11).

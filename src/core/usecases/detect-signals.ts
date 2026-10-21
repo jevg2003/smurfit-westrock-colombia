@@ -1,5 +1,6 @@
 import type { PublicContract } from "../domain/contract";
 import type { NewsItem } from "../domain/news";
+import type { RegulationItem } from "../domain/regulation";
 import type { Signal } from "../domain/signal";
 import type { Clock } from "../ports/clock";
 import type { TermGroup } from "../text/match";
@@ -20,6 +21,10 @@ export interface SignalInputs {
   news?: readonly NewsItem[];
   /** The news term groups of the preferences, with their current terms. */
   newsTermGroups?: readonly TermGroup[];
+  /** Minambiente publications and Presidencia decrees. Absent when the source is off or failed. */
+  regulationItems?: readonly RegulationItem[];
+  /** Keywords that make a regulation item relevant, and terms that rule it out. */
+  regulationTerms?: { include: readonly string[]; exclude: readonly string[] };
 }
 
 /** A rule adapted to the shared inputs. Pure: no I/O, time only through the clock. */

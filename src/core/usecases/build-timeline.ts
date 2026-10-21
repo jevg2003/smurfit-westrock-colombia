@@ -2,7 +2,7 @@ import type { PublicContract } from "../domain/contract";
 import type { Dimension, Severity } from "../domain/dimension";
 import type { NewsItem } from "../domain/news";
 import type { Provenance } from "../domain/provenance";
-import type { RegulationEntry } from "../domain/regulation";
+import type { RegulationEntry, RegulationItem } from "../domain/regulation";
 import type { Signal } from "../domain/signal";
 import { bogotaDateKey } from "../time/bogota";
 
@@ -26,12 +26,14 @@ export interface TimelineInput {
   contracts: readonly PublicContract[];
   news: readonly NewsItem[];
   regulations: readonly RegulationEntry[];
+  /** Minambiente posts and Presidencia decrees. */
+  regulationItems?: readonly RegulationItem[];
   /** Contracts of these suppliers belong to "competidores"; the rest to "contratación". */
   competitorNits: readonly string[];
 }
 
 /** Events from every dimension, newest first (ties ordered by id). */
-export function buildTimeline({ signals, contracts, news, regulations, competitorNits }: TimelineInput): TimelineEvent[] {
+export function buildTimeline({ signals, contracts, news, regulations, regulationItems = [], competitorNits }: TimelineInput): TimelineEvent[] {
   const competitors = new Set(competitorNits);
 
   const events: TimelineEvent[] = [
@@ -75,6 +77,16 @@ export function buildTimeline({ signals, contracts, news, regulations, competito
       detail: entry.topic,
       url: entry.url ?? undefined,
       provenance: [entry.provenance],
+    })),
+    ...regulationItems.map((item): TimelineEvent => ({
+      id: `regulation:${item.id}`,
+      at: item.publishedAt,
+      dimension: "regulation",
+      kind: "regulation",
+      title: item.title,
+      detail: item.summary,
+      url: item.url,
+      provenance: [item.provenance],
     })),
   ];
 

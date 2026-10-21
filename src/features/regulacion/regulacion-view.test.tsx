@@ -1,0 +1,123 @@
+// @vitest-environment jsdom
+import { cleanup, screen, within } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { Provenance } from "@/core/domain/provenance";
+import type { RegulationItem } from "@/core/domain/regulation";
+import type { Result } from "@/core/domain/result";
+import { fakeAdapter, fakeContainer, renderWithQuery, resetStores, secopOk, TEST_NOW } from "@/features/entorno/test-utils";
+import type { RegulationFeedData } from "@/infrastructure/sources/regulation/client-adapter";
+
+const regulationFetch = vi.fn();
+
+vi.mock("@/features/entorno/container", () => ({
+  getContainer: () => fakeContainer(vi.fn().mockResolvedValue(secopOk([])), { regulation: fakeAdapter("minambiente", regulationFetch) }),
+}));
+
+import { RegulacionView } from "./regulacion-view";
+
+const prov = (sourceId: "minambiente" | "presidencia"): Provenance => ({
+  sourceId,
+  url: "https://example.test/src",
+  fetchedAt: TEST_NOW,
+  license: sourceId === "presidencia" ? "CC BY-SA 4.0" : "Solo titular, fecha y enlace (derechos del Ministerio)",
+  attribution: sourceId === "presidencia" ? "DAPRE vía datos.gov.co" : "Ministerio de Ambiente y Desarrollo Sostenible",
+});
+
+const POST: RegulationItem = {
+  id: "minambiente:1",
+  kind: "minambiente",
+  title: "Colombia y Armenia lanzan una coalición",
+  url: "https://www.minambiente.gov.co/coalicion/",
+  publishedAt: "2026-10-16T14:46:16.000Z",
+  provenance: prov("minambiente"),
+};
+const DECREE: RegulationItem = {
+  id: "decree:1",
+  kind: "decree",
+  title: "DECRETO No. 0970 DEL 4 DE AGOSTO DE 2026",
+  summary: "Por el cual se adiciona el Capítulo 15 al Título 8 sobre residuos",
+  url: "https://dapre.presidencia.gov.co/d.pdf",
+  publishedAt: "2026-08-04T15:00:00.000Z",
+  provenance: prov("presidencia"),
+};
+
+const ok = (data: RegulationFeedData): Result<{ data: RegulationFeedData; provenance: Provenance }> => ({
+  ok: true,
+  value: { data, provenance: prov("minambiente") },
+});
+const BOTH = ok({ minambiente: { status: "ok", items: [POST] }, presidencia: { status: "ok", items: [DECREE] } });
+
+describe("RegulacionView", () => {
+  beforeEach(() => {
+    resetStores();
+    regulationFetch.mockResolvedValue(BOTH);
+  });
+  afterEach(cleanup);
+
+  it("shows the four curated norms with the 'curado manualmente' badge, review date and official link", async () => {
+    renderWithQuery(<RegulacionView />);
+
+    const norm = (await screen.findByText("Resolución 1407 de 2018")).closest("[data-slot=item]") as HTMLElement;
+    expect(within(norm).getByText("Curado manualmente")).toBeInTheDocument();
+    expect(within(norm).getByText(/Revisada el 20\/10\/2026/)).toBeInTheDocument();
+    const link = within(norm).getByRole("link", { name: /Ver la norma/ });
+    expect(link).toHaveAttribute("href", expect.stringMatching(/^https:\/\//));
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("rel", "noopener noreferrer");
+    for (const name of ["Resolución 803 de 2024", "Ley 2232 de 2022", "Ley 1581 de 2012"]) {
+      expect(screen.getByText(name)).toBeInTheDocument();
+    }
+  });
+
+  it("lists Minambiente posts and decrees with safe links and their sources", async () => {
+    renderWithQuery(<RegulacionView />);
+
+    const post = await screen.findByRole("link", { name: /Colombia y Armenia lanzan una coalición/ });
+    expect(post).toHaveAttribute("href", POST.url);
+    expect(post).toHaveAttribute("rel", "noopener noreferrer");
+    const decree = screen.getByRole("link", { name: /DECRETO No\. 0970/ });
+    expect(decree).toHaveAttribute("href", DECREE.url);
+    expect(screen.getByText(/Título 8 sobre residuos/)).toBeInTheDocument();
+    expect(screen.getByText(/\(DAPRE\) vía datos\.gov\.co · CC BY-SA 4\.0/)).toBeInTheDocument();
+  });
+
+  it("keeps the curated norms and the other source when one source fails", async () => {
+    regulationFetch.mockResolvedValue(
+      ok({ minambiente: { status: "error", items: [], httpStatus: 503, message: "La fuente respondió con el estado 503." }, presidencia: { status: "ok", items: [DECREE] } }),
+    );
+    renderWithQuery(<RegulacionView />);
+
+    expect(await screen.findByText("No pudimos consultar Minambiente")).toBeInTheDocument();
+    expect(screen.getByText("La fuente respondió con el estado 503.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /DECRETO No\. 0970/ })).toBeInTheDocument();
+    expect(screen.getByText("Resolución 1407 de 2018")).toBeInTheDocument();
+  });
+
+  it("shows 'fuente desactivada' for a switched-off source", async () => {
+    regulationFetch.mockResolvedValue(ok({ minambiente: { status: "disabled", items: [] }, presidencia: { status: "ok", items: [DECREE] } }));
+    renderWithQuery(<RegulacionView />);
+
+    expect(await screen.findByText("Fuente desactivada: Minambiente")).toBeInTheDocument();
+  });
+
+  it("shows empty states when a source has no items", async () => {
+    regulationFetch.mockResolvedValue(ok({ minambiente: { status: "ok", items: [] }, presidencia: { status: "ok", items: [] } }));
+    renderWithQuery(<RegulacionView />);
+
+    expect(await screen.findByText("Minambiente no tiene publicaciones recientes")).toBeInTheDocument();
+    expect(screen.getByText("No hay decretos recientes sobre estos temas")).toBeInTheDocument();
+  });
+
+  it("shows a loading state and a whole-call error with retry, and still shows the curated norms", async () => {
+    regulationFetch.mockReturnValue(new Promise(() => {}));
+    const { unmount } = renderWithQuery(<RegulacionView />);
+    expect(screen.getAllByRole("status", { name: "Consultando Minambiente y Presidencia" })).toHaveLength(2);
+    expect(screen.getByText("Resolución 1407 de 2018")).toBeInTheDocument();
+    unmount();
+
+    regulationFetch.mockResolvedValue({ ok: false, error: { sourceId: "minambiente", kind: "network", message: "No se pudo conectar con la regulación." } });
+    renderWithQuery(<RegulacionView />);
+    expect(await screen.findByText("No pudimos consultar Regulación")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reintentar" })).toBeInTheDocument();
+  });
+});
