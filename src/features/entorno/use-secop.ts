@@ -6,6 +6,7 @@ import type { PublicContract } from "@/core/domain/contract";
 import type { Provenance } from "@/core/domain/provenance";
 import { getContainer } from "./container";
 import { toSourceView } from "./source-view";
+import { SourceFailure } from "./source-failure";
 
 export interface SecopData {
   contracts: PublicContract[];
@@ -26,7 +27,7 @@ export function useSecop() {
       const result = await secop.fetch({ nits: NITS }, { signal, now: clock.now() });
       if (result.ok) return { contracts: result.value.data, provenance: result.value.provenance };
       if (result.error.kind === "empty") return { contracts: [] };
-      throw new Error(result.error.message);
+      throw new SourceFailure(result.error);
     },
   });
   return { query, view: toSourceView(query), data: query.data };

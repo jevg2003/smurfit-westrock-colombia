@@ -8,6 +8,7 @@ import { loadCuratedNorms } from "@/infrastructure/sources/curated/norms";
 import type { RegulationBlock } from "@/infrastructure/sources/regulation/client-adapter";
 import { getContainer } from "./container";
 import { toSourceView } from "./source-view";
+import { SourceFailure } from "./source-failure";
 
 export interface RegulationData {
   minambiente: RegulationBlock;
@@ -37,7 +38,7 @@ export function useRegulation() {
       const result = await regulation.fetch({}, { signal, now: clock.now() });
       if (result.ok) return { ...result.value.data, off: false };
       if (result.error.kind === "disabled") return { minambiente: OFF_BLOCK, presidencia: OFF_BLOCK, off: true };
-      throw new Error(result.error.message);
+      throw new SourceFailure(result.error);
     },
   });
   const items = useMemo<RegulationItem[]>(

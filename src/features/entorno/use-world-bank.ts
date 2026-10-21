@@ -6,6 +6,7 @@ import type { Provenance } from "@/core/domain/provenance";
 import type { WorldBankIndicator } from "@/infrastructure/sources/world-bank/adapter";
 import { getContainer } from "./container";
 import { toSourceView } from "./source-view";
+import { SourceFailure } from "./source-failure";
 
 export interface ObservationsData {
   observations: Observation[];
@@ -24,7 +25,7 @@ export function useWorldBank(indicator: WorldBankIndicator) {
       const result = await worldBank.fetch({ indicator }, { signal, now: clock.now() });
       if (result.ok) return { observations: result.value.data, provenance: result.value.provenance };
       if (result.error.kind === "empty") return { observations: [] };
-      throw new Error(result.error.message);
+      throw new SourceFailure(result.error);
     },
   });
   return { query, view: toSourceView(query), data: query.data };

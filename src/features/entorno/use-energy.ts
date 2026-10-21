@@ -7,6 +7,7 @@ import { createFetcher } from "@/infrastructure/http/fetcher";
 import { createEnergyClientAdapter, type EnergyClientQuery } from "@/infrastructure/sources/xm/client-adapter";
 import { getContainer } from "./container";
 import { toSourceView } from "./source-view";
+import { SourceFailure } from "./source-failure";
 import type { ObservationsData } from "./use-world-bank";
 
 /** Days of spot price the screens ask for: enough for the two 7-day windows plus a month of context. */
@@ -31,7 +32,7 @@ export function useEnergy() {
       if (result.ok) return { observations: result.value.data, provenance: result.value.provenance, off: false };
       if (result.error.kind === "disabled") return { observations: [], off: true };
       if (result.error.kind === "empty") return { observations: [], off: false };
-      throw new Error(result.error.message);
+      throw new SourceFailure(result.error);
     },
   });
   return { query, view: toSourceView(query), data: query.data, observations: query.data?.observations ?? [] };

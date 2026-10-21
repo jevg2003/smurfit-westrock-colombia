@@ -6,6 +6,7 @@ import type { CompanyFinancials } from "@/core/domain/company";
 import type { Provenance } from "@/core/domain/provenance";
 import { getContainer } from "./container";
 import { toSourceView } from "./source-view";
+import { SourceFailure } from "./source-failure";
 
 export interface FinancialsData {
   /** One row per company and cutoff year. */
@@ -27,7 +28,7 @@ export function useSupersociedades() {
       const result = await supersociedades.fetch({ nits: NITS }, { signal, now: clock.now() });
       if (result.ok) return { financials: result.value.data, provenance: result.value.provenance };
       if (result.error.kind === "empty") return { financials: [] };
-      throw new Error(result.error.message);
+      throw new SourceFailure(result.error);
     },
   });
   return { query, view: toSourceView(query), data: query.data };

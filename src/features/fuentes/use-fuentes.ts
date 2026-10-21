@@ -50,20 +50,20 @@ export function useFuentes(): { groups: FuenteGroup[]; total: number } {
   const groups = useMemo(() => {
     const status: StatusInput = statusQuery.data ? { state: "ok", data: statusQuery.data } : { state: statusQuery.isError ? "error" : "pending" };
     return buildGroups({
-      trm: fromView(toSourceView(trm), { empty: trm.data?.length === 0 }),
-      secop: fromView(secop.view, { empty: secop.data?.contracts.length === 0 }),
-      pib: fromView(pib.view, { empty: pib.data?.observations.length === 0 }),
-      ipc: fromView(ipc.view, { empty: ipc.data?.observations.length === 0 }),
-      exports: fromView(exportsHook.view, { empty: exportsHook.data?.observations.length === 0 }),
-      supersociedades: fromView(supersociedades.view, { empty: supersociedades.data?.financials.length === 0 }),
+      trm: fromView(toSourceView(trm), { empty: trm.data?.length === 0, error: trm.error }),
+      secop: fromView(secop.view, { empty: secop.data?.contracts.length === 0, error: secop.query.error }),
+      pib: fromView(pib.view, { empty: pib.data?.observations.length === 0, error: pib.query.error }),
+      ipc: fromView(ipc.view, { empty: ipc.data?.observations.length === 0, error: ipc.query.error }),
+      exports: fromView(exportsHook.view, { empty: exportsHook.data?.observations.length === 0, error: exportsHook.query.error }),
+      supersociedades: fromView(supersociedades.view, { empty: supersociedades.data?.financials.length === 0, error: supersociedades.query.error }),
       news: {
-        snapshot: fromView(news.view, { off: news.data?.off }),
+        snapshot: fromView(news.view, { off: news.data?.off, error: news.query.error }),
         feeds: news.data?.feeds ?? [],
         off: news.data?.off ?? false,
         ...(news.view.updatedAt !== undefined ? { fetchedAt: news.view.updatedAt } : {}),
       },
       regulation: {
-        snapshot: fromView(regulation.view, { off: regulation.data?.off }),
+        snapshot: fromView(regulation.view, { off: regulation.data?.off, error: regulation.query.error }),
         ...(regulation.data && !regulation.data.off ? { data: regulation.data } : {}),
         ...(regulation.view.updatedAt !== undefined ? { fetchedAt: regulation.view.updatedAt } : {}),
       },

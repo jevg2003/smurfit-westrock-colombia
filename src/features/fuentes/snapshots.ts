@@ -1,7 +1,8 @@
 import type { SourceView } from "@/features/entorno/source-view";
 import type { RegulationBlock } from "@/infrastructure/sources/regulation/client-adapter";
 import type { FeedHealth } from "@/infrastructure/sources/rss/service";
-import { classifyErrorKind, type ErrorKind } from "./source-state";
+import { errorKindOf } from "@/features/entorno/source-failure";
+import { kindFromHttpStatus, type ErrorKind } from "./source-state";
 
 export type RowState = "ok" | "stale" | "error" | "empty" | "disabled" | "pending" | "unchecked";
 
@@ -21,10 +22,12 @@ interface ViewFlags {
   empty?: boolean;
   /** The server flag switched the source off. */
   off?: boolean;
+  /** The error thrown by the query; a `SourceFailure` carries the real kind. */
+  error?: unknown;
 }
 
-export function fromView(view: SourceView, { empty, off }: ViewFlags): Snapshot {
-  const error = view.errorMessage ? { kind: classifyErrorKind(view.errorMessage), message: view.errorMessage } : undefined;
+export function fromView(view: SourceView, { empty, off, error: thrown }: ViewFlags): Snapshot {
+  const error = view.errorMessage ? { kind: errorKindOf(thrown), message: view.errorMessage } : undefined;
   const base = { ...(view.updatedAt !== undefined ? { lastSuccess: view.updatedAt } : {}), ...(error ? { error } : {}), retry: view.retry };
   if (view.status === "pending") return { state: "pending", retry: view.retry };
   if (view.status === "error") return { state: "error", ...base };
@@ -33,22 +36,22 @@ export function fromView(view: SourceView, { empty, off }: ViewFlags): Snapshot 
   return { state: empty ? "empty" : "ok", ...base };
 }
 
-function fromStatus(status: "ok" | "error" | "disabled", count: number, message: string | undefined, lastSuccess: number | undefined, retry: () => void): Snapshot {
+function fromStatus(status: "ok" | "error" | "disabled", count: number, message: string | undefined, httpStatus: number | undefined, lastSuccess: number | undefined, retry: () => void): Snapshot {
   const at = lastSuccess === undefined ? {} : { lastSuccess };
   if (status === "disabled") return { state: "disabled", ...at, retry };
   if (status === "error") {
     const text = message ?? "La fuente no respondió.";
-    return { state: "error", error: { kind: classifyErrorKind(text), message: text }, retry };
+    return { state: "error", error: { kind: kindFromHttpStatus(httpStatus), message: text }, retry };
   }
   return { state: count === 0 ? "empty" : "ok", ...at, retry };
 }
 
 export function fromFeed(feed: FeedHealth, lastSuccess: number | undefined, retry: () => void): Snapshot {
-  return fromStatus(feed.status, feed.count, feed.message, lastSuccess, retry);
+  return fromStatus(feed.status, feed.count, feed.message, feed.httpStatus, lastSuccess, retry);
 }
 
 export function fromBlock(block: RegulationBlock, lastSuccess: number | undefined, retry: () => void): Snapshot {
-  return fromStatus(block.status, block.items.length, block.message, lastSuccess, retry);
+  return fromStatus(block.status, block.items.length, block.message, block.httpStatus, lastSuccess, retry);
 }
 
 /** The server flag wins: a source switched off is "disabled" whatever the cache says. */

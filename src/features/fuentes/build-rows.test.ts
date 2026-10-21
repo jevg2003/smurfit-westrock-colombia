@@ -14,7 +14,7 @@ function inputs(overrides: Partial<GroupInputs> = {}): GroupInputs {
     ipc: ok,
     exports: ok,
     supersociedades: ok,
-    news: { snapshot: ok, feeds: [{ id: "portafolio", outlet: "Portafolio", status: "ok", count: 4 }, { id: "google-news", outlet: "Google News", status: "error", count: 0, message: "Google News limitó las consultas." }], off: false, fetchedAt: 10 },
+    news: { snapshot: ok, feeds: [{ id: "portafolio", outlet: "Portafolio", status: "ok", count: 4 }, { id: "google-news", outlet: "Google News", status: "error", count: 0, httpStatus: 429, message: "Google News limitó las consultas." }], off: false, fetchedAt: 10 },
     regulation: { snapshot: ok, data: { minambiente: { status: "ok", items: [] }, presidencia: { status: "disabled", items: [] } }, fetchedAt: 10 },
     curatedCount: 12,
     status: { state: "ok", data: status },

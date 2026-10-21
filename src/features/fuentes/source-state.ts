@@ -1,4 +1,6 @@
-export type ErrorKind = "network" | "rate_limited" | "schema" | "empty" | "disabled";
+import type { SourceErrorKind } from "@/features/entorno/source-failure";
+
+export type ErrorKind = SourceErrorKind;
 
 export const ERROR_KIND_LABELS: Record<ErrorKind, string> = {
   network: "Red",
@@ -6,17 +8,15 @@ export const ERROR_KIND_LABELS: Record<ErrorKind, string> = {
   schema: "Formato",
   empty: "Sin datos",
   disabled: "Desactivada",
+  unknown: "Desconocido",
 };
 
 /**
- * The hooks keep only the error message, not its kind, so the kind is recovered from the
- * Spanish text the adapters write. Anything unrecognized counts as a network failure.
+ * Kind of a failure that only carries an HTTP status (the server-side feed and regulation
+ * answers). No status means we cannot tell, so it is "unknown" rather than a guess.
  */
-export function classifyErrorKind(message: string | undefined): ErrorKind {
-  const text = (message ?? "").toLowerCase();
-  if (/desactivad/.test(text)) return "disabled";
-  if (/limit[óo]|límite|429/.test(text)) return "rate_limited";
-  if (/cambi[óo] de forma|no es json|formato|esquema/.test(text)) return "schema";
-  if (/no devolvi[óo]|sin datos|no trajo/.test(text)) return "empty";
-  return "network";
+export function kindFromHttpStatus(status: number | undefined): ErrorKind {
+  if (status === undefined) return "unknown";
+  if (status === 429) return "rate_limited";
+  return status >= 400 ? "network" : "unknown";
 }
