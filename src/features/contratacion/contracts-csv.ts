@@ -1,7 +1,7 @@
 import { toCsv } from "@/core/format/csv";
 import type { PublicContract } from "@/core/domain/contract";
 import { bogotaDateKey } from "@/core/time/bogota";
-import { contractExpiry, type ExpiryThresholds } from "./expiry";
+import { contractExpiry, type ExpiryThresholds } from "@/core/rules/contract-expiry";
 
 export const CONTRACTS_CSV_COLUMNS = [
   "id_contrato",

@@ -12,7 +12,7 @@ import type { SourceAdapter } from "@/core/ports/source-adapter";
 import { DEFAULT_SIGNAL_RULES } from "@/core/rules/default-rules";
 import { detectSignals } from "@/core/usecases/detect-signals";
 import type { WorldBankQuery } from "@/infrastructure/sources/world-bank/adapter";
-import { contractExpiry, type ExpiryThresholds } from "@/features/contratacion/expiry";
+import { contractExpiry, type ExpiryThresholds } from "@/core/rules/contract-expiry";
 import type { RegulationResponse } from "@/infrastructure/sources/regulation/types";
 import type { NewsResponse } from "@/infrastructure/sources/rss/service";
 import type { XmQuery } from "@/infrastructure/sources/xm/adapter";

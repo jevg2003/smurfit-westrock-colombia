@@ -28,7 +28,7 @@ import { formatCop } from "@/lib/money";
 import { safeHttpUrl } from "@/lib/safe-url";
 import { usePreferencesStore } from "@/stores/preferences.store";
 import { contractsToCsv } from "./contracts-csv";
-import { contractExpiry, type ExpiryLevel } from "./expiry";
+import { contractExpiry, type ExpiryLevel } from "@/core/rules/contract-expiry";
 
 const BADGE: Record<ExpiryLevel, "destructive-light" | "warning-light" | "success-light" | "outline"> = {
   alert: "destructive-light",

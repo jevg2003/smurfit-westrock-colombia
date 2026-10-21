@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { PublicContract } from "@/core/domain/contract";
-import { contractExpiry } from "./expiry";
+import { contractExpiry } from "./contract-expiry";
 
 const NOW = new Date("2026-10-20T15:00:00.000Z");
 const THRESHOLDS = { watchDays: 90, alertDays: 30 };
