@@ -41,6 +41,10 @@ describe("pestelForNewsTerm", () => {
     expect(pestelForNewsTerm("regulation", "aprovechamiento")).toBe("environmental");
   });
 
+  it("tags circular economy as environmental, not legal", () => {
+    expect(pestelForNewsTerm("regulation", "economía circular")).toBe("environmental");
+  });
+
   it("splits operational risks between economic and social", () => {
     expect(pestelForNewsTerm("operations", "gas natural")).toBe("economic");
     expect(pestelForNewsTerm("operations", "dólar")).toBe("economic");
