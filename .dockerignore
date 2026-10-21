@@ -1,0 +1,17 @@
+node_modules
+.next
+.git
+.github
+.env*
+!.env.example
+e2e
+test-results
+playwright-report
+reports
+research_notes
+odd
+docs
+*.log
+*.tsbuildinfo
+Dockerfile
+.dockerignore

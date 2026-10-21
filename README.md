@@ -1,21 +1,54 @@
 # Monitor de entorno — Smurfit Westrock Colombia (prototipo)
 
-MVP de un día: panel que monitorea la **TRM (tasa representativa del mercado, COP/USD)** con histórico,
-detección de variaciones atípicas y alertas guardadas. Pensado para una empresa real expuesta al tipo
-de cambio por importar insumos (pulpa, maquinaria) y exportar empaques de papel/cartón.
+Panel que vigila el entorno de una empresa de empaques de papel y cartón en Colombia: tipo de cambio,
+contratación pública, macroeconomía, competidores, noticias, regulación y energía. Junta datos públicos,
+los convierte en señales con reglas visibles y deja un asistente de IA para preguntar sobre ellos.
 
 **Prototipo no oficial.** No tiene relación con, ni está avalado por, Smurfit Westrock. Se construyó
 sobre el perfil público de la empresa como ejercicio de diseño de producto.
 
+## Qué hace hoy
+
+- **Radar**: resumen del día con las señales más importantes.
+- **Señales**: lo que detectan las reglas (TRM, contratos, competidores, noticias, regulación, energía), con enlace al registro original.
+- **Alertas**: señales guardadas por el usuario. **Línea de tiempo**: lo ocurrido, ordenado por fecha.
+- **PESTEL**: las señales agrupadas por factor político, económico, social, tecnológico, ecológico y legal.
+- **Briefing**: resumen semanal para imprimir o copiar.
+- **Seguimiento**: empresas y temas marcados para vigilar.
+- **Macro** (PIB, inflación, exportaciones, TRM con histórico y días atípicos), **Contratación** (SECOP II), **Competidores** (SECOP II y Supersociedades).
+- **Noticias** (medios colombianos y Google News) y **Regulación** (Minambiente, decretos de Presidencia y normas curadas).
+- **Asistente**: chat de IA que lee los datos de la app y, si se activa, busca en internet. Puede equivocarse y cita sus fuentes.
+- **Fuentes**: estado de cada fuente (último dato, último error, licencia, interruptor del servidor) con reintento por fuente.
+- **Preferencias** (umbrales y términos editables) y **Acerca de** (alcance, licencias y privacidad).
+
+Todo lo que guarda el usuario (alertas, seguimiento, preferencias, chats) vive en su navegador. No hay cuenta ni analítica.
+
 ## Cómo correrlo
+
+Requiere Node 24 y pnpm.
 
 ```bash
 pnpm install
-pnpm dev        # http://localhost:3000
-pnpm build      # build de producción
-pnpm lint       # oxlint
+cp .env.example .env.local   # completa las claves del asistente; la app funciona sin ellas
+pnpm dev                     # http://localhost:3000
 ```
 
+```bash
+pnpm test        # pruebas unitarias y de componentes (Vitest)
+pnpm test:e2e    # pruebas de extremo a extremo (Playwright); usa el servidor en :3000 o lo levanta
+pnpm lint        # oxlint
+pnpm typecheck   # tsc --noEmit
+pnpm build       # build de producción
+```
+
+Las variables de entorno se leen solo en el servidor. La tabla completa está en [docs/deploy.md](docs/deploy.md).
+La integración continua (`.github/workflows/ci.yml`) corre lint, typecheck, test y build; las pruebas e2e quedan fuera
+porque necesitan un navegador y un servidor en marcha.
+
+## Despliegue
+
+Vercel hoy y un contenedor (`Dockerfile`, Node 24, usuario sin privilegios) para producción de la empresa.
+Pasos, variables y lista de revisión: [docs/deploy.md](docs/deploy.md).
 
 ## Por qué TRM y no otra cosa (la historia real de las decisiones)
 
@@ -44,39 +77,9 @@ Superintendencia Financiera de Colombia como dato abierto, CC BY-SA 4.0): respon
 reales, hasta el día de hoy, sin clave. Es además la señal de entorno más directamente relevante para una empresa que importa insumos
 y exporta en dólares. Se construyó el MVP sobre esa base.
 
-## Qué hace
-
-- **KPIs**: TRM de hoy, variación vs. día anterior, máximo del período, días con variación atípica,
-  alertas guardadas.
-- **Histórico**: nivel de la TRM y variación diaria (%), en paneles separados (nunca un eje dual) con
-  colores que siguen el signo de la variación.
-- **Tabla de días**: ordenable, filtrable a "solo variaciones atípicas" (≥1% vs. día anterior — regla
-  explícita y visible, no un puntaje de IA), con botón para guardar un día como alerta (persiste en
-  `localStorage`) y exportar a CSV.
-- **Trazabilidad**: cada dato viene de `https://www.datos.gov.co/resource/mcec-87by.json`, consultado
-  en vivo desde el navegador.
-
-## Qué NO incluye (explícitamente fuera de alcance del día 1)
-
-- IA / resúmenes automáticos — decisión tuya en la entrevista de alcance, se dejó el hueco libre para
-  sumar Vercel AI Gateway después sin rearquitecturar.
-- Multi-empresa, roles múltiples, autenticación.
-- Noticias/señales cualitativas (GDELT no fue viable hoy — ver sección anterior).
-- Persistencia en servidor: todo vive en el navegador (las alertas en `localStorage`).
-
 ## Stack
 
-Next.js 16 (App Router) + React 19 + TypeScript + Tailwind v4. UI con shadcn/ReUI (estilo base-nova).
-TanStack Query para datos, TanStack Table para la tabla, Recharts para los gráficos. Un solo archivo de
-estilos: `src/app/globals.css`. Las alertas viven en `localStorage` (cliente), por eso las
-vistas son componentes de cliente.
-Paleta y especificaciones de marcas/ejes siguen la skill `dataviz` (un solo eje, color por el signo de
-la variación, leyenda nunca solo por color).
-
-## Próximos pasos sugeridos
-
-1. Sumar una segunda fuente verificada (ej. SECOP II por NIT de proveedor, o PIB/IPC anuales del
-   Banco Mundial; datos.gov.co no tiene un IPC nacional vigente), validando antes el formato real
-   como se hizo con la TRM, para no depender de una sola variable.
-2. Resumen ejecutivo con IA (Vercel AI Gateway) sobre los días atípicos, citando siempre la fuente.
-3. Autenticación real si esto deja de ser un prototipo de demostración.
+Next.js 16 (App Router) + React 19 + TypeScript + Tailwind v4. UI con shadcn/ReUI. TanStack Query para datos,
+TanStack Table y Form, Zustand para el estado local, Recharts para los gráficos y Vercel AI SDK para el asistente.
+Las reglas viven en `src/core` (sin dependencias de framework), los adaptadores de fuentes en `src/infrastructure`
+y las pantallas en `src/features`.

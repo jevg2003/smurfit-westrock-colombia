@@ -38,6 +38,8 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // Only the container build sets NEXT_OUTPUT=standalone. Vercel and `pnpm start` keep the default output.
+  ...(process.env.NEXT_OUTPUT === "standalone" ? { output: "standalone" as const } : {}),
   turbopack: { root: path.resolve(__dirname) },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
