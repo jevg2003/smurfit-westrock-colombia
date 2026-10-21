@@ -6,11 +6,16 @@ import type { PublicContract } from "@/core/domain/contract";
 import type { Observation } from "@/core/domain/observation";
 import type { Provenance } from "@/core/domain/provenance";
 import type { Result } from "@/core/domain/result";
+import type { RegulationEntry } from "@/core/domain/regulation";
 import type { Clock } from "@/core/ports/clock";
 import type { SourceAdapter } from "@/core/ports/source-adapter";
 import { DEFAULT_SIGNAL_RULES } from "@/core/rules/default-rules";
 import { detectSignals } from "@/core/usecases/detect-signals";
 import type { WorldBankQuery } from "@/infrastructure/sources/world-bank/adapter";
+import { contractExpiry, type ExpiryThresholds } from "@/features/contratacion/expiry";
+import type { RegulationResponse } from "@/infrastructure/sources/regulation/types";
+import type { NewsResponse } from "@/infrastructure/sources/rss/service";
+import type { XmQuery } from "@/infrastructure/sources/xm/adapter";
 import { wrapUntrusted } from "./system-prompt";
 
 export const TRM_SOURCE_URL = "https://www.datos.gov.co/resource/mcec-87by.json";
@@ -30,6 +35,26 @@ export interface AssistantToolDeps {
   worldBank: SourceAdapter<WorldBankQuery, Observation[]>;
   exports: SourceAdapter<Record<string, never>, Observation[]>;
   supersociedades: SourceAdapter<{ nits: string[] }, CompanyFinancials[]>;
+  xm: SourceAdapter<XmQuery, Observation[]>;
+  news(limit: number): Promise<NewsResponse>;
+  regulation(): Promise<RegulationResponse>;
+  curatedNorms(): RegulationEntry[];
+  /** The user's contract-expiry windows (Preferencias). "Soon" means within `watchDays`. */
+  thresholds: ExpiryThresholds;
+}
+
+export type ExpiryStatus = "alerta" | "vigilar" | "fuera de ventana" | "vencido" | "terminado" | "sin fecha de fin";
+
+/** Same rule as the Contratación screen (`contractExpiry`), named for the model. */
+function expiryStatus(contract: PublicContract, now: Date, thresholds: ExpiryThresholds): { status: ExpiryStatus; days: number | null } {
+  const expiry = contractExpiry(contract, now, thresholds);
+  const days = expiry.days ?? null;
+  if (expiry.label === "Terminado") return { status: "terminado", days };
+  if (expiry.label === "Sin fecha de fin") return { status: "sin fecha de fin", days };
+  if (days !== null && days < 0) return { status: "vencido", days };
+  if (expiry.level === "alert") return { status: "alerta", days };
+  if (expiry.level === "watch") return { status: "vigilar", days };
+  return { status: "fuera de ventana", days };
 }
 
 export interface ToolProvenance {
@@ -125,38 +150,51 @@ export function createAssistantTools(deps: AssistantToolDeps) {
     }),
 
     get_secop_contracts: tool({
-      description:
-        "Public contracts (SECOP II) of the company and its watched competitors, newest signed first. Optionally only one NIT or only those ending soon.",
+      description: `Public contracts (SECOP II) of the company and its watched competitors. Each contract has daysToEnd, expiryStatus (alerta, vigilar, fuera de ventana, vencido, terminado), processUrl (link to the record) and provenance. "Soon" means inside the user's watch window (${deps.thresholds.watchDays} days; alert ${deps.thresholds.alertDays} days): use onlyExpiringSoon for questions like "which contracts expire soon". Optionally one NIT.`,
       inputSchema: z.object({
         nit: nitSchema.optional(),
+        onlyExpiringSoon: z.boolean().optional().describe("Keep only contracts inside the watch window (status alerta or vigilar), soonest end first"),
         endsWithinDays: z.number().int().min(1).max(730).optional().describe("Keep only contracts ending within this many days"),
         limit: z.number().int().min(1).max(40).default(15),
       }),
-      execute: async ({ nit, endsWithinDays, limit }): Promise<ToolOutput> => {
+      execute: async ({ nit, onlyExpiringSoon, endsWithinDays, limit }): Promise<ToolOutput> => {
         try {
           const result = await deps.secop.fetch({ nits: nit ? [nit] : WATCHED_NITS }, options());
           return fromResult(result, (contracts) => {
             const from = now().getTime();
             const horizon = endsWithinDays === undefined ? undefined : from + endsWithinDays * DAY_MS;
-            const kept = contracts
-              .filter((contract) => {
+            const enriched = contracts.map((contract) => ({ contract, expiry: expiryStatus(contract, now(), deps.thresholds) }));
+            const byEnd = Boolean(onlyExpiringSoon) || endsWithinDays !== undefined;
+            const kept = enriched
+              .filter(({ contract, expiry }) => {
+                if (onlyExpiringSoon && expiry.status !== "alerta" && expiry.status !== "vigilar") return false;
                 if (horizon === undefined) return true;
                 const ends = contract.endsAt ? Date.parse(contract.endsAt) : Number.NaN;
                 return ends >= from && ends <= horizon;
               })
-              .sort((a, b) => Date.parse(b.signedAt) - Date.parse(a.signedAt));
+              .sort((a, b) =>
+                byEnd
+                  ? Date.parse(a.contract.endsAt ?? "") - Date.parse(b.contract.endsAt ?? "")
+                  : Date.parse(b.contract.signedAt) - Date.parse(a.contract.signedAt),
+              );
             return {
               total: kept.length,
-              contracts: kept.slice(0, limit).map((contract) => ({
+              watchDays: deps.thresholds.watchDays,
+              alertDays: deps.thresholds.alertDays,
+              contracts: kept.slice(0, limit).map(({ contract, expiry }) => ({
                 id: contract.id,
                 supplier: contract.supplierName,
                 supplierNit: contract.supplierNit,
                 entity: contract.entity,
                 value: contract.value,
+                currency: "COP",
                 signedAt: day(contract.signedAt),
                 endsAt: contract.endsAt ? day(contract.endsAt) : null,
+                daysToEnd: expiry.days,
+                expiryStatus: expiry.status,
                 status: contract.status,
-                url: contract.processUrl ?? null,
+                processUrl: contract.processUrl ?? null,
+                provenance: toProvenance(contract.provenance),
               })),
             };
           });
@@ -220,6 +258,101 @@ export function createAssistantTools(deps: AssistantToolDeps) {
       toModelOutput: modelOutput,
     }),
 
+    get_news: tool({
+      description: "Recent Colombian news headlines (media RSS and Google News) about the company, the sector, regulation and operations. Titles and links only.",
+      inputSchema: z.object({ limit: z.number().int().min(1).max(30).default(10) }),
+      execute: async ({ limit }): Promise<ToolOutput> => {
+        try {
+          const response = await deps.news(150);
+          if (response.items.length === 0) return { status: "empty", message: "No hay titulares disponibles ahora." };
+          return {
+            status: "ok",
+            data: {
+              items: response.items.slice(0, limit).map((item) => ({
+                title: item.title,
+                outlet: item.outlet,
+                publishedAt: item.publishedAt,
+                url: item.url,
+              })),
+              sourcesMissing: response.feeds.filter((feed) => feed.status === "error").map((feed) => feed.outlet),
+            },
+            provenance: {
+              sourceId: "news-rss",
+              url: "https://news.google.com/",
+              license: "Solo titulares y enlaces; el contenido pertenece a cada medio",
+              attribution: "Medios colombianos vía RSS y Google News",
+              fetchedAt: response.fetchedAt,
+            },
+          };
+        } catch (error) {
+          return failure(error);
+        }
+      },
+      toModelOutput: modelOutput,
+    }),
+
+    get_regulation: tool({
+      description: "Regulation that matters to the company: hand-picked norms (curated, with the date they were reviewed) and recent Minambiente posts and Presidencia decrees.",
+      inputSchema: z.object({ limit: z.number().int().min(1).max(30).default(10) }),
+      execute: async ({ limit }): Promise<ToolOutput> => {
+        try {
+          const response = await deps.regulation();
+          const blocks = { minambiente: response.minambiente, presidencia: response.presidencia };
+          const publications = [...response.minambiente.items, ...response.presidencia.items]
+            .sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt))
+            .slice(0, limit)
+            .map((item) => ({ kind: item.kind, title: item.title, summary: item.summary ?? null, publishedAt: item.publishedAt, url: item.url }));
+          return {
+            status: "ok",
+            data: {
+              curated: deps.curatedNorms().map((norm) => ({
+                name: norm.name,
+                date: norm.date,
+                topic: norm.topic,
+                whyItMatters: norm.whyItMatters,
+                url: norm.url,
+                reviewedAt: norm.reviewedAt,
+              })),
+              publications,
+              sourcesMissing: Object.entries(blocks)
+                .filter(([, block]) => block.status === "error")
+                .map(([id]) => id),
+            },
+            provenance: {
+              sourceId: "curated",
+              url: "https://www.minambiente.gov.co/",
+              license: "Normas elegidas a mano; el texto oficial está en cada enlace",
+              attribution: "Minambiente, Presidencia (datos.gov.co) y normas curadas",
+              fetchedAt: response.fetchedAt,
+            },
+          };
+        } catch (error) {
+          return failure(error);
+        }
+      },
+      toModelOutput: modelOutput,
+    }),
+
+    get_energy_price: tool({
+      description: "National spot electricity price in Colombia (XM, daily mean, COP/kWh), oldest to newest.",
+      inputSchema: z.object({ last: z.number().int().min(1).max(31).default(7).describe("How many latest days to return") }),
+      execute: async ({ last }): Promise<ToolOutput> => {
+        try {
+          const result = await deps.xm.fetch({}, options());
+          return fromResult(result, (observations) => ({
+            unit: "COP/kWh",
+            observations: [...observations]
+              .sort((a, b) => a.date.localeCompare(b.date))
+              .slice(-last)
+              .map((observation) => ({ date: observation.date, value: observation.value })),
+          }));
+        } catch (error) {
+          return failure(error);
+        }
+      },
+      toModelOutput: modelOutput,
+    }),
+
     detect_signals: tool({
       description:
         "Runs the app's written rules (TRM moves, expiring contracts, new competitor contracts) with the default thresholds and returns the signals that fire.",
@@ -228,6 +361,7 @@ export function createAssistantTools(deps: AssistantToolDeps) {
         try {
           const [trm, secop] = await Promise.all([deps.fetchTrm(365), deps.secop.fetch({ nits: WATCHED_NITS }, options())]);
           const contracts = secop.ok ? secop.value.data : [];
+          const signalThresholds = { ...DEFAULT_THRESHOLDS, contractExpiryWatchDays: deps.thresholds.watchDays, contractExpiryAlertDays: deps.thresholds.alertDays };
           const signals = detectSignals(
             {
               contracts,
@@ -238,12 +372,12 @@ export function createAssistantTools(deps: AssistantToolDeps) {
             },
             DEFAULT_SIGNAL_RULES,
             deps.clock,
-            DEFAULT_THRESHOLDS,
+            signalThresholds,
           );
           return {
             status: "ok",
             data: {
-              thresholds: DEFAULT_THRESHOLDS,
+              thresholds: signalThresholds,
               total: signals.length,
               sourcesMissing: secop.ok ? [] : ["secop"],
               signals: signals.slice(0, 20).map((signal) => ({

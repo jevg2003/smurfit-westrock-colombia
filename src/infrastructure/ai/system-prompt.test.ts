@@ -53,4 +53,19 @@ describe("buildSystemPrompt", () => {
     const prompt = buildSystemPrompt({ mode: "sheet", pageContext: hostile, nonce: "n3" });
     expect(prompt.match(CLOSE)).toHaveLength(1);
   });
+
+  it("defines soon as the watch window and asks for value, end date, days left and a record link", () => {
+    const prompt = buildSystemPrompt({ mode: "page" });
+    expect(prompt).toContain("pronto");
+    expect(prompt).toContain("ventana de vigilancia");
+    expect(prompt).toContain("processUrl");
+    expect(prompt).toContain("Datos de la app");
+  });
+
+  it("adds the internet rules only when web search is on", () => {
+    const on = buildSystemPrompt({ mode: "page", webSearch: true });
+    expect(on).toContain("Fuentes de internet");
+    expect(on).toContain("no confiable");
+    expect(buildSystemPrompt({ mode: "page", webSearch: false })).not.toContain("Fuentes de internet");
+  });
 });

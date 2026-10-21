@@ -153,4 +153,59 @@ describe("handleChat tools", () => {
     expect(call).toBe(2);
     expect(JSON.stringify(model.doStreamCalls[1].prompt)).toContain("UNTRUSTED_DATA");
   });
+
+  describe("thresholds and web search options", () => {
+    const capture = () => {
+      const seen: { thresholds?: unknown; webSearch?: unknown } = {};
+      const model = textModel();
+      const deps: ChatDeps = {
+        resolve: () => ({
+          ok: true,
+          model,
+          webSearchTools: { web_search: { type: "provider", id: "openai.web_search", args: {} } as never },
+        }),
+        tools: (options) => {
+          seen.thresholds = options.thresholds;
+          seen.webSearch = options.webSearch;
+          return {};
+        },
+      };
+      return { seen, deps, model };
+    };
+
+    it("defaults to the app thresholds with web search on", async () => {
+      const { seen, deps } = capture();
+      const response = await handleChat(post({ messages: [userMessage("hola")], mode: "page" }), deps);
+      await response.text();
+      expect(seen).toEqual({ thresholds: { watchDays: 90, alertDays: 30 }, webSearch: true });
+    });
+
+    it("passes the thresholds and the web search choice the client sends", async () => {
+      const { seen, deps } = capture();
+      const body = { messages: [userMessage("hola")], mode: "page", thresholds: { watchDays: 120, alertDays: 45 }, webSearch: false };
+      await (await handleChat(post(body), deps)).text();
+      expect(seen).toEqual({ thresholds: { watchDays: 120, alertDays: 45 }, webSearch: false });
+    });
+
+    it.each([
+      ["alert above watch", { watchDays: 10, alertDays: 20 }],
+      ["negative days", { watchDays: -1, alertDays: 0 }],
+      ["not a number", { watchDays: "90", alertDays: 30 }],
+    ])("answers 400 for thresholds with %s", async (_name, thresholds) => {
+      const response = await handleChat(post({ messages: [userMessage("x")], mode: "page", thresholds }), capture().deps);
+      expect(response.status).toBe(400);
+    });
+
+    it("offers the web search tool and the internet-sources rule only when it is on", async () => {
+      const on = capture();
+      await (await handleChat(post({ messages: [userMessage("hola")], mode: "page", webSearch: true }), on.deps)).text();
+      expect(on.model.doStreamCalls[0].tools?.map((t) => t.name)).toContain("web_search");
+      expect(JSON.stringify(on.model.doStreamCalls[0].prompt)).toContain("Fuentes de internet");
+
+      const off = capture();
+      await (await handleChat(post({ messages: [userMessage("hola")], mode: "page", webSearch: false }), off.deps)).text();
+      expect(off.model.doStreamCalls[0].tools ?? []).toHaveLength(0);
+      expect(JSON.stringify(off.model.doStreamCalls[0].prompt)).not.toContain("Fuentes de internet");
+    });
+  });
 });

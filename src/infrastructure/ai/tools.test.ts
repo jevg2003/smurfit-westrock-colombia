@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Provenance } from "@/core/domain/provenance";
 import type { PublicContract } from "@/core/domain/contract";
+import { createFetcher } from "@/infrastructure/http/fetcher";
+import { createSecopContractsAdapter } from "@/infrastructure/sources/datos-gov-co/secop-contratos/adapter";
+import secopSample from "@/infrastructure/sources/datos-gov-co/secop-contratos/fixtures/secop-contratos.sample.json";
 import { createAssistantTools, type AssistantToolDeps } from "./tools";
 
 const provenance = (sourceId: Provenance["sourceId"]): Provenance => ({
@@ -71,6 +74,35 @@ function makeDeps(overrides: Partial<AssistantToolDeps> = {}): AssistantToolDeps
         },
       })),
     },
+    thresholds: { watchDays: 90, alertDays: 30 },
+    news: vi.fn(async () => ({
+      items: [
+        { id: "n1", title: "Cartón sube", url: "https://medio.test/a", outlet: "Medio", publishedAt: "2026-10-19T10:00:00.000Z", via: "rss" as const, feedId: "medio" },
+      ],
+      feeds: [],
+      fetchedAt: "2026-10-20T12:00:00.000Z",
+    })),
+    regulation: vi.fn(async () => ({
+      minambiente: { status: "ok" as const, items: [{ id: "r1", kind: "minambiente" as const, title: "Resolución de empaques", url: "https://minambiente.test/r1", publishedAt: "2026-10-10T00:00:00.000Z" }] },
+      presidencia: { status: "error" as const, items: [], message: "caído" },
+      fetchedAt: "2026-10-20T12:00:00.000Z",
+    })),
+    curatedNorms: vi.fn(() => [
+      { id: "ley-1", name: "Ley de ejemplo", date: "2024-01-01", topic: "Residuos", whyItMatters: "Afecta empaques", url: "https://norma.test/1", reviewedAt: "2026-10-01", curated: true as const, provenance: provenance("curated") },
+    ]),
+    xm: {
+      sourceId: "xm",
+      fetch: vi.fn(async () => ({
+        ok: true as const,
+        value: {
+          data: [
+            { indicatorId: "precio_bolsa_energia" as const, date: "2026-10-18", value: 300, unit: "COP/kWh", provenance: provenance("xm") },
+            { indicatorId: "precio_bolsa_energia" as const, date: "2026-10-19", value: 330, unit: "COP/kWh", provenance: provenance("xm") },
+          ],
+          provenance: provenance("xm"),
+        },
+      })),
+    },
     ...overrides,
   };
 }
@@ -85,7 +117,10 @@ describe("createAssistantTools", () => {
     expect(Object.keys(createAssistantTools(makeDeps())).sort()).toEqual([
       "detect_signals",
       "get_competitor_financials",
+      "get_energy_price",
       "get_macro_series",
+      "get_news",
+      "get_regulation",
       "get_secop_contracts",
       "get_trm",
     ]);
@@ -111,6 +146,75 @@ describe("createAssistantTools", () => {
   it("get_secop_contracts keeps only contracts ending soon when asked", async () => {
     const out = await run(createAssistantTools(makeDeps()), "get_secop_contracts", { endsWithinDays: 30 });
     expect(out.data.contracts.map((c: { id: string }) => c.id)).toEqual(["c1"]);
+  });
+
+  describe("contracts that expire soon (real SECOP fixture)", () => {
+    const realSecop = () =>
+      createSecopContractsAdapter({
+        fetcher: createFetcher({ fetchImpl: vi.fn(async () => Response.json(secopSample)), retryDelayMs: 0 }),
+      });
+
+    it("lists CO1.PCCNTR.9151243 with days left, expiry status, link and provenance when now is 2026-10-20", async () => {
+      const deps = makeDeps({ secop: realSecop() });
+      const out = await run(createAssistantTools(deps), "get_secop_contracts", { onlyExpiringSoon: true });
+      const found = out.data.contracts.find((c: { id: string }) => c.id === "CO1.PCCNTR.9151243");
+      expect(found).toMatchObject({
+        supplier: expect.any(String),
+        value: 807534110,
+        endsAt: "2026-12-31",
+        daysToEnd: 72,
+        expiryStatus: "vigilar",
+        processUrl: expect.stringMatching(/^https:\/\/community\.secop\.gov\.co\//),
+        provenance: { sourceId: "secop", license: "CC BY-SA 4.0" },
+      });
+    });
+
+    it("uses the thresholds the user set: a 60-day watch window leaves it out", async () => {
+      const deps = makeDeps({ secop: realSecop(), thresholds: { watchDays: 60, alertDays: 30 } });
+      const soon = await run(createAssistantTools(deps), "get_secop_contracts", { onlyExpiringSoon: true });
+      expect(soon.data.contracts.map((c: { id: string }) => c.id)).not.toContain("CO1.PCCNTR.9151243");
+      const all = await run(createAssistantTools(deps), "get_secop_contracts", {});
+      expect(all.data.contracts.find((c: { id: string }) => c.id === "CO1.PCCNTR.9151243").expiryStatus).toBe("fuera de ventana");
+    });
+
+    it("marks alert and expired contracts", async () => {
+      const deps = makeDeps({
+        secop: {
+          sourceId: "secop",
+          fetch: vi.fn(async () => ({
+            ok: true as const,
+            value: {
+              data: [contract("alerta", "2026-01-01", "2026-11-05"), contract("pasado", "2025-01-01", "2026-09-01")],
+              provenance: provenance("secop"),
+            },
+          })),
+        },
+      });
+      const out = await run(createAssistantTools(deps), "get_secop_contracts", {});
+      const byId = Object.fromEntries(out.data.contracts.map((c: { id: string; expiryStatus: string }) => [c.id, c.expiryStatus]));
+      expect(byId).toEqual({ alerta: "alerta", pasado: "vencido" });
+    });
+  });
+
+  it("get_news returns recent headlines with links and provenance", async () => {
+    const out = await run(createAssistantTools(makeDeps()), "get_news", { limit: 5 });
+    expect(out.status).toBe("ok");
+    expect(out.data.items[0]).toMatchObject({ title: "Cartón sube", url: "https://medio.test/a", outlet: "Medio" });
+    expect(out.provenance.fetchedAt).toBe("2026-10-20T12:00:00.000Z");
+  });
+
+  it("get_regulation merges curated norms and feeds, and reports a failing source", async () => {
+    const out = await run(createAssistantTools(makeDeps()), "get_regulation", {});
+    expect(out.data.curated[0]).toMatchObject({ name: "Ley de ejemplo", url: "https://norma.test/1" });
+    expect(out.data.publications[0]).toMatchObject({ title: "Resolución de empaques", url: "https://minambiente.test/r1" });
+    expect(out.data.sourcesMissing).toEqual(["presidencia"]);
+  });
+
+  it("get_energy_price returns the latest XM spot values", async () => {
+    const out = await run(createAssistantTools(makeDeps()), "get_energy_price", { last: 1 });
+    expect(out.data.unit).toBe("COP/kWh");
+    expect(out.data.observations).toEqual([{ date: "2026-10-19", value: 330 }]);
+    expect(out.provenance.sourceId).toBe("xm");
   });
 
   it("rejects a NIT that is not on the watched list", () => {

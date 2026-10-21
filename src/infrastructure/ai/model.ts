@@ -1,5 +1,5 @@
 import { createOpenAI } from "@ai-sdk/openai";
-import type { LanguageModel } from "ai";
+import type { LanguageModel, ToolSet } from "ai";
 
 export const DEFAULT_OPENAI_MODEL = "gpt-4.1-mini";
 export const DEFAULT_OPENROUTER_MODEL = "openai/gpt-4.1-mini";
@@ -8,7 +8,7 @@ const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
 export type ModelEnv = Record<string, string | undefined>;
 
 export type ModelResolution =
-  | { ok: true; model: LanguageModel; provider: "openai" | "openrouter"; modelId: string }
+  | { ok: true; model: LanguageModel; provider: "openai" | "openrouter"; modelId: string; webSearchTools?: ToolSet }
   | { ok: false; message: string };
 
 /**
@@ -23,7 +23,15 @@ export function resolveModel(env: ModelEnv): ModelResolution {
     const apiKey = env.OPENAI_API_KEY?.trim();
     if (!apiKey) return { ok: false, message: "El asistente no está configurado: falta la clave del proveedor de IA en el servidor." };
     const modelId = override || DEFAULT_OPENAI_MODEL;
-    return { ok: true, provider: "openai", modelId, model: createOpenAI({ apiKey })(modelId) };
+    const openai = createOpenAI({ apiKey });
+    return {
+      ok: true,
+      provider: "openai",
+      modelId,
+      model: openai(modelId),
+      // Built-in web search of the OpenAI Responses API. Results arrive as cited sources.
+      webSearchTools: { web_search: openai.tools.webSearch({ searchContextSize: "low", userLocation: { type: "approximate", country: "CO" } }) },
+    };
   }
 
   if (provider === "openrouter") {

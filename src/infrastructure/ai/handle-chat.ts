@@ -8,6 +8,7 @@ import {
   type UIMessage,
 } from "ai";
 import { z } from "zod";
+import { DEFAULT_THRESHOLDS } from "@/content/config/empresa";
 import { fitsPageContextBudget, pageContextSchema } from "./page-context";
 import { buildSystemPrompt } from "./system-prompt";
 
@@ -25,17 +26,39 @@ const messageSchema = z.object({
   parts: z.array(z.object({ type: z.string().max(100) }).loose()).max(60),
 });
 
+const MAX_WINDOW_DAYS = 730;
+const thresholdsSchema = z
+  .object({
+    watchDays: z.number().int().min(0).max(MAX_WINDOW_DAYS),
+    alertDays: z.number().int().min(0).max(MAX_WINDOW_DAYS),
+  })
+  .refine((value) => value.alertDays <= value.watchDays);
+
+const DEFAULT_WINDOWS = {
+  watchDays: DEFAULT_THRESHOLDS.contractExpiryWatchDays,
+  alertDays: DEFAULT_THRESHOLDS.contractExpiryAlertDays,
+};
+
 const requestSchema = z.object({
   messages: z.array(messageSchema).min(1).max(200),
   mode: z.enum(["page", "sheet"]),
   pageContext: z.unknown().optional(),
+  /** The user's contract-expiry windows from Preferencias. */
+  thresholds: thresholdsSchema.default(DEFAULT_WINDOWS),
+  /** Web search is on unless the user turns it off in the composer. */
+  webSearch: z.boolean().default(true),
 });
 
-export type ModelLookup = { ok: true; model: LanguageModel } | { ok: false; message: string };
+export interface ChatToolOptions {
+  thresholds: { watchDays: number; alertDays: number };
+  webSearch: boolean;
+}
+
+export type ModelLookup = { ok: true; model: LanguageModel; webSearchTools?: ToolSet } | { ok: false; message: string };
 
 export interface ChatDeps {
   resolve(): ModelLookup;
-  tools(): ToolSet;
+  tools(options: ChatToolOptions): ToolSet;
 }
 
 const json = (status: number, error: string) => Response.json({ error }, { status });
@@ -69,7 +92,7 @@ export async function handleChat(request: Request, deps: ChatDeps): Promise<Resp
 
   const parsed = requestSchema.safeParse(body);
   if (!parsed.success) return json(400, "La solicitud no es válida.");
-  const { messages, mode, pageContext: rawContext } = parsed.data;
+  const { messages, mode, pageContext: rawContext, thresholds, webSearch } = parsed.data;
 
   let pageContext;
   if (rawContext !== undefined && mode === "sheet") {
@@ -83,10 +106,11 @@ export async function handleChat(request: Request, deps: ChatDeps): Promise<Resp
   while (recent.length > 0 && recent[0].role !== "user") recent = recent.slice(1);
   if (recent.length === 0) return json(400, "La solicitud no es válida.");
 
-  const tools = deps.tools();
+  const webTools = webSearch ? (lookup.webSearchTools ?? {}) : {};
+  const tools: ToolSet = { ...deps.tools({ thresholds, webSearch }), ...webTools };
   const result = streamText({
     model: lookup.model,
-    instructions: buildSystemPrompt({ mode, pageContext }),
+    instructions: buildSystemPrompt({ mode, pageContext, webSearch: Object.keys(webTools).length > 0 }),
     messages: await convertToModelMessages(recent as unknown as UIMessage[], { tools }),
     tools,
     stopWhen: stepCountIs(MAX_STEPS),
