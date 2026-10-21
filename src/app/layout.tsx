@@ -11,7 +11,13 @@ const geist = Geist({ subsets: ["latin"], variable: "--font-geist-sans" });
 export const metadata: Metadata = {
   title: "Smurfit Westrock Colombia · Monitor de entorno",
   description: "Prototipo no oficial: monitor de la TRM (COP/USD) con variaciones atípicas y alertas.",
-  icons: { icon: "/favicon.svg" },
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico", sizes: "48x48" },
+    ],
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
