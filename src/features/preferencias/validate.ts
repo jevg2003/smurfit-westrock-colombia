@@ -1,0 +1,80 @@
+import type { Thresholds } from "@/content/config/empresa";
+
+export type ThresholdKey = keyof Thresholds;
+export type ThresholdFields = Record<ThresholdKey, string>;
+export type ThresholdErrors = Partial<Record<ThresholdKey, string>>;
+
+export type Validation<T, E> = { ok: true; value: T } | { ok: false; errors: E };
+
+interface Rule {
+  /** Whole numbers only (days). */
+  integer: boolean;
+  max: number;
+}
+
+const RULES: Record<ThresholdKey, Rule> = {
+  trmDailyMovePct: { integer: false, max: 50 },
+  trmDailyAlertPct: { integer: false, max: 50 },
+  contractExpiryWatchDays: { integer: true, max: 730 },
+  contractExpiryAlertDays: { integer: true, max: 730 },
+  competitorContractWindowDays: { integer: true, max: 365 },
+};
+
+/** Accepts a decimal comma ("1,5") as well as a point. */
+export function parseNumber(text: string): number | null {
+  const normalized = text.trim().replace(",", ".");
+  if (normalized === "" || !/^-?(\d+\.?\d*|\.\d+)$/.test(normalized)) return null;
+  const value = Number(normalized);
+  return Number.isFinite(value) ? value : null;
+}
+
+/** Validates the threshold form. Returns every problem at once, one message per field. */
+export function validateThresholds(fields: ThresholdFields): Validation<Thresholds, ThresholdErrors> {
+  const errors: ThresholdErrors = {};
+  const values: { -readonly [K in ThresholdKey]?: number } = {};
+
+  for (const key of Object.keys(RULES) as ThresholdKey[]) {
+    const rule = RULES[key];
+    const raw = parseNumber(fields[key]);
+    if (raw === null) {
+      errors[key] = "Escribe un número.";
+    } else if (raw <= 0) {
+      errors[key] = "El valor debe ser mayor que cero.";
+    } else if (rule.integer && !Number.isInteger(raw)) {
+      errors[key] = "Usa un número entero de días.";
+    } else if (raw > rule.max) {
+      errors[key] = `El valor no puede pasar de ${rule.max}.`;
+    } else {
+      values[key] = raw;
+    }
+  }
+
+  if (values.trmDailyMovePct !== undefined && values.trmDailyAlertPct !== undefined && !errors.trmDailyAlertPct) {
+    if (values.trmDailyAlertPct < values.trmDailyMovePct) {
+      errors.trmDailyAlertPct = "El umbral de alerta debe ser igual o mayor que el de vigilar.";
+    }
+  }
+  if (values.contractExpiryWatchDays !== undefined && values.contractExpiryAlertDays !== undefined && !errors.contractExpiryAlertDays) {
+    if (values.contractExpiryAlertDays > values.contractExpiryWatchDays) {
+      errors.contractExpiryAlertDays = "Los días de alerta deben ser igual o menores que los de vigilar.";
+    }
+  }
+
+  if (Object.keys(errors).length > 0) return { ok: false, errors };
+  return { ok: true, value: values as { -readonly [K in ThresholdKey]: number } };
+}
+
+export const MAX_TERM_LENGTH = 80;
+export const MAX_TERMS_PER_GROUP = 30;
+
+/** One term per line. Blank lines and repeated terms are dropped. */
+export function parseTerms(text: string): Validation<string[], string> {
+  const terms = [...new Set(text.split(/\r?\n/).map((line) => line.trim()).filter((line) => line.length > 0))];
+  if (terms.some((term) => term.length > MAX_TERM_LENGTH)) {
+    return { ok: false, errors: `Cada término puede tener hasta ${MAX_TERM_LENGTH} caracteres.` };
+  }
+  if (terms.length > MAX_TERMS_PER_GROUP) {
+    return { ok: false, errors: `Usa hasta ${MAX_TERMS_PER_GROUP} términos por grupo.` };
+  }
+  return { ok: true, value: terms };
+}
