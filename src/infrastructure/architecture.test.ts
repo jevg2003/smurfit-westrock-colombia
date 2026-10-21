@@ -15,7 +15,8 @@ function listTsFiles(dir: string): string[] {
 
 describe("src/infrastructure architecture", () => {
   it("does not import from features, app or components (depend inward on core)", () => {
-    const files = listTsFiles(INFRA_DIR).filter((file) => !file.endsWith("architecture.test.ts"));
+    // Production sources only: tests may import route handlers to exercise them.
+    const files = listTsFiles(INFRA_DIR).filter((file) => !/.test.tsx?$/.test(file));
     const violations = files.flatMap((file) => {
       const source = readFileSync(file, "utf8");
       return [...source.matchAll(/from\s*["']([^"']+)["']|import\(\s*["']([^"']+)["']\s*\)/g)]
