@@ -81,7 +81,7 @@ export function RadarView() {
   const secopReady = data.secop.status === "ready";
   const trmReady = data.trm.status === "ready";
   useRegisterPageContext(
-    signalsContext("/", "Radar", newRows.map((row) => row.signal), {
+    signalsContext("/home", "Radar", newRows.map((row) => row.signal), {
       filters: { "solo mis seguimientos": onlyFollowed ? "sí" : undefined },
       keyNumbers: today ? [{ label: `TRM del ${today.fecha.slice(0, 10)} (COP por USD)`, value: String(today.valor) }] : [],
     }),

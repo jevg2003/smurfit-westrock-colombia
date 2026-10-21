@@ -1,29 +1,10 @@
 "use client";
 
-import {
-  BellRingIcon,
-  DatabaseIcon,
-  FileTextIcon,
-  GlobeIcon,
-  HistoryIcon,
-  InfoIcon,
-  LandmarkIcon,
-  LineChartIcon,
-  NewspaperIcon,
-  LayoutGridIcon,
-  ListOrderedIcon,
-  PanelLeftIcon,
-  RadarIcon,
-  ScaleIcon,
-  SlidersHorizontalIcon,
-  SparklesIcon,
-  StarIcon,
-  UsersIcon,
-  ZapIcon,
-} from "lucide-react";
+import { HomeIcon, LineChartIcon, PanelLeftIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { CSSProperties, ReactNode } from "react";
+import { BRAND_HREF, HOME_HREF, NAV_GROUPS, isNavActive, navTitle } from "./nav";
 import { ThemeTogglerButton } from "@/components/animate-ui/components/buttons/theme-toggler";
 import { Button } from "@/components/ui/button";
 import { AssistantSheet } from "@/features/asistente/assistant-sheet";
@@ -52,49 +33,12 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
-const NAV_GROUPS = [
-  {
-    label: "Operación",
-    items: [
-      { href: "/", label: "Radar", icon: RadarIcon },
-      { href: "/senales", label: "Señales", icon: ZapIcon },
-      { href: "/pestel", label: "PESTEL", icon: LayoutGridIcon },
-      { href: "/alertas", label: "Alertas", icon: BellRingIcon },
-      { href: "/linea-de-tiempo", label: "Línea de tiempo", icon: HistoryIcon },
-      { href: "/briefing", label: "Briefing", icon: FileTextIcon },
-      { href: "/seguimiento", label: "Seguimiento", icon: StarIcon },
-      { href: "/asistente", label: "Asistente", icon: SparklesIcon },
-    ],
-  },
-  {
-    label: "Dimensiones",
-    items: [
-      { href: "/macro", label: "Macro", icon: GlobeIcon },
-      { href: "/dias", label: "TRM: días y variaciones", icon: ListOrderedIcon },
-      { href: "/contratacion", label: "Contratación", icon: LandmarkIcon },
-      { href: "/competidores", label: "Competidores", icon: UsersIcon },
-      { href: "/noticias", label: "Noticias", icon: NewspaperIcon },
-      { href: "/regulacion", label: "Regulación", icon: ScaleIcon },
-    ],
-  },
-  {
-    label: "Confianza",
-    items: [
-      { href: "/preferencias", label: "Preferencias", icon: SlidersHorizontalIcon },
-      { href: "/fuentes", label: "Fuentes", icon: DatabaseIcon },
-      { href: "/acerca", label: "Acerca de", icon: InfoIcon },
-    ],
-  },
-];
-
-const NAV = NAV_GROUPS.flatMap((group) => group.items);
-
 function Logo() {
   return (
     <Button
       size="icon"
       nativeButton={false}
-      render={<Link href="/" aria-label="Smurfit Westrock Colombia, inicio" />}
+      render={<Link href={BRAND_HREF} aria-label="Smurfit Westrock Colombia, radar" />}
       className="size-7"
     >
       <LineChartIcon aria-hidden="true" className="size-3.5" />
@@ -120,7 +64,7 @@ interface Props {
 
 export function AppShell({ actions, children }: Props) {
   const pathname = usePathname();
-  const title = NAV.find((item) => item.href === pathname)?.label ?? "Monitor de entorno";
+  const title = navTitle(pathname);
 
   return (
     <PageContextProvider>
@@ -143,7 +87,7 @@ export function AppShell({ actions, children }: Props) {
                   {group.items.map(({ href, label, icon: Icon }) => (
                     <SidebarMenuItem key={href}>
                       <SidebarMenuButton
-                        isActive={pathname === href}
+                        isActive={isNavActive(pathname, href)}
                         tooltip={label}
                         aria-label={label}
                         render={<Link href={href} />}
@@ -160,6 +104,14 @@ export function AppShell({ actions, children }: Props) {
         </SidebarContent>
 
         <SidebarFooter className="items-center justify-center py-3 in-data-[mobile=true]:items-start in-data-[mobile=true]:px-4">
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton tooltip="Inicio" aria-label="Inicio" render={<Link href={HOME_HREF} />}>
+                <HomeIcon aria-hidden="true" />
+                <span className="group-data-[collapsible=icon]:sr-only">Inicio</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
           <ThemeTogglerButton variant="ghost" size="icon-sm" direction="ltr" modes={["light", "dark"]} aria-label="Cambiar tema" />
         </SidebarFooter>
       </Sidebar>
@@ -171,7 +123,7 @@ export function AppShell({ actions, children }: Props) {
             <Breadcrumb className="min-w-0">
               <BreadcrumbList className="flex-nowrap">
                 <BreadcrumbItem className="hidden sm:inline-flex">
-                  <BreadcrumbLink render={<Link href="/" />}>Smurfit Westrock Colombia</BreadcrumbLink>
+                  <BreadcrumbLink render={<Link href={BRAND_HREF} />}>Smurfit Westrock Colombia</BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden sm:block" />
                 <BreadcrumbItem className="min-w-0">

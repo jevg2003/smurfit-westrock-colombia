@@ -65,7 +65,7 @@ async function mockSources(page: Page) {
 }
 
 const ROUTES = [
-  "/", "/senales", "/alertas", "/linea-de-tiempo", "/contratacion", "/briefing", "/preferencias", "/macro",
+  "/home", "/senales", "/alertas", "/linea-de-tiempo", "/contratacion", "/briefing", "/preferencias", "/macro",
   "/competidores", "/seguimiento", "/noticias", "/regulacion", "/pestel", "/asistente", "/dias", "/fuentes", "/acerca",
 ];
 
@@ -97,7 +97,7 @@ test.describe("Smoke", () => {
 test.describe("Mobile layout (375px)", () => {
   test.use({ viewport: { width: 375, height: 800 } });
 
-  for (const route of ["/", "/alertas", "/briefing"]) {
+  for (const route of ["/home", "/alertas", "/briefing"]) {
     test(`${route} has no horizontal page scroll`, async ({ page }) => {
       await mockSources(page);
       await page.goto(route);

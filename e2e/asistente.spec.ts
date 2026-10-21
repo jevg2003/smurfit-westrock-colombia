@@ -57,7 +57,7 @@ test.describe("Asistente page", () => {
 test.describe("Assistant sheet", () => {
   test("opens from the header, shows the page context and answers", async ({ page }) => {
     const bodies = await mockChat(page, ANSWER);
-    await page.goto("/");
+    await page.goto("/home");
 
     await page.getByRole("button", { name: "Asistente" }).click();
     const dialog = page.getByRole("dialog");
@@ -66,7 +66,7 @@ test.describe("Assistant sheet", () => {
     await send(page, QUESTION);
     await expect(dialog.getByText(QUESTION)).toBeVisible();
     await expect(dialog.getByText(ANSWER)).toBeVisible();
-    expect(bodies[0]).toMatchObject({ mode: "sheet", pageContext: { route: "/" } });
+    expect(bodies[0]).toMatchObject({ mode: "sheet", pageContext: { route: "/home" } });
   });
 });
 
@@ -129,7 +129,7 @@ test.describe("Request body", () => {
 test.describe("Sheet history", () => {
   test("switches between conversations, starts a new one and opens one in the full page", async ({ page }) => {
     const bodies = await mockChat(page, (call) => `Respuesta número ${call + 1}.`);
-    await page.goto("/");
+    await page.goto("/home");
     await page.getByRole("button", { name: "Asistente" }).click();
     const dialog = page.getByRole("dialog");
 
@@ -160,7 +160,7 @@ test.describe("Sheet history", () => {
 
   test("the full-page link carries the conversation id as ?c=<id>", async ({ page }) => {
     await mockChat(page, ANSWER);
-    await page.goto("/");
+    await page.goto("/home");
     await page.getByRole("button", { name: "Asistente" }).click();
     const dialog = page.getByRole("dialog");
     await send(page, QUESTION);
@@ -187,7 +187,7 @@ test.describe("Navigation persistence", () => {
     let release!: () => void;
     const gate = new Promise<void>((resolve) => (release = resolve));
     await mockChat(page, ANSWER, gate);
-    await page.goto("/");
+    await page.goto("/home");
     await page.getByRole("button", { name: "Asistente" }).click();
     const dialog = page.getByRole("dialog");
     await send(page, QUESTION);

@@ -5,7 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const push = vi.fn();
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push }), usePathname: () => "/", useSearchParams: () => new URLSearchParams() }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push }), usePathname: () => "/home", useSearchParams: () => new URLSearchParams() }));
 import type { PageContext } from "@/infrastructure/ai/page-context";
 import { useChatStore } from "@/stores/chat.store";
 import { AssistantSheet } from "./assistant-sheet";

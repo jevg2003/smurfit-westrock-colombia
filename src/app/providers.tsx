@@ -1,21 +1,13 @@
 "use client";
 
-import "@/lib/zod-config";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
-import { useState, type ReactNode } from "react";
-import { ChatRuntimeProvider } from "@/features/asistente/chat-runtime";
-import { StoreHydrator } from "@/stores/store-hydrator";
+import type { ReactNode } from "react";
 
+/** Root providers: theme only, so the static landing stays light. App-only providers live in `(app)/app-providers.tsx`. */
 export function Providers({ children }: { children: ReactNode }) {
-  const [queryClient] = useState(() => new QueryClient());
-
   return (
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} storageKey="smurfit-trm:tema">
-      <QueryClientProvider client={queryClient}>
-        <StoreHydrator />
-        <ChatRuntimeProvider>{children}</ChatRuntimeProvider>
-      </QueryClientProvider>
+      {children}
     </ThemeProvider>
   );
 }
