@@ -22,6 +22,10 @@ const LABELS: Record<string, { running: string; done: string }> = {
   get_secop_contracts: { running: "Buscando contratos en SECOP II", done: "Busqué contratos en SECOP II" },
   get_competitor_financials: { running: "Consultando cifras de competidores", done: "Consulté cifras de competidores" },
   get_macro_series: { running: "Consultando indicadores macro", done: "Consulté indicadores macro" },
+  get_news: { running: "Consultando las noticias", done: "Consulté las noticias" },
+  get_regulation: { running: "Consultando la regulación", done: "Consulté la regulación" },
+  get_energy_price: { running: "Consultando el precio de la energía", done: "Consulté el precio de la energía" },
+  web_search: { running: "Buscando en internet", done: "Busqué en internet" },
   detect_signals: { running: "Aplicando las reglas de señales", done: "Apliqué las reglas de señales" },
 };
 
@@ -35,6 +39,13 @@ const isRecord = (value: unknown): value is Record<string, unknown> => typeof va
 
 function sourcesOf(output: unknown): Source[] {
   if (!isRecord(output)) return [];
+  // Web search (provider tool): its sources are plain page links.
+  if (Array.isArray(output.sources)) {
+    return output.sources.flatMap((item): Source[] => {
+      const url = isRecord(item) && typeof item.url === "string" ? safeHttpUrl(item.url) : undefined;
+      return url ? [{ name: new URL(url).hostname, url }] : [];
+    });
+  }
   const found: unknown[] = [];
   const collect = (value: unknown) => {
     if (Array.isArray(value)) value.forEach(collect);
@@ -56,7 +67,7 @@ function sourcesOf(output: unknown): Source[] {
 
 function problemOf(part: ToolPart): string | undefined {
   if (part.state === "output-error") return "No pude consultar esta fuente.";
-  if (part.state === "output-available" && isRecord(part.output) && part.output.status !== "ok") {
+  if (part.state === "output-available" && isRecord(part.output) && "status" in part.output && part.output.status !== "ok") {
     return part.output.status === "empty" ? "La fuente no devolvió datos." : "No pude consultar esta fuente.";
   }
   return undefined;
