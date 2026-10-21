@@ -18,6 +18,8 @@ interface Props {
   onChange: (value: string | undefined) => void;
   /** Id for the trigger, so a `FieldLabel` can point at it. */
   id?: string;
+  /** Visible label text. The button is named "label: value", so a screen reader hears both. */
+  label?: string;
   placeholder?: string;
   /** `past` offers hoy / ayer / hace una semana...; `future` offers hoy / mañana / en una semana... */
   direction?: DateDirection;
@@ -34,6 +36,7 @@ export function DatePicker({
   value,
   onChange,
   id,
+  label,
   placeholder = "Elegir fecha",
   direction = "past",
   clearable = false,
@@ -45,6 +48,8 @@ export function DatePicker({
   const selected = value ? keyToDate(value) : undefined;
   const todayDate = keyToDate(today);
   const [month, setMonth] = useState(selected ?? todayDate);
+
+  const text = selected ? format(selected, "d 'de' MMMM 'de' yyyy", { locale: es }) : placeholder;
 
   const pick = (key: string) => {
     onChange(key);
@@ -58,6 +63,7 @@ export function DatePicker({
         render={
           <Button
             id={id}
+            aria-label={label ? `${label}: ${text}` : undefined}
             variant="outline"
             disabled={disabled}
             aria-invalid={invalid ? true : undefined}
@@ -67,7 +73,7 @@ export function DatePicker({
       >
         <CalendarIcon aria-hidden="true" data-icon="inline-start" />
         <span className={selected ? undefined : "text-muted-foreground"}>
-          {selected ? format(selected, "d 'de' MMMM 'de' yyyy", { locale: es }) : placeholder}
+          {text}
         </span>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-auto max-w-[calc(100vw-1rem)] gap-0 p-0">

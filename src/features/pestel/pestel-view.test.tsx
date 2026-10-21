@@ -3,6 +3,7 @@ import { cleanup, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { makeContract } from "@/core/rules/test-fixtures";
+import { addDaysToKey, bogotaDateKey } from "@/core/time/bogota";
 import { fakeContainer, renderWithQuery, resetStores, secopEmpty, secopOk, trmRecord } from "@/features/entorno/test-utils";
 import { useDecisionsStore } from "@/stores/decisions.store";
 
@@ -72,6 +73,7 @@ describe("PestelView", () => {
     await user.click(screen.getByRole("button", { name: /Cubrimos la exposición cambiaria/ }));
     await user.click(screen.getByRole("button", { name: "Crear decisión" }));
 
+    await waitFor(() => expect(useDecisionsStore.getState().decisions).toHaveLength(1));
     const [created] = useDecisionsStore.getState().decisions;
     expect(created.title).toMatch(/exposición cambiaria/);
     expect(created.pestelFactors).toEqual(["economic"]);
@@ -95,6 +97,46 @@ describe("PestelView", () => {
     await user.click(screen.getByRole("button", { name: "Aplicar estado" }));
 
     await waitFor(() => expect(useDecisionsStore.getState().decisions.find((item) => item.id === created.id)?.status).toBe("decided"));
+  });
+
+  it("blocks discarding without a rationale, with the message under the field", async () => {
+    const user = userEvent.setup();
+    useDecisionsStore.getState().create({ title: "Decidir algo", question: "?", pestelFactors: ["legal"] });
+    renderWithQuery(<PestelView />);
+
+    await user.click(await screen.findByRole("button", { name: "Abrir: Decidir algo" }));
+    await user.click(await screen.findByRole("button", { name: "Descartada" }));
+    await user.click(screen.getByRole("button", { name: "Aplicar estado" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Escribe el motivo para marcar la decisión como decidida o descartada.");
+    expect(screen.getByLabelText(/Motivo/)).toHaveAttribute("aria-invalid", "true");
+    expect(useDecisionsStore.getState().decisions[0].status).toBe("open");
+  });
+
+  it("asks for a title before creating a decision", async () => {
+    const user = userEvent.setup();
+    renderWithQuery(<PestelView />);
+
+    await user.click(await screen.findByRole("button", { name: /Nueva decisión/ }));
+    await user.click(screen.getByRole("button", { name: "Crear decisión" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Escribe un título para la decisión.");
+    expect(useDecisionsStore.getState().decisions).toHaveLength(0);
+  });
+
+  it("picks the review date with the calendar shortcuts instead of a native date input", async () => {
+    const user = userEvent.setup();
+    useDecisionsStore.getState().create({ title: "Decidir algo", question: "?", pestelFactors: ["legal"] });
+    renderWithQuery(<PestelView />);
+
+    await user.click(await screen.findByRole("button", { name: "Abrir: Decidir algo" }));
+    expect(document.querySelector('input[type="date"]')).toBeNull();
+    await user.click(await screen.findByRole("button", { name: /Revisar el \(opcional\): Elegir fecha/ }));
+    await user.click(await screen.findByRole("button", { name: "Mañana" }));
+    await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
+
+    const tomorrow = addDaysToKey(bogotaDateKey(new Date()), 1);
+    await waitFor(() => expect(useDecisionsStore.getState().decisions[0].reviewAt).toBe(tomorrow));
   });
 
   it("exports the decisions to CSV and Markdown", async () => {

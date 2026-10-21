@@ -1,12 +1,14 @@
 "use client";
 
+import { revalidateLogic, useForm, useStore } from "@tanstack/react-form";
 import { PlusIcon, Trash2Icon } from "lucide-react";
 import { useId, useState } from "react";
+import { DatePicker } from "@/components/date/date-picker";
 import { Badge } from "@/components/reui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Sheet,
   SheetContent,
@@ -24,6 +26,7 @@ import { DECISION_STATUS_LABELS } from "@/core/labels";
 import { PESTEL_ORDER } from "@/core/usecases/build-pestel";
 import { PESTEL_LABELS } from "@/features/entorno/labels";
 import { useDecisionsStore } from "@/stores/decisions.store";
+import { createDecisionSchema, detailsSchema, statusSchema, type DetailsValues, type StatusValues } from "./decision-schemas";
 import { DECISION_TEMPLATES, type DecisionTemplate } from "./decision-templates";
 
 const STATUSES: readonly DecisionStatus[] = ["open", "evaluating", "decided", "discarded"];
@@ -77,31 +80,30 @@ function FactorPicker({ value, onChange }: { value: Pestel[]; onChange: (value: 
 
 function CreateForm({ onCreated }: { onCreated: (id: string) => void }) {
   const create = useDecisionsStore((state) => state.create);
-  const titleId = useId();
-  const questionId = useId();
+  const formId = useId();
   const [template, setTemplate] = useState<DecisionTemplate | null>(null);
-  const [title, setTitle] = useState("");
-  const [question, setQuestion] = useState("");
-  const [factors, setFactors] = useState<Pestel[]>([]);
-  const [error, setError] = useState<string | null>(null);
+
+  const defaultValues: { title: string; question: string; factors: Pestel[] } = { title: "", question: "", factors: [] };
+  const form = useForm({
+    defaultValues,
+    validationLogic: revalidateLogic(),
+    validators: { onDynamic: createDecisionSchema },
+    onSubmit: ({ value }) => {
+      const created = create({
+        title: value.title,
+        question: value.question,
+        pestelFactors: value.factors,
+        options: (template?.optionLabels ?? []).map((label) => ({ label, pros: "", cons: "" })),
+      });
+      onCreated(created.id);
+    },
+  });
 
   const pick = (item: DecisionTemplate | null) => {
     setTemplate(item);
-    setTitle(item?.title ?? "");
-    setQuestion(item?.question ?? "");
-    setFactors(item?.pestelFactors ?? []);
-    setError(null);
-  };
-
-  const submit = () => {
-    if (title.trim() === "") return setError("Escribe un título para la decisión.");
-    const created = create({
-      title,
-      question,
-      pestelFactors: factors,
-      options: (template?.optionLabels ?? []).map((label) => ({ label, pros: "", cons: "" })),
-    });
-    onCreated(created.id);
+    form.setFieldValue("title", item?.title ?? "");
+    form.setFieldValue("question", item?.question ?? "");
+    form.setFieldValue("factors", item?.pestelFactors ?? []);
   };
 
   return (
@@ -111,7 +113,16 @@ function CreateForm({ onCreated }: { onCreated: (id: string) => void }) {
         <SheetDescription>Parte de una plantilla o de una hoja en blanco. Después puedes editar todo.</SheetDescription>
       </SheetHeader>
 
-      <div className="flex flex-1 flex-col gap-5 px-4">
+      <form
+        id={formId}
+        noValidate
+        className="flex flex-1 flex-col gap-5 px-4"
+        onSubmit={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          void form.handleSubmit();
+        }}
+      >
         <section className="flex flex-col gap-2" aria-label="Plantillas">
           <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Plantillas</h3>
           <p className="text-xs text-muted-foreground">
@@ -137,42 +148,59 @@ function CreateForm({ onCreated }: { onCreated: (id: string) => void }) {
               </li>
             ))}
           </ul>
-          <Button variant="ghost" size="sm" className="self-start" onClick={() => pick(null)}>
+          <Button type="button" variant="ghost" size="sm" className="self-start" onClick={() => pick(null)}>
             Empezar en blanco
           </Button>
         </section>
 
         <section className="flex flex-col gap-3">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor={titleId}>Título</Label>
-            <Input
-              id={titleId}
-              value={title}
-              aria-invalid={error ? true : undefined}
-              onChange={(event) => {
-                setTitle(event.target.value);
-                setError(null);
-              }}
-            />
-            {error && (
-              <p role="alert" className="text-xs text-destructive-foreground">
-                {error}
-              </p>
+          <form.Field name="title">
+            {(field) => {
+              const invalid = !field.state.meta.isValid;
+              return (
+                <Field data-invalid={invalid}>
+                  <FieldLabel htmlFor={`${formId}-title`}>Título</FieldLabel>
+                  <Input
+                    id={`${formId}-title`}
+                    value={field.state.value}
+                    aria-invalid={invalid || undefined}
+                    onBlur={field.handleBlur}
+                    onChange={(event) => field.handleChange(event.target.value)}
+                  />
+                  {invalid && <FieldError errors={field.state.meta.errors} />}
+                </Field>
+              );
+            }}
+          </form.Field>
+          <form.Field name="question">
+            {(field) => (
+              <Field>
+                <FieldLabel htmlFor={`${formId}-question`}>Pregunta</FieldLabel>
+                <Textarea
+                  id={`${formId}-question`}
+                  rows={3}
+                  value={field.state.value}
+                  onBlur={field.handleBlur}
+                  onChange={(event) => field.handleChange(event.target.value)}
+                />
+              </Field>
             )}
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor={questionId}>Pregunta</Label>
-            <Textarea id={questionId} rows={3} value={question} onChange={(event) => setQuestion(event.target.value)} />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label>Factores PESTEL</Label>
-            <FactorPicker value={factors} onChange={setFactors} />
-          </div>
+          </form.Field>
+          <form.Field name="factors">
+            {(field) => (
+              <Field>
+                <FieldLabel>Factores PESTEL</FieldLabel>
+                <FactorPicker value={field.state.value} onChange={field.handleChange} />
+              </Field>
+            )}
+          </form.Field>
         </section>
-      </div>
+      </form>
 
       <SheetFooter className="flex-row justify-end gap-2">
-        <Button onClick={submit}>Crear decisión</Button>
+        <Button type="submit" form={formId}>
+          Crear decisión
+        </Button>
       </SheetFooter>
     </>
   );
@@ -185,46 +213,60 @@ function EditForm({ decision, signals, onClose }: { decision: Decision; signals:
   const setStatus = useDecisionsStore((state) => state.setStatus);
   const remove = useDecisionsStore((state) => state.remove);
   const ids = useId();
-
-  const [title, setTitle] = useState(decision.title);
-  const [question, setQuestion] = useState(decision.question);
-  const [factors, setFactors] = useState<Pestel[]>(decision.pestelFactors);
-  const [options, setOptions] = useState<DecisionOption[]>(decision.options);
-  const [linked, setLinked] = useState<string[]>(decision.linkedSignalIds);
-  const [owner, setOwner] = useState(decision.owner ?? "");
-  const [reviewAt, setReviewAt] = useState(decision.reviewAt ?? "");
   const [saved, setSaved] = useState(false);
-
-  const [status, setStatusValue] = useState<DecisionStatus>(decision.status);
-  const [rationale, setRationale] = useState(decision.rationale);
-  const [chosen, setChosen] = useState<string | undefined>(decision.chosenOption);
-  const [statusError, setStatusError] = useState<string | null>(null);
+  const [storeError, setStoreError] = useState<string | null>(null);
 
   const liveIds = new Set(signals.map((signal) => signal.id));
-  const staleLinked = linked.filter((id) => !liveIds.has(id));
-  const needsRationale = status === "decided" || status === "discarded";
 
-  const patchOption = (id: string, patch: Partial<DecisionOption>) =>
-    setOptions((current) => current.map((option) => (option.id === id ? { ...option, ...patch } : option)));
-
-  const save = () => {
+  const persist = (value: DetailsValues) => {
     update(decision.id, {
-      title: title.trim() || decision.title,
-      question,
-      pestelFactors: factors,
-      options,
-      linkedSignalIds: linked,
-      owner: owner.trim() || undefined,
-      reviewAt: reviewAt || undefined,
+      title: value.title.trim() || decision.title,
+      question: value.question,
+      pestelFactors: value.factors,
+      options: value.options,
+      linkedSignalIds: value.linked,
+      owner: value.owner.trim() || undefined,
+      reviewAt: value.reviewAt || undefined,
     });
     setSaved(true);
   };
 
-  const applyStatus = () => {
-    // Save the edited options first, so an option that was just added can be the chosen one.
-    save();
-    const result = setStatus(decision.id, status, { rationale, chosenOption: chosen });
-    setStatusError(result.ok ? null : result.error.message);
+  const detailsDefaults: DetailsValues = {
+    title: decision.title,
+    question: decision.question,
+    factors: decision.pestelFactors,
+    options: decision.options,
+    linked: decision.linkedSignalIds,
+    owner: decision.owner ?? "",
+    reviewAt: decision.reviewAt ?? "",
+  };
+  const details = useForm({
+    defaultValues: detailsDefaults,
+    validationLogic: revalidateLogic(),
+    validators: { onDynamic: detailsSchema },
+    onSubmit: ({ value }) => persist(value),
+  });
+
+  const statusDefaults: StatusValues = { status: decision.status, rationale: decision.rationale, chosen: decision.chosenOption };
+  const statusForm = useForm({
+    defaultValues: statusDefaults,
+    validationLogic: revalidateLogic(),
+    validators: { onDynamic: statusSchema },
+    onSubmit: ({ value }) => {
+      // Save the edited options first, so an option that was just added can be the chosen one.
+      persist(details.state.values);
+      const result = setStatus(decision.id, value.status, { rationale: value.rationale, chosenOption: value.chosen });
+      setStoreError(result.ok ? null : result.error.message);
+    },
+  });
+
+  const options = useStore(details.store, (state) => state.values.options);
+  const linked = useStore(details.store, (state) => state.values.linked);
+  const staleLinked = linked.filter((id) => !liveIds.has(id));
+
+  const stop = (event: React.FormEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
   };
 
   return (
@@ -245,198 +287,328 @@ function EditForm({ decision, signals, onClose }: { decision: Decision; signals:
       </SheetHeader>
 
       <div className="flex flex-1 flex-col gap-5 px-4">
-        <section className="flex flex-col gap-3">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor={`${ids}-title`}>Título</Label>
-            <Input id={`${ids}-title`} value={title} onChange={(event) => setTitle(event.target.value)} />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor={`${ids}-question`}>Pregunta</Label>
-            <Textarea id={`${ids}-question`} rows={3} value={question} onChange={(event) => setQuestion(event.target.value)} />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label>Factores PESTEL</Label>
-            <FactorPicker value={factors} onChange={setFactors} />
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor={`${ids}-owner`}>Responsable (opcional)</Label>
-              <Input id={`${ids}-owner`} value={owner} onChange={(event) => setOwner(event.target.value)} />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor={`${ids}-review`}>Revisar el (opcional)</Label>
-              <Input id={`${ids}-review`} type="date" value={reviewAt} onChange={(event) => setReviewAt(event.target.value)} />
-            </div>
-          </div>
-        </section>
-
-        <section className="flex flex-col gap-2" aria-label="Opciones">
-          <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Opciones</h3>
-          {options.length === 0 && (
-            <p className="text-sm text-muted-foreground">Aún no hay opciones. Agrega al menos dos para comparar.</p>
-          )}
-          <ul className="flex flex-col gap-3">
-            {options.map((option, index) => (
-              <li key={option.id} className="flex flex-col gap-2 rounded-lg border p-3">
-                <div className="flex items-end gap-2">
-                  <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                    <Label htmlFor={`${ids}-o-${option.id}`}>Opción {index + 1}</Label>
+        <form
+          id={`${ids}-details`}
+          noValidate
+          className="flex flex-col gap-5"
+          onSubmit={(event) => {
+            stop(event);
+            void details.handleSubmit();
+          }}
+        >
+          <section className="flex flex-col gap-3">
+            <details.Field name="title">
+              {(field) => {
+                const invalid = !field.state.meta.isValid;
+                return (
+                  <Field data-invalid={invalid}>
+                    <FieldLabel htmlFor={`${ids}-title`}>Título</FieldLabel>
                     <Input
-                      id={`${ids}-o-${option.id}`}
-                      value={option.label}
-                      onChange={(event) => patchOption(option.id, { label: event.target.value })}
+                      id={`${ids}-title`}
+                      value={field.state.value}
+                      aria-invalid={invalid || undefined}
+                      onBlur={field.handleBlur}
+                      onChange={(event) => field.handleChange(event.target.value)}
                     />
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label={`Quitar la opción ${index + 1}`}
-                    onClick={() => setOptions((current) => current.filter((item) => item.id !== option.id))}
-                  >
-                    <Trash2Icon aria-hidden="true" />
+                    {invalid && <FieldError errors={field.state.meta.errors} />}
+                  </Field>
+                );
+              }}
+            </details.Field>
+            <details.Field name="question">
+              {(field) => (
+                <Field>
+                  <FieldLabel htmlFor={`${ids}-question`}>Pregunta</FieldLabel>
+                  <Textarea
+                    id={`${ids}-question`}
+                    rows={3}
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(event) => field.handleChange(event.target.value)}
+                  />
+                </Field>
+              )}
+            </details.Field>
+            <details.Field name="factors">
+              {(field) => (
+                <Field>
+                  <FieldLabel>Factores PESTEL</FieldLabel>
+                  <FactorPicker value={field.state.value} onChange={field.handleChange} />
+                </Field>
+              )}
+            </details.Field>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <details.Field name="owner">
+                {(field) => (
+                  <Field>
+                    <FieldLabel htmlFor={`${ids}-owner`}>Responsable (opcional)</FieldLabel>
+                    <Input
+                      id={`${ids}-owner`}
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(event) => field.handleChange(event.target.value)}
+                    />
+                  </Field>
+                )}
+              </details.Field>
+              <details.Field name="reviewAt">
+                {(field) => {
+                  const invalid = !field.state.meta.isValid;
+                  return (
+                    <Field data-invalid={invalid}>
+                      <FieldLabel htmlFor={`${ids}-review`}>
+                        Revisar el (opcional)
+                      </FieldLabel>
+                      <DatePicker
+                        id={`${ids}-review`}
+                        label="Revisar el (opcional)"
+                        direction="future"
+                        clearable
+                        invalid={invalid}
+                        value={field.state.value || undefined}
+                        onChange={(next) => field.handleChange(next ?? "")}
+                      />
+                      {invalid && <FieldError errors={field.state.meta.errors} />}
+                    </Field>
+                  );
+                }}
+              </details.Field>
+            </div>
+          </section>
+
+          <section className="flex flex-col gap-2" aria-label="Opciones">
+            <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Opciones</h3>
+            <details.Field name="options" mode="array">
+              {(optionsField) => (
+                <>
+                  {optionsField.state.value.length === 0 && (
+                    <p className="text-sm text-muted-foreground">Aún no hay opciones. Agrega al menos dos para comparar.</p>
+                  )}
+                  <ul className="flex flex-col gap-3">
+                    {optionsField.state.value.map((option, index) => (
+                      <li key={option.id} className="flex flex-col gap-2 rounded-lg border p-3">
+                        <div className="flex items-end gap-2">
+                          <details.Field name={`options[${index}].label`}>
+                            {(field) => (
+                              <Field className="min-w-0 flex-1">
+                                <FieldLabel htmlFor={`${ids}-o-${option.id}`}>Opción {index + 1}</FieldLabel>
+                                <Input
+                                  id={`${ids}-o-${option.id}`}
+                                  value={field.state.value}
+                                  onBlur={field.handleBlur}
+                                  onChange={(event) => field.handleChange(event.target.value)}
+                                />
+                              </Field>
+                            )}
+                          </details.Field>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            aria-label={`Quitar la opción ${index + 1}`}
+                            onClick={() => optionsField.removeValue(index)}
+                          >
+                            <Trash2Icon aria-hidden="true" />
+                          </Button>
+                        </div>
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          <details.Field name={`options[${index}].pros`}>
+                            {(field) => (
+                              <Field>
+                                <FieldLabel htmlFor={`${ids}-p-${option.id}`}>A favor</FieldLabel>
+                                <Textarea
+                                  id={`${ids}-p-${option.id}`}
+                                  rows={2}
+                                  value={field.state.value}
+                                  onBlur={field.handleBlur}
+                                  onChange={(event) => field.handleChange(event.target.value)}
+                                />
+                              </Field>
+                            )}
+                          </details.Field>
+                          <details.Field name={`options[${index}].cons`}>
+                            {(field) => (
+                              <Field>
+                                <FieldLabel htmlFor={`${ids}-c-${option.id}`}>En contra</FieldLabel>
+                                <Textarea
+                                  id={`${ids}-c-${option.id}`}
+                                  rows={2}
+                                  value={field.state.value}
+                                  onBlur={field.handleBlur}
+                                  onChange={(event) => field.handleChange(event.target.value)}
+                                />
+                              </Field>
+                            )}
+                          </details.Field>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                  <Button type="button" variant="outline" size="sm" className="self-start" onClick={() => optionsField.pushValue(newOption())}>
+                    <PlusIcon aria-hidden="true" data-icon="inline-start" />
+                    Agregar opción
                   </Button>
-                </div>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <div className="flex flex-col gap-1.5">
-                    <Label htmlFor={`${ids}-p-${option.id}`}>A favor</Label>
-                    <Textarea
-                      id={`${ids}-p-${option.id}`}
-                      rows={2}
-                      value={option.pros}
-                      onChange={(event) => patchOption(option.id, { pros: event.target.value })}
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <Label htmlFor={`${ids}-c-${option.id}`}>En contra</Label>
-                    <Textarea
-                      id={`${ids}-c-${option.id}`}
-                      rows={2}
-                      value={option.cons}
-                      onChange={(event) => patchOption(option.id, { cons: event.target.value })}
-                    />
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
-          <Button variant="outline" size="sm" className="self-start" onClick={() => setOptions((current) => [...current, newOption()])}>
-            <PlusIcon aria-hidden="true" data-icon="inline-start" />
-            Agregar opción
-          </Button>
-        </section>
+                </>
+              )}
+            </details.Field>
+          </section>
 
-        <section className="flex flex-col gap-2" aria-label="Señales vinculadas">
-          <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Señales vinculadas</h3>
-          {signals.length === 0 && staleLinked.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No hay señales activas para vincular.</p>
-          ) : (
-            <ul className="flex max-h-56 flex-col gap-1.5 overflow-y-auto">
-              {signals.map((signal) => (
-                <li key={signal.id} className="flex items-start gap-2">
-                  <Checkbox
-                    id={`${ids}-s-${signal.id}`}
-                    checked={linked.includes(signal.id)}
-                    onCheckedChange={(checked) =>
-                      setLinked((current) => (checked === true ? [...current, signal.id] : current.filter((id) => id !== signal.id)))
-                    }
-                  />
-                  <Label htmlFor={`${ids}-s-${signal.id}`} className="min-w-0 flex-col items-start gap-0 font-normal">
-                    <span className="break-words">{signal.title}</span>
-                    <span className="text-xs text-muted-foreground">{PESTEL_LABELS[signal.pestel]}</span>
-                  </Label>
-                </li>
-              ))}
-              {staleLinked.map((id) => (
-                <li key={id} className="flex items-start gap-2">
-                  <Checkbox
-                    id={`${ids}-s-${id}`}
-                    checked
-                    onCheckedChange={() => setLinked((current) => current.filter((item) => item !== id))}
-                  />
-                  <Label htmlFor={`${ids}-s-${id}`} className="min-w-0 flex-col items-start gap-0 font-normal">
-                    <span className="font-mono text-xs break-all">{id}</span>
-                    <span className="text-xs text-muted-foreground">Esta señal ya no se activa con los datos de hoy.</span>
-                  </Label>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+          <section className="flex flex-col gap-2" aria-label="Señales vinculadas">
+            <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Señales vinculadas</h3>
+            {signals.length === 0 && staleLinked.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No hay señales activas para vincular.</p>
+            ) : (
+              <details.Field name="linked">
+                {(field) => (
+                  <ul className="flex max-h-56 flex-col gap-1.5 overflow-y-auto">
+                    {signals.map((signal) => (
+                      <li key={signal.id}>
+                        <Field orientation="horizontal" className="items-start">
+                          <Checkbox
+                            id={`${ids}-s-${signal.id}`}
+                            checked={field.state.value.includes(signal.id)}
+                            onCheckedChange={(checked) =>
+                              field.handleChange(
+                                checked === true ? [...field.state.value, signal.id] : field.state.value.filter((id) => id !== signal.id),
+                              )
+                            }
+                          />
+                          <FieldLabel htmlFor={`${ids}-s-${signal.id}`} className="min-w-0 flex-col items-start gap-0 font-normal">
+                            <span className="break-words">{signal.title}</span>
+                            <span className="text-xs text-muted-foreground">{PESTEL_LABELS[signal.pestel]}</span>
+                          </FieldLabel>
+                        </Field>
+                      </li>
+                    ))}
+                    {staleLinked.map((id) => (
+                      <li key={id}>
+                        <Field orientation="horizontal" className="items-start">
+                          <Checkbox
+                            id={`${ids}-s-${id}`}
+                            checked
+                            onCheckedChange={() => field.handleChange(field.state.value.filter((item) => item !== id))}
+                          />
+                          <FieldLabel htmlFor={`${ids}-s-${id}`} className="min-w-0 flex-col items-start gap-0 font-normal">
+                            <span className="font-mono text-xs break-all">{id}</span>
+                            <span className="text-xs text-muted-foreground">Esta señal ya no se activa con los datos de hoy.</span>
+                          </FieldLabel>
+                        </Field>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </details.Field>
+            )}
+          </section>
+        </form>
 
-        <section className="flex flex-col gap-3" aria-label="Estado">
+        <form
+          noValidate
+          aria-label="Estado de la decisión"
+          className="flex flex-col gap-3"
+          onSubmit={(event) => {
+            stop(event);
+            void statusForm.handleSubmit();
+          }}
+        >
           <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Estado</h3>
-          <ToggleGroup
-            value={[status]}
-            variant="outline"
-            size="sm"
-            spacing={1}
-            className="flex-wrap"
-            aria-label="Estado de la decisión"
-            onValueChange={(next) => {
-              const value = STATUSES.find((item) => item === next[0]);
-              if (value) {
-                setStatusValue(value);
-                setStatusError(null);
-              }
-            }}
-          >
-            {STATUSES.map((value) => (
-              <ToggleGroupItem key={value} value={value}>
-                {DECISION_STATUS_LABELS[value]}
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
-
-          {status === "decided" && options.some((option) => option.label.trim() !== "") && (
-            <div className="flex flex-col gap-1.5">
-              <Label>Opción elegida</Label>
+          <statusForm.Field name="status">
+            {(field) => (
               <ToggleGroup
-                value={chosen ? [chosen] : []}
+                value={[field.state.value]}
                 variant="outline"
                 size="sm"
                 spacing={1}
                 className="flex-wrap"
-                aria-label="Opción elegida"
-                onValueChange={(next) => setChosen(next[0])}
+                aria-label="Estado de la decisión"
+                onValueChange={(next) => {
+                  const value = STATUSES.find((item) => item === next[0]);
+                  if (value) {
+                    field.handleChange(value);
+                    setStoreError(null);
+                  }
+                }}
               >
-                {options
-                  .filter((option) => option.label.trim() !== "")
-                  .map((option) => (
-                    <ToggleGroupItem key={option.id} value={option.id}>
-                      {option.label}
-                    </ToggleGroupItem>
-                  ))}
+                {STATUSES.map((value) => (
+                  <ToggleGroupItem key={value} value={value}>
+                    {DECISION_STATUS_LABELS[value]}
+                  </ToggleGroupItem>
+                ))}
               </ToggleGroup>
-            </div>
-          )}
-
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor={`${ids}-why`}>{needsRationale ? "Motivo (obligatorio)" : "Motivo (opcional)"}</Label>
-            <Textarea
-              id={`${ids}-why`}
-              rows={3}
-              value={rationale}
-              aria-invalid={statusError ? true : undefined}
-              placeholder="Por ejemplo: la deuda en dólares vence en diciembre"
-              onChange={(event) => {
-                setRationale(event.target.value);
-                setStatusError(null);
-              }}
-            />
-            {statusError && (
-              <p role="alert" className="text-xs text-destructive-foreground">
-                {statusError}
-              </p>
             )}
-          </div>
-          <Button variant="outline" size="sm" className="self-start" onClick={applyStatus}>
+          </statusForm.Field>
+
+          <statusForm.Subscribe selector={(state) => state.values.status}>
+            {(status) => (
+              <>
+                {status === "decided" && options.some((option) => option.label.trim() !== "") && (
+                  <statusForm.Field name="chosen">
+                    {(field) => (
+                      <Field>
+                        <FieldLabel>Opción elegida</FieldLabel>
+                        <ToggleGroup
+                          value={field.state.value ? [field.state.value] : []}
+                          variant="outline"
+                          size="sm"
+                          spacing={1}
+                          className="flex-wrap"
+                          aria-label="Opción elegida"
+                          onValueChange={(next) => field.handleChange(next[0])}
+                        >
+                          {options
+                            .filter((option) => option.label.trim() !== "")
+                            .map((option) => (
+                              <ToggleGroupItem key={option.id} value={option.id}>
+                                {option.label}
+                              </ToggleGroupItem>
+                            ))}
+                        </ToggleGroup>
+                      </Field>
+                    )}
+                  </statusForm.Field>
+                )}
+
+                <statusForm.Field name="rationale">
+                  {(field) => {
+                    const invalid = !field.state.meta.isValid || storeError !== null;
+                    return (
+                      <Field data-invalid={invalid}>
+                        <FieldLabel htmlFor={`${ids}-why`}>
+                          {status === "decided" || status === "discarded" ? "Motivo (obligatorio)" : "Motivo (opcional)"}
+                        </FieldLabel>
+                        <Textarea
+                          id={`${ids}-why`}
+                          rows={3}
+                          value={field.state.value}
+                          aria-invalid={invalid || undefined}
+                          placeholder="Por ejemplo: la deuda en dólares vence en diciembre"
+                          onBlur={field.handleBlur}
+                          onChange={(event) => {
+                            field.handleChange(event.target.value);
+                            setStoreError(null);
+                          }}
+                        />
+                        {!field.state.meta.isValid ? (
+                          <FieldError errors={field.state.meta.errors} />
+                        ) : (
+                          storeError && <FieldError>{storeError}</FieldError>
+                        )}
+                      </Field>
+                    );
+                  }}
+                </statusForm.Field>
+              </>
+            )}
+          </statusForm.Subscribe>
+          <Button type="submit" variant="outline" size="sm" className="self-start">
             Aplicar estado
           </Button>
-        </section>
+        </form>
       </div>
 
       <SheetFooter className="flex-row flex-wrap justify-between gap-2">
         <Button
+          type="button"
           variant="destructive"
           onClick={() => {
             remove(decision.id);
@@ -451,7 +623,9 @@ function EditForm({ decision, signals, onClose }: { decision: Decision; signals:
               Guardado
             </span>
           )}
-          <Button onClick={save}>Guardar cambios</Button>
+          <Button type="submit" form={`${ids}-details`}>
+            Guardar cambios
+          </Button>
         </div>
       </SheetFooter>
     </>
