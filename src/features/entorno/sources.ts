@@ -23,6 +23,7 @@ export const SOURCE_NAMES: Record<SourceId, string> = {
   secop: "SECOP II (datos.gov.co)",
   supersociedades: "Supersociedades",
   "world-bank": "Banco Mundial",
+  exports: "Exportaciones (datos.gov.co)",
   "news-rss": "Medios (RSS)",
   "google-news": "Google News",
   minambiente: "Minambiente",

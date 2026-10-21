@@ -3,6 +3,7 @@ export type SourceId =
   | "secop"
   | "supersociedades"
   | "world-bank"
+  | "exports"
   | "news-rss"
   | "google-news"
   | "minambiente"
