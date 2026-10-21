@@ -3,7 +3,6 @@
 import { ExternalLinkIcon, InfoIcon } from "lucide-react";
 import { useId, useMemo, useState } from "react";
 import { Badge } from "@/components/reui/badge";
-import type { DateSelectorValue } from "@/components/reui/date-selector";
 import { createFilterQuery, flattenFilterConditions } from "@/components/reui/filters/filters-query";
 import type { FilterField, FilterQuery } from "@/components/reui/filters/filters-types";
 import { PageIntro } from "@/components/shell/page-intro";
@@ -21,7 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { NewsItem } from "@/core/domain/news";
 import { bogotaDateKey } from "@/core/time/bogota";
 import { useNews } from "@/features/entorno/use-news";
-import { DateRangeFilter, rangeOf } from "@/features/filtros/date-range-filter";
+import { DateRangeFilter, type DayRange } from "@/features/filtros/date-range-filter";
 import { SelectFilters } from "@/features/filtros/select-filters";
 import { formatDiaBogota } from "@/lib/date";
 import { safeHttpUrl } from "@/lib/safe-url";
@@ -50,10 +49,10 @@ export function NoticiasView() {
   const news = useNews();
   const onlyTermsId = useId();
   const [query, setQuery] = useState<FilterQuery>(() => createFilterQuery());
-  const [dates, setDates] = useState<DateSelectorValue | undefined>();
+  const [dates, setDates] = useState<DayRange | undefined>();
   const [onlyTerms, setOnlyTerms] = useState(true);
   const [visible, setVisible] = useState(PAGE_SIZE);
-  const range = rangeOf(dates);
+  const range = dates;
 
   const fields = useMemo<FilterField[]>(
     () => [

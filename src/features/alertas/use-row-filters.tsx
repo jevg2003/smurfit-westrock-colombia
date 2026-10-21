@@ -1,14 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { DateSelectorValue } from "@/components/reui/date-selector";
 import { createFilterQuery } from "@/components/reui/filters/filters-query";
 import type { FilterField, FilterQuery } from "@/components/reui/filters/filters-types";
 import { ALERT_STATE_LABELS, DIMENSION_LABELS, SEVERITY_LABELS } from "@/core/labels";
 import { bogotaDateKey } from "@/core/time/bogota";
 import { PESTEL_LABELS } from "@/features/entorno/labels";
 import { applyFilters } from "@/features/filtros/apply-filters";
-import { rangeOf } from "@/features/filtros/date-range-filter";
+import type { DayRange } from "@/features/filtros/date-range-filter";
 import type { AlertRow } from "./alerts-grid";
 
 const options = (labels: Record<string, string>) => Object.entries(labels).map(([value, label]) => ({ value, label }));
@@ -35,8 +34,8 @@ const ACCESSORS = {
 /** Filter chips plus a date range, applied to alert rows. */
 export function useRowFilters(rows: AlertRow[], { withState }: { withState: boolean }) {
   const [query, setQuery] = useState<FilterQuery>(() => createFilterQuery());
-  const [dates, setDates] = useState<DateSelectorValue | undefined>();
-  const range = rangeOf(dates);
+  const [dates, setDates] = useState<DayRange | undefined>();
+  const range = dates;
 
   const filtered = useMemo(() => {
     const byChips = applyFilters(rows, query, ACCESSORS);

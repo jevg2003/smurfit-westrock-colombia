@@ -4,7 +4,6 @@ import { DownloadIcon, FileTextIcon, PrinterIcon } from "lucide-react";
 import { useRegisterPageContext } from "@/features/asistente/page-context";
 import { briefingContext } from "@/features/asistente/screen-contexts";
 import { useMemo, useState } from "react";
-import type { DateSelectorValue } from "@/components/reui/date-selector";
 import { PageIntro } from "@/components/shell/page-intro";
 import { ErrorState } from "@/components/states/error-state";
 import { StaleNotice } from "@/components/states/stale-notice";
@@ -18,7 +17,7 @@ import { buildBriefing } from "@/core/usecases/build-briefing";
 import { buildPestel } from "@/core/usecases/build-pestel";
 import { getContainer } from "@/features/entorno/container";
 import { useSignals } from "@/features/entorno/use-signals";
-import { DateRangeFilter, rangeOf } from "@/features/filtros/date-range-filter";
+import { DateRangeFilter, type DayRange } from "@/features/filtros/date-range-filter";
 import { bogotaDateKey } from "@/core/time/bogota";
 import { downloadCsv, downloadText } from "@/lib/download";
 import { useAlertsStore } from "@/stores/alerts.store";
@@ -32,8 +31,8 @@ export function BriefingView() {
   const alerts = useAlertsStore((state) => state.alerts);
   const mode = usePreferencesStore((state) => state.briefingPeriod);
   const setMode = usePreferencesStore((state) => state.setBriefingPeriod);
-  const [dates, setDates] = useState<DateSelectorValue | undefined>();
-  const range = mode === "custom" ? rangeOf(dates) : undefined;
+  const [dates, setDates] = useState<DayRange | undefined>();
+  const range = mode === "custom" ? dates : undefined;
 
   const result = useMemo(
     () => buildBriefing({ signals: data.signals, alerts, clock: getContainer().clock, custom: range }),

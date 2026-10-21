@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { DateSelectorValue } from "@/components/reui/date-selector";
 import { PageIntro } from "@/components/shell/page-intro";
 import { ErrorState } from "@/components/states/error-state";
 import { StaleNotice } from "@/components/states/stale-notice";
@@ -10,7 +9,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { buildPestel } from "@/core/usecases/build-pestel";
 import { getContainer } from "@/features/entorno/container";
 import { useSignals } from "@/features/entorno/use-signals";
-import { DateRangeFilter, rangeOf } from "@/features/filtros/date-range-filter";
+import { DateRangeFilter, type DayRange } from "@/features/filtros/date-range-filter";
 import { useDecisionsStore } from "@/stores/decisions.store";
 import { DecisionSheet, NEW_DECISION, type SheetTarget } from "./decision-sheet";
 import { DecisionsSection } from "./decisions-section";
@@ -24,9 +23,9 @@ export function PestelView() {
   const data = useSignals();
   const decisions = useDecisionsStore((state) => state.decisions);
   const [mode, setMode] = useState<PestelPeriodMode>("30");
-  const [dates, setDates] = useState<DateSelectorValue | undefined>();
+  const [dates, setDates] = useState<DayRange | undefined>();
   const [target, setTarget] = useState<SheetTarget>(null);
-  const range = mode === "custom" ? rangeOf(dates) : undefined;
+  const range = mode === "custom" ? dates : undefined;
 
   const period = useMemo(() => resolvePestelPeriod(getContainer().clock.now(), mode, range), [mode, range]);
   const factors = useMemo(() => (period.ok ? buildPestel(data.signals, period.value) : []), [data.signals, period]);

@@ -36,13 +36,12 @@ import { useRegulation } from "@/features/entorno/use-regulation";
 import { useSignals } from "@/features/entorno/use-signals";
 import { SOURCES } from "@/features/entorno/sources";
 import { applyFilters } from "@/features/filtros/apply-filters";
-import { DateRangeFilter, rangeOf } from "@/features/filtros/date-range-filter";
+import { DateRangeFilter, type DayRange } from "@/features/filtros/date-range-filter";
 import { SelectFilters } from "@/features/filtros/select-filters";
 import { DimensionBadge, SeverityBadge } from "@/features/senales/badges";
 import { FollowedFilterToggle } from "@/features/seguimiento/followed-filter-toggle";
 import { SignalDetailSheet } from "@/features/senales/signal-detail-sheet";
 import { useWatchlistStore } from "@/stores/watchlist.store";
-import type { DateSelectorValue } from "@/components/reui/date-selector";
 import { formatDiaBogota } from "@/lib/date";
 import { safeHttpUrl } from "@/lib/safe-url";
 
@@ -81,10 +80,10 @@ export function TimelineView() {
   const news = useNews();
   const regulation = useRegulation();
   const [query, setQuery] = useState<FilterQuery>(() => createFilterQuery());
-  const [dates, setDates] = useState<DateSelectorValue | undefined>();
+  const [dates, setDates] = useState<DayRange | undefined>();
   const [visible, setVisible] = useState(PAGE_SIZE);
   const [open, setOpen] = useState<Signal | null>(null);
-  const range = rangeOf(dates);
+  const range = dates;
 
   const events = useMemo(
     () =>
