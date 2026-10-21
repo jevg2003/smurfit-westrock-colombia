@@ -9,6 +9,7 @@ import { filterRelevantNews, matchNewsItems, sortByRelevance } from "@/core/usec
 import type { FeedHealth } from "@/infrastructure/sources/rss/service";
 import { usePreferencesStore } from "@/stores/preferences.store";
 import { getContainer } from "./container";
+import { SourceFailure } from "./source-failure";
 import { toSourceView } from "./source-view";
 
 export interface NewsData {
@@ -37,7 +38,7 @@ export function useNews() {
       if (result.ok) return { items: result.value.data.items, feeds: result.value.data.feeds, off: false };
       if (result.error.kind === "disabled") return { items: [], feeds: [], off: true };
       if (result.error.kind === "empty") return { items: [], feeds: [], off: false };
-      throw new Error(result.error.message);
+      throw new SourceFailure(result.error);
     },
   });
   const groups = useNewsTermGroups();

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, screen } from "@testing-library/react";
+import { cleanup, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { NewsItem } from "@/core/domain/news";
 import { fakeAdapter, fakeContainer, renderWithQuery, resetStores, secopOk, TEST_NOW } from "./test-utils";
@@ -60,5 +60,21 @@ describe("useNews relevance", () => {
 
     expect((await screen.findByTestId("relevant")).textContent).toBe("co,ops");
     expect(screen.getByTestId("all").textContent).toBe("co,ops,noise");
+  });
+});
+
+function ErrorProbe() {
+  const news = useNews();
+  return <p data-testid="kind">{news.view.status === "error" ? (news.view.errorKind ?? "none") : "cargando"}</p>;
+}
+
+describe("useNews failures", () => {
+  beforeEach(() => resetStores());
+  afterEach(cleanup);
+
+  it("keeps the typed kind of an adapter error", async () => {
+    newsFetch.mockResolvedValue({ ok: false, error: { sourceId: "news-rss", kind: "rate_limited", message: "Límite." } });
+    renderWithQuery(<ErrorProbe />);
+    await waitFor(() => expect(screen.getByTestId("kind").textContent).toBe("rate_limited"));
   });
 });
