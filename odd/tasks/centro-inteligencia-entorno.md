@@ -93,10 +93,10 @@ with verifiable sources and explicit rules.
       export, Preferencias. Include the disclaimer and loading/error/empty states.
 
 ### R2 — Macro + competitors
-- [ ] T9 World Bank adapter: annual GDP and CPI.
-- [ ] T9b Exports adapter `vwqt-xc3z`.
-- [ ] T10 Supersociedades `6cat-2gcs` adapter, with unit labels.
-- [ ] T11 Screens: Macro, Competidores, Seguimiento.
+- [x] T9 World Bank adapter: annual GDP and CPI.
+- [x] T9b Exports adapter `vwqt-xc3z`.
+- [x] T10 Supersociedades `6cat-2gcs` adapter, with unit labels.
+- [x] T11 Screens: Macro, Competidores, Seguimiento.
 
 ### R3 — News + regulation
 - [ ] T12 `/api/news` route: a closed list of media RSS feeds, dedupe, rejection of unsafe links.
@@ -137,6 +137,13 @@ with verifiable sources and explicit rules.
 | T8 línea de tiempo + contratación | delegated | same | fb2e4ec | RED: expiry, contratación and timeline suites failed with missing modules, then GREEN; lint, typecheck ok | medium |
 | T8 briefing | delegated | same | d4f67dc | RED: briefing view suite (missing module) and CSV BOM test (test-side Blob.text strips BOM, fixed to read bytes); GREEN; lint, typecheck ok | medium |
 | T8 preferencias | delegated | same | ff7c074 | RED: news-groups store tests, validators and preferences view failed (missing members/modules), then GREEN; `pnpm test` 38 files / 183 tests, lint, typecheck, build ok; dev routes HTTP 200 | medium |
+| T9 | delegated | R2 writer (2+ non-trivial files) | 2f3e4dd | RED: adapter suite failed with a missing module, then GREEN 10 tests; `pnpm test` 194, lint, typecheck ok. Live curl HTTP 200 (3.4 s). | medium |
+| T9b | delegated | same | 5eecd00 | RED: adapter suite failed with a missing module, then GREEN; `pnpm test` 202, lint, typecheck ok. Live curl HTTP 200 (2.8 s). | medium |
+| T10 | delegated | same | 9ad8a90 | RED: adapter and financials rule suites failed with missing modules, then GREEN; `pnpm test` 230, lint, typecheck ok. Live curl HTTP 200 (6.3 s). | medium |
+| T11 seguimiento + filtro | delegated | same | 5149e19 | RED: seguimiento, radar and timeline filter tests failed (missing module / no checkbox), then GREEN. Watch-subject rule and the store flag were written together with their tests (no separate RED). | medium |
+| T11 macro | delegated | same | 500d7e8 | RED: macro view suite failed with a missing module, then GREEN 5 tests; format helpers written with their tests (no separate RED). | medium |
+| T11 competidores + nav | delegated | same | 4f03a4c | RED: competidores suite failed with a missing module, then GREEN 7 tests. | medium |
+| R2 close | delegated | same | (this commit) | `pnpm test` 47 files / 265 tests, lint, typecheck, build ok; `pnpm start -p 3100` /macro, /competidores, /seguimiento HTTP 200 (a second `next dev` is refused while the one on port 3000 runs). | pending assessment |
 
 ### R0 review
 - First review attempt (base 0aeb1f7, which included docs): declined, then `lens_context_budget_exceeded`.
@@ -174,5 +181,24 @@ with verifiable sources and explicit rules.
 - Pending manual check: a 375px browser walkthrough.
 - Next assessment base: 09d920b.
 
+### R2 confirmed source facts
+- World Bank (all HTTP 200, CORS `*`):
+  - `https://api.worldbank.org/v2/country/COL/indicator/NY.GDP.MKTP.KD.ZG?format=json&per_page=200` (GDP growth, annual %).
+  - `https://api.worldbank.org/v2/country/COL/indicator/FP.CPI.TOTL.ZG?format=json&per_page=200` (CPI inflation, annual %).
+  - 66 rows each (1960-2025), `lastupdated` 2026-10-08. GDP 1960 is `null` (handled). Errors come as HTTP 200 with `[{"message":[...]}]`.
+  - Source: World Development Indicators (source id 2). License CC BY 4.0: the World Bank public-licenses page lists "Creative Commons Attribution 4.0 International". Attribution: "Banco Mundial – World Development Indicators".
+- Exports `vwqt-xc3z` (MinCIT, HTTP 200, CORS `*`, 2.8 s):
+  - Query: `$select=fecha,fecha_de_corte,valor_exportaciones_nme&$where=fecha>'2016-01-01T00:00:00.000'&$order=fecha DESC&$limit=120` (42 rows).
+  - Dataset metadata: `licenseId` CC_40_BY_SA, attribution "Ministerio de Comercio, Industria y Turismo - MinCIT".
+  - The dataset is already one row per quarter and national: no chapter, product or sector column, so no `$group` is needed and no paper/cardboard cut is possible. It is shown as "total nacional". The unit is not declared (apparently millions of USD).
+  - Other columns: `valor_exportaciones_totales`, `exportaciones_de_servicios`, `valor_exportaciones_nme_1/_2`.
+- Supersociedades `6cat-2gcs` (HTTP 200, CORS `*`, 6.3 s, close to the 10 s fetcher timeout):
+  - Query: `$where=nit in(890300406,860026759,890319047,890925108)&$order=a_o_de_corte DESC&$limit=100` (20 rows = 4 NITs x cutoff years 2021-2025).
+  - License CC_40_BY_SA, attribution "Superintendencia de Sociedades SuperSociedades".
+  - Number columns (`nit`, `ciiu`, `a_o_de_corte`) arrive as decimal strings like `"860026759.00"` and the filter works on the number column. Amounts are text with a `$` prefix and varying spacing (`"$ 1.91"`, `"$0.57"`).
+  - The dataset description says "todas las cifras en este reporte se muestran en Billones de Pesos", but the amount columns declare no unit. The app keeps the "unidad no declarada por la fuente" note and adds that hint.
+  - No Supersociedades rule was added: proposal §4.6 defines none. Only the pure helpers `latestFinancialsByNit` and `netMarginPct` exist.
+- Next dev note: `next dev` refuses to start a second server in the same project while one is running on port 3000, so the R2 smoke test used `next start -p 3100`.
+
 ## Next step
-R1 is complete (T4b–T8). Next: R2 (T9, T9b, T10, T11). Notes: `src/features/trm/resumen-view.tsx` (old summary) is no longer routed; reuse it for the Macro screen (T11). Note: `src/lib/csv.ts` now uses the pure `toCsv` from `src/core/format/csv.ts`; the TRM saved-day signal dimension changed from market to macro to match proposal §4.6.
+R2 is complete (T9–T11); review assessment pending (base 09d920b or the R1 boundary, per the parent). Next: R3 (T12–T14). Note: `src/features/trm/resumen-view.tsx` (old summary) is still unrouted; the Macro screen reuses `TrmChart` and `TrmData` instead. Note: `src/lib/csv.ts` now uses the pure `toCsv` from `src/core/format/csv.ts`; the TRM saved-day signal dimension changed from market to macro to match proposal §4.6.
