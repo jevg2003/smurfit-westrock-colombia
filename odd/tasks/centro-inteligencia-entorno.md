@@ -154,5 +154,12 @@ with verifiable sources and explicit rules.
 - Fixture `secop-contratos.sample.json` is the real response; personal fields (legal representative, spending officer, supervisor, bank account) were removed, all other fields are verbatim.
 - Added dependency `zod` (was missing).
 
+### R1 logic review
+- Assessment: base 40e7c45, 63 files / 2,631 lines, medium risk (`slice_budget_reached`;
+  `package.json` changed because zod was added).
+- Consent: **declined** by the user for candidate `sha256:322caa9b…` (lineage `review-34fad7cd54ec0bd2`).
+- Off path, medium tier: writer self-verification plus a parent spot check. Observed: `pnpm test`
+  25 files, 141 tests passed. Next assessment base for slicing: 0f5b95e (declined range closed by the user).
+
 ## Next step
 R1: T8 (screens). Logic part (T4b–T7) is done. Note: `src/lib/csv.ts` now uses the pure `toCsv` from `src/core/format/csv.ts`; the TRM saved-day signal dimension changed from market to macro to match proposal §4.6.
