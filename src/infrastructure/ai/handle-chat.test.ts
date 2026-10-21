@@ -256,6 +256,7 @@ describe("handleChat provider fallback", () => {
     expect(text).toContain("respaldo");
     expect(response.headers.get("x-ai-provider")).toBe("openrouter");
     expect(response.headers.get("x-ai-fallback")).toBe("1");
+    expect(text).toContain('"messageMetadata":{"provider":"openrouter","fallback":true}');
   });
 
   it("does not fall back on a 400 request error and surfaces the error", async () => {

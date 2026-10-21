@@ -10,6 +10,12 @@ import type { Feedback } from "@/stores/chat.store";
 import { AnswerText } from "./answer-text";
 import { isToolPart, ToolTrace, type ToolPart } from "./tool-trace";
 
+/** Set by `/api/chat` on each answer: which provider wrote it, and whether it was the backup one. */
+export function usedBackupProvider(message: UIMessage): boolean {
+  const metadata = message.metadata as { provider?: unknown; fallback?: unknown } | undefined;
+  return metadata?.fallback === true && metadata.provider === "openrouter";
+}
+
 export const messageText = (message: UIMessage) =>
   message.parts.map((part) => (part.type === "text" ? part.text : "")).join("").trim();
 
@@ -76,6 +82,9 @@ export function ChatMessage({ message, canRegenerate, streaming, feedback, onFee
     <Message>
       <MessageContent>
         <AssistantParts message={message} />
+        {text && !streaming && usedBackupProvider(message) && (
+          <p className="text-xs text-muted-foreground">Respondió con OpenRouter (respaldo): sin búsqueda en internet.</p>
+        )}
         {text && !streaming && (
           <MessageFooter className="gap-0.5">
             <Button

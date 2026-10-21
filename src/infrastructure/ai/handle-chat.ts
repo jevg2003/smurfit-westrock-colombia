@@ -189,7 +189,12 @@ export async function handleChat(request: Request, deps: ChatDeps): Promise<Resp
     const headers: Record<string, string> = {};
     if (candidate.provider) headers["x-ai-provider"] = candidate.provider;
     if (fallbackUsed) headers["x-ai-fallback"] = "1";
-    return result.toUIMessageStreamResponse({ onError: describeChatError, headers });
+    return result.toUIMessageStreamResponse({
+      onError: describeChatError,
+      headers,
+      // Lets the UI tell which provider wrote each answer, so it can say when web search was not available.
+      messageMetadata: ({ part }) => (part.type === "start" && candidate.provider ? { provider: candidate.provider, fallback: fallbackUsed } : undefined),
+    });
   };
 
   const fallback = lookup.fallback;
