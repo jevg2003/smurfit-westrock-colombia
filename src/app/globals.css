@@ -213,3 +213,32 @@
   color: inherit;
   animation: none;
 }
+
+/* Landing page effects. CSS only, so the static landing ships no extra JavaScript for them. */
+@keyframes landing-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@utility landing-rise {
+  animation: landing-rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+/* Faint engineering grid behind the hero, faded toward the edges. */
+@utility landing-grid {
+  background-image:
+    linear-gradient(to right, color-mix(in oklab, var(--foreground) 7%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklab, var(--foreground) 7%, transparent) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 70% 80% at 30% 0%, #000 30%, transparent 100%);
+}
