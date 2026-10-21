@@ -54,8 +54,13 @@ describe("GET /api/news", () => {
     expect(body.feeds).toHaveLength(1);
   });
 
+  it("accepts google-news as a source id and reports it disabled when its flag is off", async () => {
+    const body = await (await call("?feed=google-news", { ...FLAGS, googleNews: false })).json();
+    expect(body.feeds).toEqual([expect.objectContaining({ id: "google-news", status: "disabled" })]);
+  });
+
   it("reports a switched-off source as disabled", async () => {
-    const body = await (await call("", { ...FLAGS, newsRss: false })).json();
+    const body = await (await call("", { ...FLAGS, newsRss: false, googleNews: false })).json();
     expect(body.items).toEqual([]);
     expect(body.feeds.every((f: { status: string }) => f.status === "disabled")).toBe(true);
   });

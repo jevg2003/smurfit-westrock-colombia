@@ -23,3 +23,8 @@ export const NEWS_FEED_IDS = NEWS_FEEDS.map((feed) => feed.id) as [NewsFeedId, .
 
 /** Identifier of the Google News search in responses and health entries (not a feed URL). */
 export const GOOGLE_NEWS_ID = "google-news";
+
+/** What a client may ask for: one media feed or the Google News search. */
+export const NEWS_SOURCE_IDS = [...NEWS_FEED_IDS, GOOGLE_NEWS_ID] as [NewsFeedId | typeof GOOGLE_NEWS_ID, ...(NewsFeedId | typeof GOOGLE_NEWS_ID)[]];
+
+export type NewsSourceId = (typeof NEWS_SOURCE_IDS)[number];

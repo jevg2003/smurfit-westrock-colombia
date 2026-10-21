@@ -1,18 +1,22 @@
 import { FetchFailure, type Fetcher } from "@/infrastructure/http/fetcher";
-import { parseFeed, type HeadlineWithSource } from "./parse";
+import { parseFeed } from "./parse";
 
 /** Feed bodies above this size are refused (the biggest recorded one is about 500 KB). */
 const MAX_BODY_CHARS = 2_500_000;
 
-export interface FeedFetchResult {
+export interface FeedFetchResult<T> {
   ok: boolean;
-  items: HeadlineWithSource[];
+  items: T[];
   httpStatus?: number;
   message?: string;
 }
 
 /** Fetches and parses one feed. Never throws: a failure becomes `{ ok: false, message }`. */
-export async function fetchFeed(fetcher: Fetcher, url: string): Promise<FeedFetchResult> {
+export async function fetchFeed<T = ReturnType<typeof parseFeed>[number]>(
+  fetcher: Fetcher,
+  url: string,
+  parse: (xml: string) => T[] = parseFeed as unknown as (xml: string) => T[],
+): Promise<FeedFetchResult<T>> {
   let response: Response;
   try {
     response = await fetcher(url, { headers: { accept: "application/rss+xml, application/xml, text/xml;q=0.9" } });
@@ -32,7 +36,7 @@ export async function fetchFeed(fetcher: Fetcher, url: string): Promise<FeedFetc
   if (text.length > MAX_BODY_CHARS) {
     return { ok: false, items: [], httpStatus: response.status, message: "La respuesta de la fuente es demasiado grande." };
   }
-  const items = parseFeed(text);
+  const items = parse(text);
   if (items.length === 0) {
     return { ok: false, items: [], httpStatus: response.status, message: "La fuente no devolvió titulares con el formato esperado." };
   }

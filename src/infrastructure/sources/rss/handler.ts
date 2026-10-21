@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { createFetcher } from "@/infrastructure/http/fetcher";
 import { readFlags, type SourceFlags } from "@/infrastructure/flags";
-import { NEWS_FEED_IDS } from "./feeds";
+import { NEWS_SOURCE_IDS } from "./feeds";
 import { loadNews } from "./service";
 
 /** Media feeds are cached for 30 minutes (proposal §6.7); stale copies are served while revalidating. */
@@ -15,7 +15,7 @@ const FEED_TIMEOUT_MS = 12_000;
  * Strict on purpose: any other parameter (for example `url`) is rejected.
  */
 export const newsQuerySchema = z.strictObject({
-  feed: z.enum(NEWS_FEED_IDS).optional(),
+  feed: z.enum(NEWS_SOURCE_IDS).optional(),
   limit: z.coerce.number().int().min(1).max(300).default(150),
 });
 
