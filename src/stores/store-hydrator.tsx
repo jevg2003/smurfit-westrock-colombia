@@ -9,6 +9,7 @@ import { bindStoreToCompany } from "./company-scope";
 import { useDecisionsStore } from "./decisions.store";
 import { hydrateStores } from "./hydrate-stores";
 import { useHydrationStore } from "./hydration.store";
+import { useOnboardingDraftStore } from "./onboarding-draft.store";
 import { usePreferencesStore } from "./preferences.store";
 import { useWatchlistStore } from "./watchlist.store";
 
@@ -48,7 +49,8 @@ export function StoreHydrator() {
 
     void (async () => {
       try {
-        await useCompaniesStore.persist.rehydrate();
+        // The onboarding draft is not tied to a company, so it loads with the company list.
+        await Promise.all([useCompaniesStore.persist.rehydrate(), useOnboardingDraftStore.persist.rehydrate()]);
       } catch (error) {
         consoleLogger.error("store_rehydrate_failed", { message: error instanceof Error ? error.message : String(error) });
       }
