@@ -29,11 +29,11 @@ const ctaClass = cn(
   "h-11 gap-2 bg-foreground px-5 text-base font-semibold text-background hover:bg-foreground/85",
 );
 
-/** A plain anchor, not next/link: `/home` is private and a prefetch would hit it before the login. */
+/** A plain anchor, not next/link: `/resumen` is private and a prefetch would hit it before the login. */
 export function EnterButton({ className }: { className?: string }) {
   return (
     // oxlint-disable-next-line next/no-html-link-for-pages -- deliberate full navigation, see above
-    <a href="/home" className={cn(ctaClass, className)}>
+    <a href="/resumen" className={cn(ctaClass, className)}>
       {CTA_LABEL}
       <ArrowRightIcon aria-hidden="true" />
     </a>

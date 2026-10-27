@@ -11,7 +11,6 @@ export interface LegacyRedirect {
 const redirect = (source: string, destination: string): LegacyRedirect => ({ source, destination, permanent: true });
 
 export const LEGACY_REDIRECTS: readonly LegacyRedirect[] = [
-  redirect("/home", "/resumen?tab=radar"),
   redirect("/senales", "/resumen?tab=avisos"),
   redirect("/alertas", "/resumen?tab=avisos"),
   redirect("/linea-de-tiempo", "/resumen?tab=linea-de-tiempo"),

@@ -15,12 +15,13 @@ test.describe("landing page", () => {
     await expect(page.getByText("Datos de ejemplo").first()).toBeVisible();
   });
 
-  test("the main call to action goes to /home", async ({ page }) => {
+  test("the main call to action goes to /resumen", async ({ page }) => {
     await page.goto("/");
     const cta = page.getByRole("link", { name: "Entrar a Smart Work Core" }).first();
-    await expect(cta).toHaveAttribute("href", "/home");
+    await expect(cta).toHaveAttribute("href", "/resumen");
     await cta.click();
-    await expect(page).toHaveURL(/\/home/);
+    // Without an active company the gate forwards to the picker or the onboarding.
+    await expect(page).toHaveURL(/\/(resumen|empresas|onboarding)/);
   });
 
   test("only requests public paths and raises no page errors", async ({ page }) => {

@@ -77,7 +77,6 @@ const ROUTES = [
 
 // Routes of the old navigation and the tab that replaced each one.
 const LEGACY: [string, RegExp][] = [
-  ["/home", /\/resumen\?tab=radar$/],
   ["/senales", /\/resumen\?tab=avisos$/],
   ["/alertas", /\/resumen\?tab=avisos$/],
   ["/dias", /\/economia\?tab=trm$/],

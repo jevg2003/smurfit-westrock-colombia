@@ -3,7 +3,6 @@ import { LEGACY_REDIRECTS, legacyDestination } from "./legacy-redirects";
 
 describe("legacy redirects", () => {
   it.each([
-    ["/home", "/resumen?tab=radar"],
     ["/senales", "/resumen?tab=avisos"],
     ["/alertas", "/resumen?tab=avisos"],
     ["/linea-de-tiempo", "/resumen?tab=linea-de-tiempo"],
@@ -22,6 +21,10 @@ describe("legacy redirects", () => {
     expect(legacyDestination(source)).toBe(destination);
   });
 
+  it("does not redirect /home: the landing links straight to /resumen", () => {
+    expect(legacyDestination("/home")).toBeUndefined();
+  });
+
   it("keeps the routes that still exist out of the map", () => {
     for (const path of ["/noticias", "/asistente", "/resumen", "/economia", "/analisis", "/configuracion"]) {
       expect(legacyDestination(path)).toBeUndefined();
@@ -29,8 +32,8 @@ describe("legacy redirects", () => {
   });
 
   it("is permanent and has one entry per old route", () => {
-    expect(LEGACY_REDIRECTS).toHaveLength(15);
-    expect(new Set(LEGACY_REDIRECTS.map((redirect) => redirect.source)).size).toBe(15);
+    expect(LEGACY_REDIRECTS).toHaveLength(14);
+    expect(new Set(LEGACY_REDIRECTS.map((redirect) => redirect.source)).size).toBe(14);
     expect(LEGACY_REDIRECTS.every((redirect) => redirect.permanent)).toBe(true);
   });
 });
