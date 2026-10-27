@@ -37,3 +37,27 @@ describe("LandingFooter theme switch", () => {
     await expect.poll(() => document.documentElement.classList.contains("dark")).toBe(false);
   });
 });
+
+describe("LandingFooter authorship", () => {
+  it("credits mecateo.co with an external link that opens safely in a new tab", () => {
+    render(
+      <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} storageKey="landing-test">
+        <LandingFooter />
+      </ThemeProvider>,
+    );
+    const link = screen.getByRole("link", { name: /by mecateo\.co/ });
+    expect(link).toHaveAttribute("href", "https://mecateo.co");
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link.getAttribute("rel")).toContain("noopener");
+  });
+
+  it("shows the SWC wordmark and the independence notice", () => {
+    render(
+      <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} storageKey="landing-test">
+        <LandingFooter />
+      </ThemeProvider>,
+    );
+    expect(screen.getByRole("img", { name: "Smart Work Core" })).toBeInTheDocument();
+    expect(screen.getByText(/Herramienta independiente/)).toBeInTheDocument();
+  });
+});

@@ -30,7 +30,10 @@ The current proposal exists only as AI-generated JPGs and an MP4 the owner finds
 - [x] T5 — Integrate: `public/` assets, `layout.tsx` icons/manifest, `app-shell.tsx` logo. Route: inline (2 mechanical edits).
 
 - [x] T6 — Replace ring/tile symbol with the wordmark's C + core dot, transparent. Adaptive favicon SVG (prefers-color-scheme), ink-C ICO fallback, ink tile only for PWA/Apple icons, `SwcSymbol`/`SwcWordmark` React components (currentColor) used in the sidebar. Route: inline (owner feedback 2026-10-27: tile looked wrong in the sidebar).
-- [ ] T7 — Landing redesign aligned with current docs/ODD, new branding, restrained motion, footer links to https://mecateo.co. Research-backed proposal first (`docs/propuesta-landing.md`). Route: delegated writer (multi-file, research + design).
+- [x] T7 — Landing redesign aligned with current docs/ODD, new branding, restrained motion, footer links to https://mecateo.co. Research-backed proposal first (`docs/propuesta-landing.md`). Route: delegated writer (multi-file, research + design).
+
+- [x] T8 — Fuse the S top bar into the W's first stroke (owner reference image). Generator `reach` param; kit, `public/brand`, `SwcWordmark` regenerated. Commit `9c1f73c`. Route: inline.
+- [x] T9 — Landing personality pass: replace the 3 decorative C symbols in `Companies` with a folder metaphor (company profiles grouped), an AI "thinking" loader in the signal flow, one or two special CTAs (not all), optional radar visual; install React Bits components (Folder/FolderFloat, LatticeLoader, SpecularButton, Radar) + matter-js; dedupe wordmark paths in `hero.tsx` via `SwcWordmark`. Route: delegated writer (multi-file + installs).
 
 ## Acceptance criteria
 
@@ -53,6 +56,10 @@ The current proposal exists only as AI-generated JPGs and an MP4 the owner finds
 
 - Work-unit commit: feat(marca) kit vectorial SWC (see git log).
 
+- T7 (2026-10-27): delegated writer finished `partial`. Landing files + `docs/propuesta-landing.md` written; `vitest run src/features/landing` 13/13 pass; 2 new `set-state-in-effect` lint warnings (reveal.tsx, signal-flow.tsx). Full typecheck/test fail outside landing because of the owner's in-progress `senales`/`alertas` -> `avisos` refactor; landing imports `@/features/avisos/badges`, so it cannot be committed before that refactor lands. Screenshots reviewed by parent (1440 dark, flow end, 390 light).
+
+- T7+T9 (2026-10-27): committed together after the owner's `avisos` refactor landed. T9 writer: FolderFloat (matter-js, lazy, off-screen paused) replaces the 3 C symbols; LatticeLoader in the signal flow ("Leyendo fuentes" -> "Aplicando reglas"); SpecularButton on hero + closing CTA only; Radar and WebGL Folder skipped as decoration/weight; hero reuses `SwcWordmark`. React Bits `-TS-CSS` vendored in `src/components/react-bits/`. Parent spot check: `vitest run src/features/landing` 17/17, `pnpm typecheck` clean, lint 4 warnings (3 set-state-in-effect incl. brand-intro, 1 vendored ref-in-render).
+
 ## Next step
 
-Owner review of the kit; optionally use `swc-navbar-*` / `swc-horizontal-*` on the landing page.
+Owner review of the landing; optional Remotion MP4 for social media.

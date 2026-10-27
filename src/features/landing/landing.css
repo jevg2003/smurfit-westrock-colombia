@@ -1,0 +1,260 @@
+/*
+ * Landing-only styles. Plain CSS (not Tailwind utilities) because the motion needs keyframes tied to
+ * state attributes. Every animation sits inside `prefers-reduced-motion: no-preference`, so the
+ * default (and the reduced-motion) rendering is the final, static state.
+ */
+
+.swc-landing {
+  --swc-ink: #1a1f24;
+  --swc-lime: #a3e40a;
+  /* Lime as text on light backgrounds fails AA; this shade holds 5:1 on the page background. */
+  --swc-lime-ink: #4d7300;
+}
+
+.swc-landing {
+  /* Primary call to action: ink on light, lime on dark. */
+  --swc-cta-bg: #1a1f24;
+  --swc-cta-fg: #ffffff;
+  /* Company folders: dark folder on light pages, a lifted slate on dark ones. */
+  --swc-folder-back: #39434c;
+  --swc-folder-front: #1a1f24;
+  --swc-folder-paper: #e6eaee;
+}
+
+.dark .swc-landing {
+  --swc-lime-ink: #a3e40a;
+  --swc-cta-bg: #a3e40a;
+  --swc-cta-fg: #1a1f24;
+  --swc-folder-back: #2c343b;
+  --swc-folder-front: #3b464f;
+  --swc-folder-paper: #cfd6dc;
+}
+
+/* ---------- Hero wordmark: grows from the core dot ---------- */
+
+/*
+ * The wordmark is the shared SwcWordmark: its three <path>s are, in order, S, W and C. The dash
+ * length is a plain number larger than any of them (about 350 units), so no pathLength is needed.
+ */
+.swc-hero-mark path {
+  stroke-dasharray: 400;
+  stroke-dashoffset: 0;
+}
+
+.swc-hero-rings .ring {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1;
+  opacity: 0.16;
+}
+
+.swc-hero-mark circle,
+.swc-hero-rings .ring {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .swc-hero-mark circle {
+    animation: swc-pop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+  .swc-hero-mark path {
+    animation: swc-draw 0.9s cubic-bezier(0.65, 0, 0.35, 1) both;
+  }
+  .swc-hero-mark path:nth-of-type(1) {
+    animation-delay: 1.15s;
+  }
+  .swc-hero-mark path:nth-of-type(2) {
+    animation-delay: 0.75s;
+  }
+  .swc-hero-mark path:nth-of-type(3) {
+    animation-delay: 0.3s;
+  }
+  .swc-hero-rings .ring {
+    animation: swc-ring 1.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: var(--d, 1.6s);
+  }
+}
+
+@keyframes swc-pop {
+  from {
+    opacity: 0;
+    transform: scale(0);
+  }
+}
+
+@keyframes swc-draw {
+  from {
+    stroke-dashoffset: 410;
+  }
+}
+
+@keyframes swc-ring {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+}
+
+/* ---------- Scroll reveal, once per block ---------- */
+
+@media (prefers-reduced-motion: no-preference) {
+  [data-reveal="armed"] {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  [data-reveal="shown"] {
+    animation: swc-reveal 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+
+@keyframes swc-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
+/* ---------- Noise to signal ---------- */
+
+.swc-flow .flow-line {
+  stroke: currentColor;
+  stroke-opacity: 0.3;
+  fill: none;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  transition:
+    stroke 0.2s,
+    stroke-opacity 0.2s;
+}
+
+.swc-flow .flow-out {
+  stroke: var(--swc-lime-ink);
+  stroke-opacity: 0.9;
+}
+
+/* Hovering a source highlights its path. Decorative only: the same facts are in the text. */
+.swc-flow:has(.flow-chip[data-i="0"]:hover) .flow-line[data-i="0"],
+.swc-flow:has(.flow-chip[data-i="1"]:hover) .flow-line[data-i="1"],
+.swc-flow:has(.flow-chip[data-i="2"]:hover) .flow-line[data-i="2"],
+.swc-flow:has(.flow-chip[data-i="3"]:hover) .flow-line[data-i="3"],
+.swc-flow:has(.flow-chip[data-i="4"]:hover) .flow-line[data-i="4"],
+.swc-flow:has(.flow-chip[data-i="5"]:hover) .flow-line[data-i="5"],
+.swc-flow:has(.flow-chip[data-i="6"]:hover) .flow-line[data-i="6"] {
+  stroke: var(--swc-lime-ink);
+  stroke-opacity: 1;
+}
+
+.swc-flow .flow-pulse {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .swc-flow[data-state="armed"] .flow-chip,
+  .swc-flow[data-state="armed"] .flow-signal {
+    opacity: 0;
+  }
+  .swc-flow[data-state="armed"] .flow-line {
+    stroke-dashoffset: 1;
+  }
+
+  .swc-flow[data-state="played"] .flow-chip {
+    animation: swc-chip 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: var(--d);
+  }
+  .swc-flow[data-state="played"] .flow-line {
+    animation: swc-line 1s cubic-bezier(0.65, 0, 0.35, 1) both;
+    animation-delay: calc(var(--d) + 0.25s);
+  }
+  .swc-flow[data-state="played"] .flow-out {
+    animation-delay: 1.5s;
+  }
+  .swc-flow[data-state="played"] .flow-pulse {
+    animation: swc-pulse 1.5s ease-out 1.4s 1 both;
+  }
+  .swc-flow[data-state="played"] .flow-signal {
+    animation: swc-rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: calc(1.8s + var(--i) * 0.16s);
+  }
+}
+
+@keyframes swc-chip {
+  from {
+    opacity: 0;
+    transform: translate(var(--jx), var(--jy)) rotate(var(--jr));
+  }
+}
+
+@keyframes swc-line {
+  from {
+    stroke-dashoffset: 1;
+  }
+}
+
+@keyframes swc-pulse {
+  from {
+    opacity: 0.7;
+    transform: scale(0.7);
+  }
+  to {
+    opacity: 0;
+    transform: scale(2);
+  }
+}
+
+@keyframes swc-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/* Source chips: narrow stage by default, wide stage from md. */
+.swc-flow .flow-chip {
+  left: var(--nx);
+  top: var(--ny);
+}
+
+@media (min-width: 768px) {
+  .swc-flow .flow-chip {
+    left: var(--wx);
+    top: var(--wy);
+  }
+}
+
+/* ---------- React Bits pieces: tune to the landing tokens ---------- */
+
+/* Special call to action. Landing rules sit above the vendored ones, which are unlayered. */
+.swc-landing .specular-button.swc-specular {
+  font-weight: 600;
+  padding-block: 0.8125rem;
+  box-shadow: none;
+}
+
+.swc-landing .specular-button:focus-visible {
+  outline-color: var(--swc-lime-ink);
+}
+
+/* The vendored folder removes outlines; keyboard users need a visible focus ring. */
+.swc-landing .folder-float__trigger:focus-visible,
+.swc-landing .folder-float__item:focus-visible {
+  outline: 2px solid var(--swc-lime-ink);
+  outline-offset: 3px;
+}
+
+.swc-landing .folder-float__item {
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgb(26 31 36 / 0.22);
+}
+
+/* Lattice loader: the in-progress cells follow the muted text color. */
+.swc-landing .swc-loader {
+  --ll-idle: 0.2;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .swc-landing .swc-loader .lattice-loader__run .lattice-loader__cell {
+    animation: none;
+    opacity: 0.45;
+  }
+}

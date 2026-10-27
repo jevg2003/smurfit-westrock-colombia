@@ -6,7 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { DIMENSION_LABELS } from "@/core/labels";
 import { Delta } from "@/features/trm/delta";
 import { AlertStateBadge, DimensionBadge, SeverityBadge } from "@/features/avisos/badges";
-import { LazyBeam } from "./lazy-beam";
 import { LazyChart } from "./lazy-chart";
 import { SAMPLE_ALERTS, SAMPLE_STATS } from "./sample-data";
 
@@ -26,7 +25,7 @@ export function RadarMockup() {
     <div
       aria-hidden="true"
       inert
-      className="relative overflow-hidden rounded-2xl border bg-card/60 p-3 shadow-2xl shadow-primary/10 sm:p-4"
+      className="relative overflow-hidden rounded-2xl border bg-card/60 p-3 sm:p-4"
     >
       <div className="mb-3 flex items-center justify-between gap-2">
         <div className="flex min-w-0 flex-col">
@@ -96,7 +95,6 @@ export function RadarMockup() {
         </Card>
       </div>
 
-      <LazyBeam />
     </div>
   );
 }
