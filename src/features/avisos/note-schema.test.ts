@@ -6,7 +6,7 @@ describe("noteSchema", () => {
     const result = noteSchema.safeParse({ note: "   ", intent: "dismiss" });
     expect(result.success).toBe(false);
     expect(result.error?.issues.map((issue) => [issue.path[0], issue.message])).toEqual([["note", DISMISS_NOTE_REQUIRED]]);
-    expect(DISMISS_NOTE_REQUIRED).toBe("Escribe una nota para descartar el aviso.");
+    expect(DISMISS_NOTE_REQUIRED).toBe("Escriba una nota para descartar el aviso.");
   });
 
   it("accepts a note to dismiss", () => {

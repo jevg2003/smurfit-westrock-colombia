@@ -34,6 +34,8 @@ export interface EventItemProps {
   /** The one severity or state badge of the row. */
   badge?: EventBadge;
   state?: EventState;
+  /** The fact behind the event, one short line. */
+  detail?: string;
   /** What it means for the active company, in one sentence. Omit when there is none. */
   why?: string;
   /** Free line under the body, for example the note of a review. */
@@ -68,6 +70,7 @@ export function EventItem({
   topic,
   badge,
   state,
+  detail,
   why,
   note,
   href,
@@ -139,6 +142,7 @@ export function EventItem({
           )}
         </div>
 
+        {detail && <p className="text-xs text-muted-foreground text-pretty">{detail}</p>}
         {why && <p className="text-sm text-foreground/80 text-pretty">{why}</p>}
         {note && <p className="text-xs text-muted-foreground text-pretty">Nota: {note}</p>}
 

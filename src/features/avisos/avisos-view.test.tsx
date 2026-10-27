@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
-import { cleanup, screen } from "@testing-library/react";
+import { cleanup, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { makeContract } from "@/core/rules/test-fixtures";
 import { buildTrmDaySignal } from "@/core/rules/trm-daily-move";
 import { fakeContainer, renderWithQuery, resetStores, secopEmpty, secopOk, trmRecord } from "@/features/entorno/test-utils";
+import { mockViewport } from "@/components/layouts/viewport.test-utils";
 import { useAlertsStore } from "@/stores/alerts.store";
 import { useWatchlistStore } from "@/stores/watchlist.store";
 
@@ -78,6 +79,46 @@ describe("AvisosView", () => {
     expect(await screen.findByText(/La TRM subió/)).toBeInTheDocument();
     await user.click(screen.getByRole("checkbox", { name: "Solo lo que sigo" }));
     expect(screen.queryByText(/La TRM subió/)).not.toBeInTheDocument();
+  });
+
+  describe("detail pane", () => {
+    beforeEach(() => {
+      mockViewport(1280);
+      fetchTrm.mockResolvedValue([trmRecord("2026-10-19", "4000"), trmRecord("2026-10-16", "3900")]);
+    });
+    afterEach(() => vi.unstubAllGlobals());
+
+    it("asks to pick an aviso, then shows its rule and evidence in a fixed pane", async () => {
+      renderWithQuery(<AvisosView />);
+      expect(await screen.findByText("Elija un elemento de la lista")).toBeInTheDocument();
+
+      await userEvent.click(await screen.findByRole("button", { name: /^La TRM subió/ }));
+
+      const pane = screen.getByRole("region", { name: "Detalle del aviso" });
+      expect(within(pane).getByText("Regla que la activó")).toBeInTheDocument();
+    });
+
+    it("sends Descartar from a row to the detail, where the note is required", async () => {
+      renderWithQuery(<AvisosView />);
+
+      await userEvent.click(await screen.findByRole("button", { name: /^Descartar: La TRM subió/ }));
+      const pane = screen.getByRole("region", { name: "Detalle del aviso" });
+      await userEvent.click(within(pane).getByRole("button", { name: "Descartar" }));
+
+      expect(await screen.findByRole("alert")).toHaveTextContent("Escriba una nota para descartar el aviso.");
+      expect(useAlertsStore.getState().alerts[0].state).toBe("new");
+    });
+
+    it("clears every filter with Limpiar", async () => {
+      renderWithQuery(<AvisosView />);
+      await screen.findByRole("button", { name: /^La TRM subió/ });
+
+      await userEvent.selectOptions(screen.getByRole("combobox", { name: "Gravedad" }), "alert");
+      await userEvent.click(screen.getByRole("button", { name: "Limpiar" }));
+
+      expect(screen.getByRole("combobox", { name: "Gravedad" })).toHaveValue("");
+      expect(screen.getByRole("button", { name: "Limpiar" })).toBeDisabled();
+    });
   });
 
   describe("with a ?pestel= param", () => {

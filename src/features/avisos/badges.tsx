@@ -18,7 +18,7 @@ const STATE_VARIANT = {
 /** Severity is always written out, never only a color. */
 export function SeverityBadge({ severity }: { severity: Severity }) {
   return (
-    <Badge variant={SEVERITY_VARIANT[severity]} size="sm">
+    <Badge variant={SEVERITY_VARIANT[severity]}>
       {SEVERITY_LABELS[severity]}
     </Badge>
   );
@@ -26,7 +26,7 @@ export function SeverityBadge({ severity }: { severity: Severity }) {
 
 export function AlertStateBadge({ state }: { state: AlertState }) {
   return (
-    <Badge variant={STATE_VARIANT[state]} size="sm">
+    <Badge variant={STATE_VARIANT[state]}>
       {ALERT_STATE_LABELS[state]}
     </Badge>
   );
@@ -34,7 +34,7 @@ export function AlertStateBadge({ state }: { state: AlertState }) {
 
 export function DimensionBadge({ dimension }: { dimension: Dimension }) {
   return (
-    <Badge variant="outline" size="sm">
+    <Badge variant="outline">
       {DIMENSION_LABELS[dimension]}
     </Badge>
   );

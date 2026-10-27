@@ -37,6 +37,13 @@ describe("EventItem", () => {
     expect(screen.queryByText(/Por qué le importa/)).not.toBeInTheDocument();
   });
 
+  it("shows the factual detail apart from the why line", () => {
+    render(<EventItem title="Titular" at={AT} now={NOW} detail="Cerró en COP 4.120." why="Sus importaciones cuestan más." />);
+
+    expect(screen.getByText("Cerró en COP 4.120.")).toBeInTheDocument();
+    expect(screen.getByText("Sus importaciones cuestan más.")).toBeInTheDocument();
+  });
+
   it("marks a new event with a text label, not only a dot", () => {
     render(<EventItem title="Nuevo aviso" at={AT} now={NOW} state="new" />);
 

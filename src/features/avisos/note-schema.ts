@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const DISMISS_NOTE_REQUIRED = "Escribe una nota para descartar el aviso.";
+export const DISMISS_NOTE_REQUIRED = "Escriba una nota para descartar el aviso.";
 
 export type NoteIntent = "review" | "dismiss";
 

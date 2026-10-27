@@ -57,7 +57,7 @@ describe("SignalDetailSheet", () => {
 
     await user.click(screen.getByRole("button", { name: "Descartar" }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("Escribe una nota para descartar el aviso.");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Escriba una nota para descartar el aviso.");
     expect(alertOf(SIGNAL.id)?.state).not.toBe("dismissed");
     expect(onOpenChange).not.toHaveBeenCalled();
   });

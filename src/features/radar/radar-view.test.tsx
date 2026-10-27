@@ -6,6 +6,7 @@ import type { PublicContract } from "@/core/domain/contract";
 import { fakeContainer, renderWithQuery, resetStores, secopDown, secopEmpty, secopOk, trmRecord } from "@/features/entorno/test-utils";
 import { useCompaniesStore } from "@/stores/companies.store";
 import { TEST_COMPANY } from "@/core/company/test-fixtures";
+import { useAlertsStore } from "@/stores/alerts.store";
 import { useWatchlistStore } from "@/stores/watchlist.store";
 
 const secopFetch = vi.fn();
@@ -29,7 +30,7 @@ describe("RadarView", () => {
 
     expect(await screen.findByText("No hay avisos nuevos")).toBeInTheDocument();
     expect(screen.getByText("Aún no ha revisado ningún aviso.")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Días y variaciones" })).toHaveAttribute("href", "/economia?tab=trm");
+    expect(screen.getByRole("link", { name: "TRM hoy" })).toHaveAttribute("href", "/economia?tab=trm");
   });
 
   it("hides the contract cards for a company without NIT", async () => {
@@ -58,6 +59,32 @@ describe("RadarView", () => {
     renderWithQuery(<RadarView />);
 
     expect(screen.getByRole("status", { name: "Consultando las fuentes" })).toBeInTheDocument();
+  });
+
+  it("reviews an aviso from its row: it leaves the inbox and stays reviewed in the store", async () => {
+    fetchTrm.mockResolvedValue([trmRecord("2026-10-19", "4000"), trmRecord("2026-10-16", "3900")]);
+    renderWithQuery(<RadarView />);
+
+    await userEvent.click(await screen.findByRole("button", { name: /^Revisar: La TRM subió/ }));
+
+    expect(screen.queryByText(/La TRM subió/)).not.toBeInTheDocument();
+    expect(useAlertsStore.getState().alerts.map((alert) => alert.state)).toEqual(["reviewed"]);
+  });
+
+  it("filters by tema from the summary and releases the filter with Limpiar", async () => {
+    fetchTrm.mockResolvedValue([trmRecord("2026-10-19", "4000"), trmRecord("2026-10-16", "3900")]);
+    renderWithQuery(<RadarView />);
+
+    expect(await screen.findByText(/La TRM subió/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /Macroeconomía/ }));
+    expect(screen.getByRole("combobox", { name: "Tema" })).toHaveValue("macro");
+
+    await userEvent.selectOptions(screen.getByRole("combobox", { name: "Tema" }), "procurement");
+    expect(screen.queryByText(/La TRM subió/)).not.toBeInTheDocument();
+    expect(screen.getByText("Ningún aviso cumple estos filtros")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Limpiar" }));
+    expect(await screen.findByText(/La TRM subió/)).toBeInTheDocument();
   });
 
   describe("watchlist filter (RF-15)", () => {

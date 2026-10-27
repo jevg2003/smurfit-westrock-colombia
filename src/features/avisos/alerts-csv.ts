@@ -2,7 +2,7 @@ import { toCsv } from "@/core/format/csv";
 import { ALERT_STATE_LABELS, DIMENSION_LABELS, SEVERITY_LABELS } from "@/core/labels";
 import { bogotaDateKey } from "@/core/time/bogota";
 import { PESTEL_LABELS } from "@/features/entorno/labels";
-import type { AlertRow } from "./alerts-grid";
+import type { AlertRow } from "./alert-row";
 
 export const ALERTS_CSV_COLUMNS = [
   "estado",
