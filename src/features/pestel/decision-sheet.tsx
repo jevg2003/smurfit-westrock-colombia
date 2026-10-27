@@ -7,7 +7,7 @@ import { Badge } from "@/components/reui/badge";
 import { AutoTextareaField, DateField, TextField } from "@/components/reui/form-fields";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Field, FieldError, FieldLabel } from "@/components/ui/field";
+import { Field, FieldLabel } from "@/components/ui/field";
 import {
   Sheet,
   SheetContent,
