@@ -9,7 +9,7 @@ afterEach(cleanup);
 describe("ErrorState", () => {
   it.each([
     ["rate_limited", "La fuente limitó las consultas."],
-    ["network", "Revisa tu conexión"],
+    ["network", "Revise su conexión"],
     ["schema", "La fuente cambió su formato."],
   ] as const)("adds a hint for the %s kind", (kind, hint) => {
     render(<ErrorState message="Falló." kind={kind} />);
@@ -27,7 +27,7 @@ describe("ErrorState", () => {
     try {
       const onRetry = vi.fn();
       render(<ErrorState message="La fuente respondió 401." kind="unauthorized" onRetry={onRetry} />);
-      expect(screen.getByText("Tu sesión de acceso venció. Vuelve a entrar para seguir.")).toBeInTheDocument();
+      expect(screen.getByText("Su sesión de acceso venció. Vuelva a entrar para seguir.")).toBeInTheDocument();
       expect(screen.queryByText("La fuente respondió 401.")).not.toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "Reintentar" })).not.toBeInTheDocument();
       await userEvent.click(screen.getByRole("button", { name: "Volver a entrar" }));

@@ -11,7 +11,7 @@ interface Props {
 export function StaleNotice({ source, updatedAt }: Props) {
   return (
     <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-      <Badge variant="warning-light" size="sm">
+      <Badge variant="warning-light">
         Dato desactualizado
       </Badge>
       <span>

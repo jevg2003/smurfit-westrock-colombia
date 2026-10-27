@@ -30,21 +30,25 @@ function PageTabsContent({ title, tabs }: Props) {
   if (!active) return null;
 
   return (
-    <div className="flex min-w-0 flex-col gap-4">
-    <h1 className="text-lg font-semibold tracking-tight">{title}</h1>
-    <Tabs value={active.value} onValueChange={(value) => router.push(`${pathname}?tab=${String(value)}`, { scroll: false })} className="min-w-0 gap-4">
-      <TabsList aria-label={`Secciones de ${title}`} className="w-full">
-        {visible.map(({ value, label: text, icon: Icon }) => (
-          <TabsTrigger key={value} value={value}>
-            <Icon aria-hidden="true" />
-            {text}
-          </TabsTrigger>
-        ))}
-      </TabsList>
-      <TabsContent value={active.value} className="min-w-0">
-        {active.content}
-      </TabsContent>
-    </Tabs>
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
+      <h1 className="shrink-0 text-xl font-semibold tracking-tight">{title}</h1>
+      <Tabs
+        value={active.value}
+        onValueChange={(value) => router.push(`${pathname}?tab=${String(value)}`, { scroll: false })}
+        className="min-h-0 min-w-0 flex-1 gap-3"
+      >
+        <TabsList aria-label={`Secciones de ${title}`} className="w-full shrink-0 justify-start overflow-x-auto sm:justify-center">
+          {visible.map(({ value, label: text, icon: Icon }) => (
+            <TabsTrigger key={value} value={value} className="flex-none px-3 sm:flex-1">
+              <Icon aria-hidden="true" />
+              {text}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+        <TabsContent value={active.value} className="flex min-h-0 min-w-0 flex-1 flex-col">
+          {active.content}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

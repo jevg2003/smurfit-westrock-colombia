@@ -6,9 +6,9 @@ import { SESSION_EXPIRED_ACTION, SESSION_EXPIRED_MESSAGE, reenterSession } from 
 
 /** One short hint per failure kind, shown under the message so the user knows what to expect. */
 const KIND_HINTS: Partial<Record<SourceErrorKind, string>> = {
-  rate_limited: "La fuente limitó las consultas. Espera un momento antes de reintentar.",
-  network: "Revisa tu conexión o intenta de nuevo en unos minutos.",
-  schema: "La fuente cambió su formato. Avisa al equipo si sigue pasando.",
+  rate_limited: "La fuente limitó las consultas. Espere un momento antes de reintentar.",
+  network: "Revise su conexión o intente de nuevo en unos minutos.",
+  schema: "La fuente cambió su formato. Avise al equipo si sigue pasando.",
 };
 
 interface Props {
@@ -18,9 +18,11 @@ interface Props {
   source?: string;
   /** Real kind of the failure (`error.kind` of a `SourceFailure`); unknown kinds add no hint. */
   kind?: SourceErrorKind;
+  /** Adds that the rest of the screen still has its data. */
+  othersKeepWorking?: boolean;
 }
 
-export function ErrorState({ message, onRetry, source, kind }: Props) {
+export function ErrorState({ message, onRetry, source, kind, othersKeepWorking }: Props) {
   if (kind === "unauthorized") {
     return (
       <Alert variant="destructive">
@@ -42,6 +44,7 @@ export function ErrorState({ message, onRetry, source, kind }: Props) {
       <AlertDescription>
         <p>{message}</p>
         {kind && KIND_HINTS[kind] && <p>{KIND_HINTS[kind]}</p>}
+        {othersKeepWorking && <p>Los demás datos siguen disponibles.</p>}
         {onRetry && (
           <Button variant="outline" size="sm" className="mt-2" onClick={onRetry}>
             Reintentar

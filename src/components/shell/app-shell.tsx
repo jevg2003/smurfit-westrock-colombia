@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import type { CSSProperties, ReactNode } from "react";
 import { CompanySwitcher } from "./company-switcher";
 import { BRAND_HREF, CONFIG_ITEM, HOME_HREF, NAV, isNavActive, navTitle } from "./nav";
+import { UndoNoticeHost } from "@/components/events/undo-notice";
 import { BrandIntro } from "@/components/brand/brand-intro";
 import { SwcSymbol } from "@/components/brand/swc-logo";
 import { ThemeTogglerButton } from "@/components/animate-ui/components/buttons/theme-toggler";
@@ -140,16 +141,18 @@ export function AppShell({ children }: Props) {
           </div>
         </header>
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-x-hidden overflow-y-auto p-4 print:overflow-visible">
-          <div className="flex flex-1 flex-col gap-4">{children}</div>
-          <footer className="max-w-prose text-xs text-muted-foreground print:hidden">
-            <p className="font-medium">Smart Work Core: herramienta independiente, sin aval de las entidades que publican los datos.</p>
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-x-hidden overflow-y-auto px-4 pt-4 pb-3 md:px-6 lg:overflow-y-hidden print:overflow-visible">
+          <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+          <footer className="shrink-0 text-xs text-muted-foreground print:hidden">
             <p>
-              Construido con datos públicos (datos.gov.co: TRM, SECOP II, Supersociedades y exportaciones; Banco Mundial: PIB e inflación; titulares de medios y Google News; Minambiente y decretos de Presidencia). Los avisos salen de reglas escritas y
-              visibles. El asistente de IA solo lee estos datos y puede equivocarse.
+              Smart Work Core es una herramienta independiente, sin aval de las entidades que publican los datos.{" "}
+              <Link href="/configuracion?tab=acerca" className="underline underline-offset-4 outline-none transition-colors hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50">
+                Fuentes y límites
+              </Link>
             </p>
           </footer>
         </div>
+        <UndoNoticeHost />
       </SidebarInset>
     </SidebarProvider>
     </PageContextProvider>

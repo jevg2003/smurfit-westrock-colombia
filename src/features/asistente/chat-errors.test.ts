@@ -29,7 +29,7 @@ describe("describeChatFailure: expired access session", () => {
     const { SessionExpiredError } = await import("./chat-fetch");
     expect(describeChatFailure(new SessionExpiredError())).toEqual({
       title: "Sesión vencida",
-      message: "Tu sesión de acceso venció. Vuelve a entrar para seguir.",
+      message: "Su sesión de acceso venció. Vuelva a entrar para seguir.",
       reenter: true,
     });
   });
