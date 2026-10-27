@@ -1,11 +1,13 @@
 "use client";
 
-import { HomeIcon, LineChartIcon, PanelLeftIcon } from "lucide-react";
+import { HomeIcon, PanelLeftIcon } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { CSSProperties, ReactNode } from "react";
 import { CompanySwitcher } from "./company-switcher";
 import { BRAND_HREF, HOME_HREF, NAV_GROUPS, isNavActive, navTitle } from "./nav";
+import { BrandIntro } from "@/components/brand/brand-intro";
 import { ThemeTogglerButton } from "@/components/animate-ui/components/buttons/theme-toggler";
 import { Button } from "@/components/ui/button";
 import { AssistantSheet } from "@/features/asistente/assistant-sheet";
@@ -37,14 +39,9 @@ import {
 
 function Logo() {
   return (
-    <Button
-      size="icon"
-      nativeButton={false}
-      render={<Link href={BRAND_HREF} aria-label="Smart Work Core, radar" />}
-      className="size-7"
-    >
-      <LineChartIcon aria-hidden="true" className="size-3.5" />
-    </Button>
+    <Link href={BRAND_HREF} aria-label="Smart Work Core, radar" className="rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
+      <Image src="/icon.svg" alt="" aria-hidden="true" width={28} height={28} unoptimized priority />
+    </Link>
   );
 }
 
@@ -71,6 +68,7 @@ export function AppShell({ actions, children }: Props) {
 
   return (
     <PageContextProvider>
+    <BrandIntro />
     <SidebarProvider
       defaultOpen={false}
       className="h-dvh [--header-height:50px]"
