@@ -32,6 +32,12 @@ Convertir la app de una sola empresa (Smurfit Westrock / Cartón de Colombia) en
   - Botones de acción anclados abajo (no se mueven con poco espacio); el card ocupa el alto disponible en escritorio descontando encabezado y márgenes.
   - Panel derecho del onboarding con el diseño de la maqueta ReUI (riel de navegación, encabezado con nombre y badge, búsqueda, filtros, filas), que se va construyendo con los datos reales del perfil.
 
+- [x] T7 Ajustes visuales del onboarding (rama `feat/swc-formularios`) — ruta: delegada, 3 escritores en paralelo con superficies disjuntas (pedido explícito del usuario)
+  - A: pills del panel derecho recortadas + `ScrollArea` en `onboarding-flow.tsx` con alto dinámico.
+  - B: formulario de confirmación con estructura por secciones (estilo factura ReUI), competidores con `@reui/c-item-9` y alta en diálogo `@reui/c-dialog-5`; anchos actuales.
+  - C: `ChipListField` reemplazado por `@reui/c-combobox-20` (chips con entrada libre).
+  - Evidencia: A `0ce9905` (ScrollArea en `step-form.tsx`, raíz `flex-1 min-h-0`; estilos, sin RED); B `7b39f26` + `281e268` (RED 7/8 → GREEN 8/8 en `confirm-form.test.tsx`; `competitorSchema` único en `core/onboarding/confirm.ts`); C `e620c5d` (RED 5/7 → GREEN 7/7; límites desde el schema con `safeParse`). Integrado: `pnpm typecheck` sin errores, `pnpm lint` sin errores (solo advertencias conocidas de landing/react-bits), `pnpm test` 169 archivos / 1249 pruebas, `pnpm build` compila. Sin prueba en navegador.
+
 ## Pendientes de generalización (anotar durante la implementación)
 - Normas curadas (`src/content/regulacion/normas.json`): hoy es una lista vacía y la sección se oculta. Cada empresa necesita sus propias normas (curadas a mano o generadas en el onboarding); la fuente es un archivo único del despliegue, no del perfil.
 - Plantillas de decisión (`pestel/decision-templates.ts`): son cuatro textos fijos (cobertura cambiaria, contratos públicos, norma nueva, costo de energía). Suponen exposición al dólar y contratación pública; deberían salir de los objetivos de la empresa (T3/T5).
