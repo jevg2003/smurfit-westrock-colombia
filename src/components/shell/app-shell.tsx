@@ -4,6 +4,7 @@ import { HomeIcon, LineChartIcon, PanelLeftIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { CSSProperties, ReactNode } from "react";
+import { CompanySwitcher } from "./company-switcher";
 import { BRAND_HREF, HOME_HREF, NAV_GROUPS, isNavActive, navTitle } from "./nav";
 import { ThemeTogglerButton } from "@/components/animate-ui/components/buttons/theme-toggler";
 import { Button } from "@/components/ui/button";
@@ -106,6 +107,7 @@ export function AppShell({ actions, children }: Props) {
         </SidebarContent>
 
         <SidebarFooter className="items-center justify-center py-3 in-data-[mobile=true]:items-start in-data-[mobile=true]:px-4">
+          <CompanySwitcher />
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton tooltip="Inicio" aria-label="Inicio" render={<Link href={HOME_HREF} />}>

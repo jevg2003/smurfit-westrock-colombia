@@ -32,6 +32,9 @@ export function StoreHydrator() {
     let bound: string | null = null;
     let unsubscribe: (() => void) | undefined;
 
+    // A fresh mount (for example after leaving the company picker) must not trust a flag raised for another company.
+    useHydrationStore.getState().markHydrating();
+
     const bindActive = async () => {
       const { activeCompanyId } = useCompaniesStore.getState();
       bound = activeCompanyId;

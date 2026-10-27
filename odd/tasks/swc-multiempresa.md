@@ -21,7 +21,7 @@ Convertir la app de una sola empresa (Smurfit Westrock / Cartón de Colombia) en
 
 ## Tareas
 - [x] T1 Base multiempresa: modelo `CompanyProfile`, store de empresas + empresa activa, stores namespaced por empresa (`swc:<id>:*`), reemplazar `src/content/config/empresa.ts` por el perfil activo, quitar referencias a Smurfit/Cartón y contenido muerto, rebrand SWC. — ruta: delegada (20+ archivos)
-- [ ] T2 Selector de empresa + cerrar sesión + guard (sin empresa activa → selector; sin empresas → onboarding). — ruta: delegada
+- [x] T2 Selector de empresa + cerrar sesión + guard (sin empresa activa → selector; sin empresas → onboarding). — ruta: delegada
 - [ ] T3 Onboarding con IA (endpoint con structured output, borrador persistido, stepper, vista previa). — ruta: delegada
 - [ ] T4 Nav de 5 ítems con tabs, Configuración unificada, vocabulario aviso/regla. — ruta: delegada
 - [ ] T5 Rediseño por eventos (`EventItem`, layouts canónicos). — ruta: delegada
@@ -46,3 +46,11 @@ Convertir la app de una sola empresa (Smurfit Westrock / Cartón de Colombia) en
   - Verificación final: `pnpm typecheck` sin errores; `pnpm lint` sin hallazgos; `pnpm test` 127 archivos, 912 pruebas en verde; `pnpm build` compila. e2e no se ejecutó (necesita navegador); sus textos y el sembrado de empresa se actualizaron estáticamente.
   - `rg -i "smurfit|westrock|cart[oó]n|corrugad|yumbo|890300406"` sobre `src`, `e2e`, `README.md` y `package.json`: sin resultados.
   - Decisión: el servidor recibe el contexto de empresa por POST (`/api/news`, `/api/regulacion`) o en el cuerpo del chat; los esquemas zod son estrictos y acotados.
+- T2 hecho (ruta: delegada, un escritor; disparador: 15+ archivos entre rutas, componentes y pruebas). Línea base: typecheck, lint y test en verde (912 pruebas).
+  - Instalado: `@reui/c-item-9` (base de las filas; el ejemplo no se conserva), `avatar` y `alert-dialog` (corregido el import `cn` a `@/lib/utils`).
+  - Rutas privadas `/empresas` y `/onboarding` (placeholder) en el grupo `(account)`, fuera del sidebar; Access las protege por defecto (solo `/` y estáticos son públicos).
+  - `CompanyGate` redirige: sin empresas a `/onboarding`, con empresas sin activa a `/empresas`; espera la hidratación sin parpadeo. `StoreHydrator` vuelve a marcar "hidratando" al montar.
+  - Pie del sidebar: `CompanySwitcher` (cambiar, Nueva empresa, Ver todas, Cerrar sesión que solo limpia la empresa activa). Un solo helper de iniciales: `companyInitials` + `CompanyAvatar`.
+  - Borrar una empresa (`deleteCompany`) quita el perfil y todas las claves `swc:<id>:*` (incluye el borrador de onboarding de T3 si usa ese prefijo).
+  - RED observado: las 5 suites nuevas/actualizadas fallaron por módulos inexistentes y redirecciones ausentes; luego GREEN.
+  - Verificación final: typecheck sin errores; lint sin hallazgos; test 131 archivos, 925 pruebas en verde; build compila con `/empresas` y `/onboarding`. e2e no se ejecutó; `seedCompany` sigue válido.

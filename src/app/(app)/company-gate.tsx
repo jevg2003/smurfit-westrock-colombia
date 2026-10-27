@@ -1,36 +1,27 @@
 "use client";
 
-import { BuildingIcon } from "lucide-react";
-import type { ReactNode } from "react";
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
+import { useRouter } from "next/navigation";
+import { useEffect, type ReactNode } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useActiveCompany } from "@/stores/companies.store";
+import { useActiveCompany, useCompaniesStore } from "@/stores/companies.store";
 import { useHydrationStore } from "@/stores/hydration.store";
-
-/** Shown until a company exists and is active. The company picker and the onboarding replace it. */
-export function NoCompany() {
-  return (
-    <Empty className="border">
-      <EmptyHeader>
-        <EmptyMedia variant="icon">
-          <BuildingIcon aria-hidden="true" />
-        </EmptyMedia>
-        <EmptyTitle>Todavía no hay una empresa configurada</EmptyTitle>
-        <EmptyDescription>Smart Work Core lee el contexto de Colombia para una empresa. Cuando haya una configurada, aquí verás su radar, sus avisos y sus análisis.</EmptyDescription>
-      </EmptyHeader>
-    </Empty>
-  );
-}
 
 /**
  * Every screen of the app works on the active company, so none of them renders without one. While the stores
- * load there is nothing to decide yet, so the gate waits instead of flashing the empty state.
+ * load there is nothing to decide yet, so the gate waits. Then no companies goes to the onboarding and
+ * companies without an active one go to the picker.
  */
 export function CompanyGate({ children }: { children: ReactNode }) {
+  const router = useRouter();
   const hasHydrated = useHydrationStore((state) => state.hasHydrated);
   const company = useActiveCompany();
+  const hasCompanies = useCompaniesStore((state) => state.companies.length > 0);
 
-  if (!hasHydrated) return <Skeleton role="status" aria-label="Cargando tu empresa" className="h-72 rounded-xl" />;
-  if (!company) return <NoCompany />;
+  const redirectTo = !hasHydrated || company ? null : hasCompanies ? "/empresas" : "/onboarding";
+  useEffect(() => {
+    if (redirectTo) router.replace(redirectTo);
+  }, [redirectTo, router]);
+
+  if (!hasHydrated || !company) return <Skeleton role="status" aria-label="Cargando tu empresa" className="h-72 rounded-xl" />;
   return <>{children}</>;
 }
