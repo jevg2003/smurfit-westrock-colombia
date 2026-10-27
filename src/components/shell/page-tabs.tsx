@@ -1,0 +1,59 @@
+"use client";
+
+import type { LucideIcon } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Suspense, type ReactNode } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+export interface PageTab {
+  value: string;
+  label: string;
+  icon: LucideIcon;
+  /** Only the active tab renders its content, so a page never loads every view at once. */
+  content: ReactNode;
+  /** A hidden tab is not listed and cannot be opened from the URL. */
+  hidden?: boolean;
+}
+
+interface Props {
+  /** The h1 of the page; the tabs are its sections. */
+  title: string;
+  tabs: PageTab[];
+}
+
+function PageTabsContent({ title, tabs }: Props) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const requested = useSearchParams()?.get("tab");
+  const visible = tabs.filter((tab) => !tab.hidden);
+  const active = visible.find((tab) => tab.value === requested) ?? visible[0];
+  if (!active) return null;
+
+  return (
+    <div className="flex min-w-0 flex-col gap-4">
+    <h1 className="text-lg font-semibold tracking-tight">{title}</h1>
+    <Tabs value={active.value} onValueChange={(value) => router.push(`${pathname}?tab=${String(value)}`, { scroll: false })} className="min-w-0 gap-4">
+      <TabsList aria-label={`Secciones de ${title}`} className="w-full">
+        {visible.map(({ value, label: text, icon: Icon }) => (
+          <TabsTrigger key={value} value={value}>
+            <Icon aria-hidden="true" />
+            {text}
+          </TabsTrigger>
+        ))}
+      </TabsList>
+      <TabsContent value={active.value} className="min-w-0">
+        {active.content}
+      </TabsContent>
+    </Tabs>
+    </div>
+  );
+}
+
+/** Tabs of a page, with the active one kept in the URL (`?tab=`) so it can be shared and the back button works. */
+export function PageTabs(props: Props) {
+  return (
+    <Suspense fallback={null}>
+      <PageTabsContent {...props} />
+    </Suspense>
+  );
+}
