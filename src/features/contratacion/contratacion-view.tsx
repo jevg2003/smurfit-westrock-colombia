@@ -1,205 +1,123 @@
 "use client";
 
-import type { ColumnDef } from "@tanstack/react-table";
+import { DownloadIcon } from "lucide-react";
+import { useMemo, useState } from "react";
+import { EventItem, type EventTone } from "@/components/events/event-item";
+import { EventList } from "@/components/events/event-list";
+import { FilterBar } from "@/components/layouts/filter-bar";
+import { FilterSelect } from "@/components/layouts/filter-select";
+import { ListDetailLayout } from "@/components/layouts/list-detail-layout";
+import { useFilterValues } from "@/components/layouts/use-filter-values";
+import { ProvenanceNote } from "@/components/shell/provenance-note";
+import { EventListSkeleton } from "@/components/states/event-list-skeleton";
+import { RegionEmpty } from "@/components/states/region-empty";
+import { SourceNotices } from "@/components/states/source-notices";
+import { Button } from "@/components/ui/button";
+import { contractExpiry, type ExpiryLevel } from "@/core/rules/contract-expiry";
+import { bogotaDateKey } from "@/core/time/bogota";
 import { useRegisterPageContext } from "@/features/asistente/page-context";
 import { contractsContext } from "@/features/asistente/screen-contexts";
-import { DownloadIcon, ExternalLinkIcon, LandmarkIcon } from "lucide-react";
-import { useMemo } from "react";
-import { Badge } from "@/components/reui/badge";
-import type { DataGridFeatures } from "@/components/reui/data-grid/data-grid";
-import { DataGridColumnHeader } from "@/components/reui/data-grid/data-grid-column-header";
-import { DataTableCard } from "@/components/shell/data-table-card";
-import { PageIntro } from "@/components/shell/page-intro";
-import { ProvenanceNote } from "@/components/shell/provenance-note";
-import { ErrorState } from "@/components/states/error-state";
-import { StaleNotice } from "@/components/states/stale-notice";
-import { Button } from "@/components/ui/button";
-import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
-import { Skeleton } from "@/components/ui/skeleton";
-import type { PublicContract } from "@/core/domain/contract";
-import { bogotaDateKey } from "@/core/time/bogota";
 import { getContainer } from "@/features/entorno/container";
 import { SOURCES } from "@/features/entorno/sources";
 import { useSecop } from "@/features/entorno/use-secop";
-import { formatDiaBogota } from "@/lib/date";
 import { downloadCsv } from "@/lib/download";
 import { formatCop } from "@/lib/money";
-import { safeHttpUrl } from "@/lib/safe-url";
 import { useCompany } from "@/stores/companies.store";
 import { usePreferencesStore } from "@/stores/preferences.store";
+import { ContractDetail } from "./contract-detail";
 import { contractsToCsv } from "./contracts-csv";
-import { contractExpiry, type ExpiryLevel } from "@/core/rules/contract-expiry";
 
-const BADGE: Record<ExpiryLevel, "destructive-light" | "warning-light" | "success-light" | "outline"> = {
-  alert: "destructive-light",
-  watch: "warning-light",
-  ok: "success-light",
-  neutral: "outline",
-};
+const TONE: Record<ExpiryLevel, EventTone> = { alert: "high", watch: "medium", ok: "positive", neutral: "neutral" };
+const EXPIRY_OPTIONS = [
+  { value: "alert", label: "En alerta" },
+  { value: "watch", label: "En vigilancia" },
+  { value: "ok", label: "Vigentes" },
+  { value: "neutral", label: "Terminados o sin fecha" },
+];
 
-/** Public contracts (SECOP II) of the company NIT, with the expiry window of each. */
+/** Public contracts (SECOP, contratación pública) of the company NIT, with the expiry window of each (L2). */
 export function ContratacionView() {
   const company = useCompany();
   const { view, data } = useSecop();
   const thresholds = usePreferencesStore((state) => state.thresholds);
-  const expiry = useMemo(
-    () => ({ watchDays: thresholds.contractExpiryWatchDays, alertDays: thresholds.contractExpiryAlertDays }),
-    [thresholds],
-  );
+  const expiry = useMemo(() => ({ watchDays: thresholds.contractExpiryWatchDays, alertDays: thresholds.contractExpiryAlertDays }), [thresholds]);
   const now = getContainer().clock.now();
+  const [openId, setOpenId] = useState<string | null>(null);
+  const { values, set, clear, active } = useFilterValues({ expiry: "", status: "" });
 
-  const rows = useMemo(
-    () => (data?.contracts ?? []).filter((contract) => contract.supplierNit === company.nit),
-    [data, company.nit],
+  const rows = useMemo(() => (data?.contracts ?? []).filter((contract) => contract.supplierNit === company.nit), [data, company.nit]);
+  const statuses = useMemo(() => [...new Set(rows.map((contract) => contract.status))].sort().map((status) => ({ value: status, label: status })), [rows]);
+  const shown = useMemo(
+    () =>
+      rows
+        .filter((contract) => (!values.status || contract.status === values.status) && (!values.expiry || contractExpiry(contract, now, expiry).level === values.expiry))
+        .sort((a, b) => Date.parse(b.signedAt) - Date.parse(a.signedAt)),
+    [rows, values, expiry, now],
   );
+  const open = rows.find((contract) => contract.id === openId) ?? null;
   useRegisterPageContext(contractsContext("/economia", "Contratación", rows));
 
-  const columns = useMemo<ColumnDef<DataGridFeatures, PublicContract>[]>(
-    () => [
-      {
-        id: "entity",
-        accessorFn: (row) => row.entity,
-        header: ({ column }) => <DataGridColumnHeader title="Entidad" column={column} />,
-        cell: ({ row }) => (
-          <div className="flex min-w-0 flex-col py-1">
-            <span className="font-medium whitespace-normal">{row.original.entity}</span>
-            <span className="font-mono text-xs text-muted-foreground">{row.original.id}</span>
-          </div>
-        ),
-        size: 300,
-        enableHiding: false,
-      },
-      {
-        id: "value",
-        accessorFn: (row) => row.value,
-        header: ({ column }) => <DataGridColumnHeader title="Valor" column={column} />,
-        cell: ({ row }) => <span className="whitespace-nowrap tabular-nums">{formatCop(row.original.value)}</span>,
-        size: 150,
-        enableHiding: false,
-      },
-      {
-        id: "signedAt",
-        accessorFn: (row) => Date.parse(row.signedAt),
-        header: ({ column }) => <DataGridColumnHeader title="Firma" column={column} />,
-        cell: ({ row }) => <span className="whitespace-nowrap tabular-nums">{formatDiaBogota(row.original.signedAt)}</span>,
-        size: 130,
-        enableHiding: false,
-      },
-      {
-        id: "endsAt",
-        accessorFn: (row) => (row.endsAt ? Date.parse(row.endsAt) : 0),
-        header: ({ column }) => <DataGridColumnHeader title="Fin" column={column} />,
-        cell: ({ row }) => (
-          <span className="whitespace-nowrap tabular-nums">
-            {row.original.endsAt ? formatDiaBogota(row.original.endsAt) : "Sin fecha"}
-          </span>
-        ),
-        size: 130,
-        enableHiding: false,
-      },
-      {
-        id: "expiry",
-        accessorFn: (row) => contractExpiry(row, now, expiry).days ?? Number.MAX_SAFE_INTEGER,
-        header: ({ column }) => <DataGridColumnHeader title="Vencimiento" column={column} />,
-        cell: ({ row }) => {
-          const result = contractExpiry(row.original, now, expiry);
-          return (
-            <Badge variant={BADGE[result.level]} size="sm">
-              {result.label}
-            </Badge>
-          );
-        },
-        size: 150,
-        enableHiding: false,
-      },
-      {
-        id: "status",
-        accessorFn: (row) => row.status,
-        header: ({ column }) => <DataGridColumnHeader title="Estado" column={column} />,
-        cell: ({ row }) => <span className="whitespace-nowrap">{row.original.status}</span>,
-        size: 130,
-        enableHiding: false,
-      },
-      {
-        id: "process",
-        header: () => <span className="sr-only">Proceso</span>,
-        cell: ({ row }) => {
-          const url = safeHttpUrl(row.original.processUrl);
-          return url ? (
-            <a
-              href={url}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label={`Abrir proceso en SECOP: ${row.original.entity}`}
-              className="inline-flex items-center gap-1 text-sm whitespace-nowrap underline underline-offset-4 outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
-            >
-              Abrir proceso
-              <ExternalLinkIcon aria-hidden="true" className="size-3.5" />
-            </a>
-          ) : (
-            <span className="text-xs text-muted-foreground">Sin enlace</span>
-          );
-        },
-        size: 150,
-        enableSorting: false,
-        enableHiding: false,
-      },
-    ],
-    [expiry, now],
-  );
-
   return (
-    <div className="flex min-w-0 flex-col gap-4">
-      <PageIntro description="Contratos públicos que firmó la empresa en los últimos 12 meses y cuándo vencen. Las ventanas de vencimiento se editan en Configuración."
-      />
-
-      {view.status === "error" && (
-        <ErrorState source="SECOP II" message={view.errorMessage ?? "Error desconocido."} kind={view.errorKind} onRetry={view.retry} />
-      )}
-      {view.isStale && <StaleNotice source="SECOP II" updatedAt={view.updatedAt} />}
-
-      {view.status === "pending" ? (
-        <Skeleton role="status" aria-label="Consultando SECOP II en datos.gov.co" className="h-96 rounded-xl" />
-      ) : view.status === "ready" ? (
-        <DataTableCard
-          title={`Contratos de ${company.name}`}
-          icon={<LandmarkIcon aria-hidden="true" />}
-          description={`NIT ${company.nit ?? "sin registrar"}. Vigilar desde ${thresholds.contractExpiryWatchDays} días, alerta desde ${thresholds.contractExpiryAlertDays} días antes del fin.`}
-          rows={rows}
-          columns={columns}
-          getRowId={(row) => row.id}
-          initialSort={[{ id: "signedAt", desc: true }]}
-          countLabel="contratos"
-          actions={
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={rows.length === 0}
-              onClick={() => downloadCsv(`contratos-${bogotaDateKey(now)}.csv`, contractsToCsv(rows, now, expiry))}
-            >
+    <ListDetailLayout
+      filters={
+        <FilterBar
+          active={active}
+          onClear={clear}
+          trailing={
+            <Button variant="outline" size="sm" disabled={shown.length === 0} onClick={() => downloadCsv(`contratos-${bogotaDateKey(now)}.csv`, contractsToCsv(shown, now, expiry))}>
               <DownloadIcon aria-hidden="true" data-icon="inline-start" />
               Exportar CSV
             </Button>
           }
-          emptyMessage={
-            <Empty className="border-0 p-6">
-              <EmptyHeader>
-                <EmptyTitle>No hay contratos en los últimos 12 meses para este NIT</EmptyTitle>
-                <EmptyDescription>
-                  SECOP II no devolvió contratos firmados por el NIT {company.nit ?? "de la empresa"} desde hace un año.
-                </EmptyDescription>
-              </EmptyHeader>
-            </Empty>
-          }
-          footer={
-            <ProvenanceNote
-              attribution={SOURCES.secop.attribution}
-              license={SOURCES.secop.license}
-              fetchedAt={view.updatedAt}
+        >
+          <FilterSelect label="Vencimiento" value={values.expiry} options={EXPIRY_OPTIONS} onChange={(value) => set("expiry", value)} />
+          <FilterSelect label="Estado" value={values.status} options={statuses} onChange={(value) => set("status", value)} />
+        </FilterBar>
+      }
+      notices={<SourceNotices sources={[{ name: "SECOP II", ...view }]} />}
+      listLabel="Lista de contratos"
+      list={
+        view.status === "pending" ? (
+          <EventListSkeleton label="Consultando SECOP II en datos.gov.co" />
+        ) : view.status === "ready" ? (
+          shown.length === 0 ? (
+            <RegionEmpty
+              title={rows.length === 0 ? "No hay contratos en los últimos 12 meses para este NIT" : "Ningún contrato cumple estos filtros"}
+              description={rows.length === 0 ? `SECOP II no devolvió contratos firmados por el NIT ${company.nit ?? "de la empresa"} desde hace un año.` : "Quite un filtro para ver más."}
+              action={rows.length > 0 && active ? { label: "Limpiar filtros", onClick: clear } : undefined}
             />
-          }
-        />
-      ) : null}
-    </div>
+          ) : (
+            <>
+              <EventList
+                label="Contratos"
+                items={shown.map((contract) => ({ contract, at: contract.signedAt }))}
+                getKey={({ contract }) => contract.id}
+                renderItem={({ contract }) => {
+                  const result = contractExpiry(contract, now, expiry);
+                  return (
+                    <EventItem
+                      title={contract.entity}
+                      at={contract.signedAt}
+                      source="SECOP II"
+                      topic={formatCop(contract.value)}
+                      badge={{ label: result.label, tone: TONE[result.level] }}
+                      detail={`Estado: ${contract.status}`}
+                      selected={contract.id === openId}
+                      onOpen={() => setOpenId(contract.id)}
+                    />
+                  );
+                }}
+              />
+              <div className="px-3 py-2">
+                <ProvenanceNote attribution={SOURCES.secop.attribution} license={SOURCES.secop.license} fetchedAt={view.updatedAt} />
+              </div>
+            </>
+          )
+        ) : null
+      }
+      detail={open ? <ContractDetail contract={open} expiry={contractExpiry(open, now, expiry)} fetchedAt={view.updatedAt} /> : null}
+      detailLabel="Detalle del contrato"
+      onCloseDetail={() => setOpenId(null)}
+    />
   );
 }

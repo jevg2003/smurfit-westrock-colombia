@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
-import { cleanup, screen } from "@testing-library/react";
+import { cleanup, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PublicContract } from "@/core/domain/contract";
+import { mockViewport } from "@/components/layouts/viewport.test-utils";
 import { fakeContainer, renderWithQuery, resetStores, secopDown, secopEmpty, secopOk, trmRecord } from "@/features/entorno/test-utils";
 
 const secopFetch = vi.fn();
@@ -41,17 +42,34 @@ describe("ContratacionView", () => {
     secopFetch.mockResolvedValue(secopOk([CONTRACT]));
     fetchTrm.mockResolvedValue([trmRecord("2026-10-19", "3900")]);
   });
-  afterEach(cleanup);
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
 
-  it("lists the company contract with its expiry badge, process link and provenance footer", async () => {
+  it("lists the company contract with its expiry badge and opens the detail with the process link and provenance", async () => {
+    mockViewport(1280);
     renderWithQuery(<ContratacionView />);
 
-    expect(await screen.findByText("Industria Licorera del Cauca")).toBeInTheDocument();
+    expect(await screen.findByText("Elija un elemento de la lista")).toBeInTheDocument();
+    expect(await screen.findByText("Vence en 72 días")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Industria Licorera del Cauca" }));
+
+    const pane = screen.getByRole("region", { name: "Detalle del contrato" });
+    expect(within(pane).getByRole("link", { name: /Abrir proceso/ })).toHaveAttribute("href", CONTRACT.processUrl);
+    expect(within(pane).getByText(/Agencia Nacional de Contratación Pública - Colombia Compra Eficiente vía datos\.gov\.co · CC BY-SA 4\.0/)).toBeInTheDocument();
+  });
+
+  it("filters by vencimiento and clears the filter", async () => {
+    renderWithQuery(<ContratacionView />);
+    await screen.findByText("Vence en 72 días");
+
+    await userEvent.selectOptions(screen.getByRole("combobox", { name: "Vencimiento" }), "alert");
+    expect(screen.queryByText("Vence en 72 días")).not.toBeInTheDocument();
+    expect(screen.getByText("Ningún contrato cumple estos filtros")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Limpiar" }));
     expect(screen.getByText("Vence en 72 días")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Abrir proceso/ })).toHaveAttribute("href", CONTRACT.processUrl);
-    expect(
-      screen.getByText(/Agencia Nacional de Contratación Pública - Colombia Compra Eficiente vía datos\.gov\.co · CC BY-SA 4\.0/),
-    ).toBeInTheDocument();
   });
 
   it("exports the table to CSV", async () => {

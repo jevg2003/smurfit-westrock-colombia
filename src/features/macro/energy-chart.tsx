@@ -2,7 +2,7 @@
 
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { ProvenanceNote } from "@/components/shell/provenance-note";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ChartPanel } from "@/components/layouts/chart-panel";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import type { Observation } from "@/core/domain/observation";
 import { SOURCES } from "@/features/entorno/sources";
@@ -25,15 +25,10 @@ export function EnergyChart({ observations, fetchedAt }: Props) {
   const last = data.at(-1);
 
   return (
-    <Card className="min-w-0 gap-0 py-0">
-      <CardHeader className="border-b px-4 py-2 [.border-b]:pb-2">
-        <CardTitle className="text-sm leading-5 font-semibold">Precio de bolsa de energía (XM)</CardTitle>
-        <CardDescription>
-          Electricidad, no gas. Promedio diario del precio de bolsa nacional, en COP/kWh
-          {first && last ? `, del ${formatFecha(first.date)} al ${formatFecha(last.date)}.` : "."}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-2 py-4">
+    <ChartPanel
+      title="Precio de bolsa de energía (XM)"
+      description={`Electricidad, no gas. Promedio diario del precio de bolsa nacional, en COP/kWh${first && last ? `, del ${formatFecha(first.date)} al ${formatFecha(last.date)}.` : "."}`}
+    >
         <ChartContainer config={CONFIG} className="aspect-auto h-64 w-full min-w-0">
           <AreaChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
             <CartesianGrid vertical={false} />
@@ -51,7 +46,6 @@ export function EnergyChart({ observations, fetchedAt }: Props) {
           </AreaChart>
         </ChartContainer>
         <ProvenanceNote attribution={SOURCES.xm.attribution} license={SOURCES.xm.license} fetchedAt={fetchedAt} />
-      </CardContent>
-    </Card>
+    </ChartPanel>
   );
 }

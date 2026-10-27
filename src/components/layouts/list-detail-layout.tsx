@@ -13,6 +13,8 @@ interface Props {
   listLabel?: string;
   /** The selected element, or `null` when nothing is selected. */
   detail: ReactNode | null;
+  /** Shown in the desktop pane while nothing is selected, so the pane is not empty beside a short list. */
+  desktopDetail?: ReactNode;
   detailLabel: string;
   onCloseDetail: () => void;
 }
@@ -21,7 +23,7 @@ interface Props {
  * L2. List and detail. Desktop (lg): two columns, each scrolling by itself, with the detail fixed. Tablet: the
  * detail opens in a Sheet and the list keeps its width. Phone: the Sheet takes the whole screen and has a way back.
  */
-export function ListDetailLayout({ filters, notices, list, listLabel = "Lista", detail, detailLabel, onCloseDetail }: Props) {
+export function ListDetailLayout({ filters, notices, list, listLabel = "Lista", detail, desktopDetail, detailLabel, onCloseDetail }: Props) {
   const desktop = useMediaQuery(DESKTOP_QUERY);
   const tablet = useMediaQuery(TABLET_QUERY);
 
@@ -36,7 +38,7 @@ export function ListDetailLayout({ filters, notices, list, listLabel = "Lista", 
 
         {desktop ? (
           <section aria-label={detailLabel} className="min-h-0 min-w-0 overflow-y-auto border-s ps-4">
-            {detail ?? (
+            {detail ?? desktopDetail ?? (
               <div className="flex h-full min-h-40 items-center justify-center p-6 text-center text-sm text-muted-foreground">
                 Elija un elemento de la lista
               </div>

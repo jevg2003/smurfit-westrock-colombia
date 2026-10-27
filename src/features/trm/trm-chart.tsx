@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, ReferenceLine, XAxis, YAxis } from "recharts";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ChartPanel } from "@/components/layouts/chart-panel";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { formatFecha } from "@/lib/date";
@@ -32,15 +32,10 @@ export function TrmChart({ datos }: { datos: PuntoTrm[] }) {
   const ultimo = datos[datos.length - 1];
 
   return (
-    <Card className="min-w-0 gap-0 py-0 lg:col-span-2">
-      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 border-b px-4 py-2 [.border-b]:pb-2">
-        <div className="flex min-w-0 flex-col gap-px">
-          <CardTitle className="text-sm leading-5 font-semibold">Histórico de la TRM</CardTitle>
-          <CardDescription>
-            {primero && ultimo ? `${formatFecha(primero.fecha)} a ${formatFecha(ultimo.fecha)}` : "Sin datos"}
-          </CardDescription>
-        </div>
-
+    <ChartPanel
+      title="Histórico de la TRM"
+      description={primero && ultimo ? `${formatFecha(primero.fecha)} a ${formatFecha(ultimo.fecha)}` : "Sin datos"}
+      actions={
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <ul className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
             {LEYENDA[modo].map((item) => (
@@ -66,10 +61,9 @@ export function TrmChart({ datos }: { datos: PuntoTrm[] }) {
             <ToggleGroupItem value="variacion">Variación</ToggleGroupItem>
           </ToggleGroup>
         </div>
-      </CardHeader>
-
-      <CardContent className="flex-1 py-4">
-        <ChartContainer config={CONFIG} className="aspect-auto h-full min-h-56 w-full min-w-0">
+      }
+    >
+        <ChartContainer config={CONFIG} className="aspect-auto h-64 w-full min-w-0">
           {modo === "nivel" ? (
             <AreaChart data={datos} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
               <defs>
@@ -136,7 +130,6 @@ export function TrmChart({ datos }: { datos: PuntoTrm[] }) {
             </BarChart>
           )}
         </ChartContainer>
-      </CardContent>
-    </Card>
+    </ChartPanel>
   );
 }

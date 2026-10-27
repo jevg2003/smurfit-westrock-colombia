@@ -51,7 +51,7 @@ const fromNorm = (norm: RegulationEntry): Entry => ({
   topic: norm.topic,
   why: norm.whyItMatters,
   detail: `Revisada el ${formatDiaBogota(`${norm.reviewedAt}T12:00:00.000Z`)}.${norm.url ? "" : " Sin enlace oficial verificado todavía."}`,
-  href: norm.url,
+  href: norm.url ?? undefined,
   curated: true,
 });
 

@@ -33,6 +33,17 @@ describe("ListDetailLayout", () => {
     expect(screen.getByText("Elija un elemento de la lista")).toBeInTheDocument();
   });
 
+  it("shows the suggested detail on a desktop but never opens a Sheet for it on a tablet", () => {
+    mockViewport(1280);
+    const { unmount } = render(<ListDetailLayout {...baseProps} detail={null} desktopDetail={<p>Primera empresa</p>} onCloseDetail={vi.fn()} />);
+    expect(screen.getByRole("region", { name: "Detalle del aviso" })).toHaveTextContent("Primera empresa");
+    unmount();
+
+    mockViewport(900);
+    render(<ListDetailLayout {...baseProps} detail={null} desktopDetail={<p>Primera empresa</p>} onCloseDetail={vi.fn()} />);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
   it("opens the detail in a Sheet on a tablet and closes it", async () => {
     mockViewport(900);
     const onCloseDetail = vi.fn();

@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Observation } from "@/core/domain/observation";
 import type { Provenance, SourceId } from "@/core/domain/provenance";
@@ -80,41 +81,43 @@ describe("MacroView", () => {
   });
   afterEach(cleanup);
 
-  it("shows GDP, CPI and exports with their year, source and license", async () => {
+  it("shows GDP, CPI and exports in the strip with their year; the active one shows source and license", async () => {
     renderMacro();
 
-    const gdp = (await screen.findByText("PIB real")).closest("[data-slot=card]") as HTMLElement;
-    expect(within(gdp).getByText("2,64 %")).toBeInTheDocument();
-    expect(within(gdp).getByText(/2025/)).toBeInTheDocument();
-    expect(within(gdp).getByText(/Banco Mundial – World Development Indicators · CC BY 4.0/)).toBeInTheDocument();
-
-    const cpi = (await screen.findByText("Inflación anual (IPC)")).closest("[data-slot=card]") as HTMLElement;
-    expect(within(cpi).getByText("5,14 %")).toBeInTheDocument();
-
-    const exportsCard = (await screen.findByText("Exportaciones no minero-energéticas")).closest("[data-slot=card]") as HTMLElement;
-    expect(within(exportsCard).getByText(/T2 2026/)).toBeInTheDocument();
-    expect(within(exportsCard).getByText(/Total nacional/)).toBeInTheDocument();
-    expect(within(exportsCard).getByText(/unidad no declarada por la fuente/)).toBeInTheDocument();
-    expect(within(exportsCard).getByText(/MinCIT vía datos.gov.co · CC BY-SA 4.0/)).toBeInTheDocument();
+    const strip = await screen.findByRole("region", { name: "Indicadores" });
+    expect(await within(strip).findByText("2,64 %")).toBeInTheDocument();
+    expect(within(strip).getAllByText("2025")).toHaveLength(2);
+    expect(within(strip).getByText("5,14 %")).toBeInTheDocument();
+    expect(within(strip).getByText("6.234")).toBeInTheDocument();
+    expect(within(strip).getByText("T2 2026")).toBeInTheDocument();
+    expect(await screen.findByText(/Banco Mundial – World Development Indicators · CC BY 4.0/)).toBeInTheDocument();
   });
 
-  it("shows the spot electricity price card (XM), labelled as electricity, with provenance", async () => {
+  it("shows one indicator at a time: selecting exports swaps the chart, the note and the history", async () => {
+    renderMacro();
+    const strip = await screen.findByRole("region", { name: "Indicadores" });
+    await userEvent.click(await within(strip).findByRole("button", { name: /Exportaciones no minero-energéticas/ }));
+
+    expect((await screen.findAllByText(/Total nacional/)).length).toBeGreaterThan(0);
+    expect(screen.getByText(/unidad no declarada por la fuente/)).toBeInTheDocument();
+    expect(screen.getByText(/MinCIT vía datos.gov.co · CC BY-SA 4.0/)).toBeInTheDocument();
+    const history = screen.getByRole("region", { name: "Historial del indicador" });
+    expect(within(history).getAllByRole("listitem")).toHaveLength(2);
+    expect(within(history).getByText("-3,8 %")).toBeInTheDocument();
+  });
+
+  it("shows the spot electricity price (XM), labelled as electricity, with provenance", async () => {
     const days = Array.from({ length: 10 }, (_, index) => ({ date: `2026-10-${String(10 + index).padStart(2, "0")}`, value: 250 + index }));
     const provenance = { url: "https://servapibi.xm.com.co/hourly", license: "sin licencia abierta declarada", attribution: "XM S.A. E.S.P.", fetchedAt: "2026-10-20T15:00:00.000Z" };
     const fetchStub = vi.fn().mockResolvedValue(new Response(JSON.stringify({ status: "ok", unit: "COP/kWh", days, provenance })));
     window.fetch = fetchStub;
     renderMacro();
 
-    const card = (await screen.findByText("Precio de bolsa de energía (XM)")).closest("[data-slot=card]") as HTMLElement;
-    expect(await within(card).findByText(/Electricidad, no gas/)).toBeInTheDocument();
-    expect(within(card).getByText(/XM S.A. E.S.P. · sin licencia abierta declarada/)).toBeInTheDocument();
-    expect(within(card).getByText(/COP\/kWh/)).toBeInTheDocument();
-  });
+    const strip = await screen.findByRole("region", { name: "Indicadores" });
+    await userEvent.click(await within(strip).findByRole("button", { name: /Precio de bolsa de energía/ }));
 
-  it("shows the TRM next to the macro figures", async () => {
-    renderMacro();
-    expect(await screen.findByText("TRM hoy")).toBeInTheDocument();
-    expect(await screen.findByText("Histórico de la TRM")).toBeInTheDocument();
+    expect((await screen.findAllByText(/Electricidad, no gas/)).length).toBeGreaterThan(0);
+    expect(screen.getByText(/XM S.A. E.S.P. · sin licencia abierta declarada/)).toBeInTheDocument();
   });
 
   it("names the failing source and keeps the others working", async () => {
@@ -125,21 +128,24 @@ describe("MacroView", () => {
 
     expect(await screen.findByText("No pudimos consultar el Banco Mundial (PIB)")).toBeInTheDocument();
     expect(screen.getByText("El Banco Mundial no respondió a tiempo.")).toBeInTheDocument();
-    expect(await screen.findByText("5,14 %")).toBeInTheDocument();
-    expect((await screen.findAllByText(/T2 2026/)).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Los demás datos siguen disponibles/).length).toBeGreaterThan(0);
+    const strip = screen.getByRole("region", { name: "Indicadores" });
+    expect(await within(strip).findByText("5,14 %")).toBeInTheDocument();
+    expect(within(strip).getByText("T2 2026")).toBeInTheDocument();
   });
 
-  it("shows the empty state when a source has no data", async () => {
+  it("shows the empty state when the selected source has no data", async () => {
     exportsFetch.mockResolvedValue({ ok: false, error: { sourceId: "exports", kind: "empty", message: "Exportaciones no devolvió datos." } });
     renderMacro();
+    const strip = await screen.findByRole("region", { name: "Indicadores" });
+    await userEvent.click(await within(strip).findByRole("button", { name: /Exportaciones no minero-energéticas/ }));
 
     expect(await screen.findByText("La fuente no devolvió datos de exportaciones.")).toBeInTheDocument();
   });
 
-  it("shows loading skeletons before the sources answer", () => {
+  it("shows loading shapes before the sources answer", () => {
     worldBankFetch.mockReturnValue(new Promise(() => {}));
     exportsFetch.mockReturnValue(new Promise(() => {}));
-    fetchTrm.mockReturnValue(new Promise(() => {}));
     renderMacro();
 
     expect(screen.getAllByRole("status", { name: /Consultando/ }).length).toBeGreaterThan(0);

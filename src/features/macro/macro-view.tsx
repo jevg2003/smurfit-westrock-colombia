@@ -1,139 +1,58 @@
 "use client";
 
-import { CircleDollarSignIcon, GlobeIcon, PercentIcon, TrendingUpIcon, type LucideIcon } from "lucide-react";
+import { useMemo, useState } from "react";
+import { EventItem } from "@/components/events/event-item";
+import { EventList } from "@/components/events/event-list";
+import { IndicatorStrip, type Indicator } from "@/components/layouts/indicator-strip";
+import { IndicatorsLayout } from "@/components/layouts/indicators-layout";
+import { ProvenanceNote } from "@/components/shell/provenance-note";
+import { RegionEmpty } from "@/components/states/region-empty";
+import { SourceNotices } from "@/components/states/source-notices";
+import type { Observation } from "@/core/domain/observation";
 import { useRegisterPageContext } from "@/features/asistente/page-context";
 import { macroContext } from "@/features/asistente/screen-contexts";
-import type { ReactNode } from "react";
-import { PageIntro } from "@/components/shell/page-intro";
-import { ProvenanceNote } from "@/components/shell/provenance-note";
-import { StatCard } from "@/components/shell/stat-card";
-import { ErrorState } from "@/components/states/error-state";
-import { StaleNotice } from "@/components/states/stale-notice";
-import { Skeleton } from "@/components/ui/skeleton";
-import type { Observation } from "@/core/domain/observation";
 import type { SourceView } from "@/features/entorno/source-view";
 import { SOURCES, type SourceInfo } from "@/features/entorno/sources";
 import { useEnergy } from "@/features/entorno/use-energy";
 import { useExports } from "@/features/entorno/use-exports";
-import { useWorldBank, type ObservationsData } from "@/features/entorno/use-world-bank";
-import { Delta } from "@/features/trm/delta";
-import { PeriodoSelect } from "@/features/trm/periodo";
-import { TrmChart } from "@/features/trm/trm-chart";
-import { TrmData } from "@/features/trm/trm-data";
-import { formatFecha } from "@/lib/date";
-import { formatCop } from "@/lib/money";
+import { useWorldBank } from "@/features/entorno/use-world-bank";
 import { AnnualChart } from "./annual-chart";
 import { EnergyChart } from "./energy-chart";
 import { ExportsChart } from "./exports-chart";
 import { formatMillionsUsd, formatPct, formatQuarter, lastTwo } from "./format";
+import { observationEvents, type ObservationEvent } from "./observation-events";
 
-interface MetricProps {
-  view: SourceView;
-  data?: ObservationsData;
-  source: SourceInfo;
-  /** Name of the source for error messages, for example "el Banco Mundial (PIB)". */
-  sourceLabel: string;
-  icon: LucideIcon;
+type IndicatorId = "pib" | "ipc" | "exports" | "energy";
+
+const COP = new Intl.NumberFormat("es-CO", { maximumFractionDigits: 0 });
+
+interface Series {
+  id: IndicatorId;
   label: string;
-  /** Text under the value, given the latest and previous observations. */
-  hint: (latest: Observation, previous: Observation | undefined) => ReactNode;
+  /** Name of the source as it reads after "consultar". */
+  sourceLabel: string;
+  view: SourceView;
+  observations: readonly Observation[];
+  source: SourceInfo;
+  provenanceUrl?: string;
   period: (observation: Observation) => string;
   value: (observation: Observation) => string;
+  mode: "points" | "percent";
+  hint: string;
   emptyText: string;
 }
 
-/** One stat card with its own loading, error, stale and empty states, and its provenance line. */
-function MetricCard({ view, data, source, sourceLabel, icon, label, hint, period, value, emptyText }: MetricProps) {
-  if (view.status === "pending") {
-    return <Skeleton role="status" aria-label={`Consultando ${sourceLabel}`} className="h-44 rounded-xl" />;
-  }
-  if (view.status === "error") {
-    return <ErrorState source={sourceLabel} message={view.errorMessage ?? "Error desconocido."} kind={view.errorKind} onRetry={view.retry} />;
-  }
-
-  const { latest, previous } = lastTwo(data?.observations ?? []);
-  return (
-    <div className="flex min-w-0 flex-col gap-2">
-      <StatCard
-        icon={icon}
-        label={label}
-        meta={latest ? period(latest) : undefined}
-        value={latest ? value(latest) : "Sin dato"}
-        hint={latest ? undefined : emptyText}
-        action={{ label: "Ver la fuente original", href: data?.provenance?.url ?? "/economia?tab=macro" }}
-      >
-        <div className="flex flex-col gap-1">
-          {latest && <span className="text-xs text-muted-foreground">{hint(latest, previous)}</span>}
-          <ProvenanceNote attribution={source.attribution} license={source.license} fetchedAt={view.updatedAt} />
-        </div>
-      </StatCard>
-      {view.isStale && <StaleNotice source={sourceLabel} updatedAt={view.updatedAt} />}
-    </div>
-  );
-}
-
-function TrmSection() {
-  return (
-    <TrmData loading={<Skeleton role="status" aria-label="Consultando la TRM en datos.gov.co" className="h-72 rounded-xl" />}>
-      {(datos) => {
-        const ultimo = datos.at(-1);
-        const anterior = datos.at(-2);
-        return (
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-            <TrmChart datos={datos} />
-            <StatCard
-              icon={CircleDollarSignIcon}
-              label="TRM hoy"
-              meta={ultimo ? formatFecha(ultimo.fecha) : undefined}
-              value={ultimo ? formatCop(ultimo.valor) : "Sin dato"}
-              delta={ultimo ? <Delta value={ultimo.variacionPct} against="frente al día anterior" /> : undefined}
-              hint={anterior ? `Día anterior: ${formatCop(anterior.valor)}` : undefined}
-              action={{ label: "Ver días y variaciones", href: "/economia?tab=trm" }}
-            >
-              <ProvenanceNote attribution={SOURCES.trm.attribution} license={SOURCES.trm.license} />
-            </StatCard>
-          </div>
-        );
-      }}
-    </TrmData>
-  );
-}
-
-/** Spot electricity price (XM) with its own loading, error, stale and switched-off states. */
-function EnergySection({ energy }: { energy: ReturnType<typeof useEnergy> }) {
-  const { view, data, observations } = energy;
-  if (data?.off) return null;
-  if (view.status === "pending") {
-    return <Skeleton role="status" aria-label="Consultando XM (precio de bolsa de energía)" className="h-72 rounded-xl" />;
-  }
-  if (view.status === "error") {
-    return <ErrorState source="XM (precio de bolsa de energía)" message={view.errorMessage ?? "Error desconocido."} kind={view.errorKind} onRetry={view.retry} />;
-  }
-  if (observations.length === 0) return null;
-  return (
-    <div className="flex min-w-0 flex-col gap-2">
-      <EnergyChart observations={observations} fetchedAt={view.updatedAt} />
-      {view.isStale && <StaleNotice source="XM (precio de bolsa de energía)" updatedAt={view.updatedAt} />}
-    </div>
-  );
-}
-
-function previousYearHint(lead: string) {
-  return (_: Observation, previous: Observation | undefined) =>
-    previous ? `${lead} Año anterior (${previous.date}): ${formatPct(previous.value)}` : lead;
-}
-
-/** Dollar, GDP, inflation and exports of Colombia in one place. */
+/** Growth, inflation, exports and electricity prices of Colombia: one indicator at a time, with its chart and history (L3). */
 export function MacroView() {
   const gdp = useWorldBank("pib");
   const cpi = useWorldBank("ipc_anual");
   const exportsQuery = useExports();
   const energy = useEnergy();
+  const [active, setActive] = useState<IndicatorId>("pib");
 
   const gdpRows = gdp.data?.observations ?? [];
   const cpiRows = cpi.data?.observations ?? [];
   const exportRows = exportsQuery.data?.observations ?? [];
-  const showAnnual = gdpRows.length > 0 || cpiRows.length > 0;
   useRegisterPageContext(
     macroContext({
       gdp: gdpRows,
@@ -145,61 +64,124 @@ export function MacroView() {
     }),
   );
 
+  const series = useMemo<Series[]>(
+    () => [
+      {
+        id: "pib",
+        label: "PIB real",
+        sourceLabel: "el Banco Mundial (PIB)",
+        view: gdp.view,
+        observations: gdpRows,
+        source: SOURCES.worldBank,
+        provenanceUrl: gdp.data?.provenance?.url,
+        period: (o) => o.date,
+        value: (o) => formatPct(o.value),
+        mode: "points",
+        hint: "Crecimiento frente al año anterior. Llega con cerca de un año de retraso.",
+        emptyText: "El Banco Mundial no devolvió datos del PIB.",
+      },
+      {
+        id: "ipc",
+        label: "Inflación anual (IPC)",
+        sourceLabel: "el Banco Mundial (IPC)",
+        view: cpi.view,
+        observations: cpiRows,
+        source: SOURCES.worldBank,
+        provenanceUrl: cpi.data?.provenance?.url,
+        period: (o) => o.date,
+        value: (o) => formatPct(o.value),
+        mode: "points",
+        hint: "Cuánto subieron los precios en el año. Llega con cerca de un año de retraso.",
+        emptyText: "El Banco Mundial no devolvió datos del IPC.",
+      },
+      {
+        id: "exports",
+        label: "Exportaciones no minero-energéticas",
+        sourceLabel: "Exportaciones (datos.gov.co)",
+        view: exportsQuery.view,
+        observations: exportRows,
+        source: SOURCES.exports,
+        provenanceUrl: exportsQuery.data?.provenance?.url,
+        period: (o) => formatQuarter(o.date),
+        value: (o) => formatMillionsUsd(o.value),
+        mode: "percent",
+        hint: `Total nacional, sin corte por sector. En ${exportRows.at(-1)?.unit ?? "millones de USD"}.`,
+        emptyText: "La fuente no devolvió datos de exportaciones.",
+      },
+      {
+        id: "energy",
+        label: "Precio de bolsa de energía (XM)",
+        sourceLabel: "XM (precio de bolsa de energía)",
+        view: energy.view,
+        observations: energy.observations,
+        source: SOURCES.xm,
+        period: (o) => o.date,
+        value: (o) => `${COP.format(Math.round(o.value))} COP/kWh`,
+        mode: "percent",
+        hint: "Electricidad, no gas. Promedio diario del precio de bolsa nacional.",
+        emptyText: "XM no devolvió precios de bolsa.",
+      },
+    ],
+    [gdp, cpi, exportsQuery, energy, gdpRows, cpiRows, exportRows],
+  );
+
+  // The electricity price is optional: switched off in a deployment, or with nothing to show, it has no slot.
+  const visible = series.filter((item) => item.id !== "energy" || (!energy.data?.off && (item.view.status !== "ready" || item.observations.length > 0)));
+  const current = visible.find((item) => item.id === active) ?? visible[0];
+  const { latest } = lastTwo(current.observations);
+
+  const items: Indicator[] = visible.map((item) => {
+    const last = item.observations.at(-1);
+    return {
+      id: item.id,
+      label: item.label,
+      value: last ? item.value(last) : null,
+      note: last ? item.period(last) : undefined,
+      loading: item.view.status === "pending",
+    };
+  });
+
+  const events = useMemo<ObservationEvent[]>(
+    () => observationEvents(current.observations, { mode: current.mode, period: current.period, value: current.value, limit: 14 }),
+    [current],
+  );
+
   return (
-    <div className="flex min-w-0 flex-col gap-4">
-      <PageIntro description="El dólar, el crecimiento de la economía, la inflación y las exportaciones de Colombia. El PIB y la inflación son anuales y llegan con cerca de un año de retraso."
-        actions={<PeriodoSelect />}
-      />
-
-      <TrmSection />
-
-      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3 xl:gap-3">
-        <MetricCard
-          view={gdp.view}
-          data={gdp.data}
-          source={SOURCES.worldBank}
-          sourceLabel="el Banco Mundial (PIB)"
-          icon={TrendingUpIcon}
-          label="PIB real"
-          period={(o) => o.date}
-          value={(o) => formatPct(o.value)}
-          hint={previousYearHint("Crecimiento frente al año anterior.")}
-          emptyText="El Banco Mundial no devolvió datos del PIB."
-        />
-        <MetricCard
-          view={cpi.view}
-          data={cpi.data}
-          source={SOURCES.worldBank}
-          sourceLabel="el Banco Mundial (IPC)"
-          icon={PercentIcon}
-          label="Inflación anual (IPC)"
-          period={(o) => o.date}
-          value={(o) => formatPct(o.value)}
-          hint={previousYearHint("Cuánto subieron los precios en el año.")}
-          emptyText="El Banco Mundial no devolvió datos del IPC."
-        />
-        <MetricCard
-          view={exportsQuery.view}
-          data={exportsQuery.data}
-          source={SOURCES.exports}
-          sourceLabel="Exportaciones (datos.gov.co)"
-          icon={GlobeIcon}
-          label="Exportaciones no minero-energéticas"
-          period={(o) => formatQuarter(o.date)}
-          value={(o) => formatMillionsUsd(o.value)}
-          hint={(latest) => `Total nacional, sin corte por sector. En ${latest.unit}.`}
-          emptyText="La fuente no devolvió datos de exportaciones."
-        />
-      </div>
-
-      <EnergySection energy={energy} />
-
-      {(showAnnual || exportRows.length > 0) && (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          {showAnnual && <AnnualChart gdp={gdpRows} cpi={cpiRows} />}
-          {exportRows.length > 0 && <ExportsChart observations={exportRows} />}
+    <IndicatorsLayout
+      notices={<SourceNotices sources={visible.map((item) => ({ name: item.sourceLabel, ...item.view }))} />}
+      strip={<IndicatorStrip items={items} selected={current.id} onSelect={(id) => setActive(id as IndicatorId)} />}
+      chart={
+        <div className="flex flex-col gap-3">
+          {current.view.status === "pending" ? null : current.observations.length === 0 ? (
+            <RegionEmpty title={current.emptyText} />
+          ) : current.id === "pib" || current.id === "ipc" ? (
+            <AnnualChart gdp={gdpRows} cpi={cpiRows} />
+          ) : current.id === "exports" ? (
+            <ExportsChart observations={exportRows} />
+          ) : (
+            <EnergyChart observations={energy.observations} fetchedAt={energy.view.updatedAt} />
+          )}
+          {latest && <p className="text-xs text-muted-foreground">{current.hint}</p>}
+          {current.id !== "energy" && <ProvenanceNote attribution={current.source.attribution} license={current.source.license} fetchedAt={current.view.updatedAt} />}
         </div>
-      )}
-    </div>
+      }
+      eventsLabel="Historial del indicador"
+      events={
+        <EventList
+          flat
+          label="Historial"
+          items={events}
+          getKey={(event) => event.id}
+          renderItem={(event) => (
+            <EventItem
+              title={`${current.label}: ${event.value}`}
+              at={event.at}
+              source={event.period}
+              badge={event.change ? { label: event.change, tone: "neutral" } : undefined}
+            />
+          )}
+        />
+      }
+    />
   );
 }

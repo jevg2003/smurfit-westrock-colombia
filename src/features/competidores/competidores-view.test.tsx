@@ -1,10 +1,12 @@
 // @vitest-environment jsdom
 import { cleanup, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CompanyFinancials } from "@/core/domain/company";
 import type { PublicContract } from "@/core/domain/contract";
 import type { Provenance } from "@/core/domain/provenance";
 import type { Result } from "@/core/domain/result";
+import { mockViewport } from "@/components/layouts/viewport.test-utils";
 import { fakeAdapter, fakeContainer, renderWithQuery, resetStores, secopDown, secopOk, TEST_NOW } from "@/features/entorno/test-utils";
 
 const secopFetch = vi.fn();
@@ -66,39 +68,51 @@ const OWN_CONTRACT: PublicContract = { ...CONTRACT, id: "CO1.PCCNTR.200", entity
 
 describe("CompetidoresView", () => {
   beforeEach(() => {
+    mockViewport(1280);
     resetStores();
     supersociedadesFetch.mockResolvedValue(financialsOk);
     secopFetch.mockResolvedValue(secopOk([CONTRACT, OWN_CONTRACT]));
   });
-  afterEach(cleanup);
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
 
-  it("shows one card per company with revenue, net income, cutoff year and the unit note", async () => {
+  it("lists the company and every competitor; the first competitor is shown with revenue, net income, cutoff year and the unit note", async () => {
     renderWithQuery(<CompetidoresView />);
 
-    const card = (await screen.findByRole("heading", { name: "Competidora Uno" })).closest("[data-slot=card]") as HTMLElement;
-    expect(within(card).getByText("0,62")).toBeInTheDocument();
-    expect(within(card).getByText("0,08")).toBeInTheDocument();
-    expect(within(card).getByText(/Corte 2025/)).toBeInTheDocument();
-    expect(within(card).getByText(/unidad no declarada por la fuente/)).toBeInTheDocument();
-    expect(within(card).getByText(/Superintendencia de Sociedades vía datos\.gov\.co · CC BY-SA 4\.0/)).toBeInTheDocument();
-    expect(screen.getAllByText(/Corte 2025/)).toHaveLength(4);
+    const list = await screen.findByRole("list", { name: "Empresas" });
+    expect(within(list).getAllByRole("listitem")).toHaveLength(4);
+    const pane = screen.getByRole("region", { name: "Detalle de la empresa" });
+    expect(within(pane).getByRole("heading", { name: "Competidora Uno" })).toBeInTheDocument();
+    expect(within(pane).getByText("0,62")).toBeInTheDocument();
+    expect(within(pane).getByText("0,08")).toBeInTheDocument();
+    expect(within(pane).getByText(/Corte 2025/)).toBeInTheDocument();
+    expect(within(pane).getByText(/unidad no declarada por la fuente/)).toBeInTheDocument();
+    expect(within(pane).getByText(/Superintendencia de Sociedades vía datos\.gov\.co · CC BY-SA 4\.0/)).toBeInTheDocument();
   });
 
   it("uses the latest cutoff year of the company and shows the net margin", async () => {
     renderWithQuery(<CompetidoresView />);
 
-    const card = (await screen.findByText("Empresa Ejemplo")).closest("[data-slot=card]") as HTMLElement;
-    expect(within(card).getByText("1,91")).toBeInTheDocument();
-    expect(within(card).queryByText("1,78")).not.toBeInTheDocument();
-    expect(within(card).getByText(/9,4 %/)).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole("button", { name: /Empresa Ejemplo/ }));
+    const pane = screen.getByRole("region", { name: "Detalle de la empresa" });
+    expect(within(pane).getByText("1,91")).toBeInTheDocument();
+    expect(within(pane).queryByText("1,78")).not.toBeInTheDocument();
+    expect(within(pane).getByText(/9,4 %/)).toBeInTheDocument();
   });
 
-  it("lists only the competitors' SECOP contracts in the grid, with the process link", async () => {
+  it("shows only the contracts of the selected company, with the process link", async () => {
     renderWithQuery(<CompetidoresView />);
 
-    expect(await screen.findByText("Alcaldía de Cali")).toBeInTheDocument();
-    expect(screen.queryByText("Entidad propia")).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Abrir proceso/ })).toHaveAttribute("href", CONTRACT.processUrl);
+    const pane = await screen.findByRole("region", { name: "Detalle de la empresa" });
+    expect(await within(pane).findByText("Alcaldía de Cali")).toBeInTheDocument();
+    expect(within(pane).getByRole("link", { name: /Alcaldía de Cali/ })).toHaveAttribute("href", CONTRACT.processUrl);
+
+    await userEvent.click(screen.getByRole("button", { name: /Empresa Ejemplo/ }));
+    expect(within(pane).queryByText("Alcaldía de Cali")).not.toBeInTheDocument();
+    expect(within(pane).queryByText("Entidad propia")).not.toBeInTheDocument();
+    expect(within(pane).getByText("SECOP II no devolvió contratos de esta empresa.")).toBeInTheDocument();
   });
 
   it("keeps the cards when SECOP fails and names the failing source", async () => {
@@ -106,7 +120,7 @@ describe("CompetidoresView", () => {
     renderWithQuery(<CompetidoresView />);
 
     expect(await screen.findByText("No pudimos consultar SECOP II")).toBeInTheDocument();
-    expect(await screen.findByText("Competidora Uno")).toBeInTheDocument();
+    expect((await screen.findAllByText("Competidora Uno")).length).toBeGreaterThan(0);
   });
 
   it("names Supersociedades when it fails and keeps the contracts", async () => {
@@ -124,7 +138,7 @@ describe("CompetidoresView", () => {
     supersociedadesFetch.mockResolvedValue({ ok: false, error: { sourceId: "supersociedades", kind: "empty", message: "vacío" } });
     renderWithQuery(<CompetidoresView />);
 
-    expect(await screen.findByText("Supersociedades no devolvió cifras para estas empresas")).toBeInTheDocument();
+    expect(await screen.findByText(/Supersociedades no devolvió cifras para estas empresas/)).toBeInTheDocument();
   });
 
   it("shows loading skeletons before the sources answer", () => {
@@ -133,6 +147,5 @@ describe("CompetidoresView", () => {
     renderWithQuery(<CompetidoresView />);
 
     expect(screen.getByRole("status", { name: "Consultando Supersociedades" })).toBeInTheDocument();
-    expect(screen.getByRole("status", { name: "Consultando SECOP II en datos.gov.co" })).toBeInTheDocument();
   });
 });

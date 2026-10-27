@@ -6,7 +6,7 @@ import { hasNit } from "@/core/company/profile";
 import { CompetidoresView } from "@/features/competidores/competidores-view";
 import { ContratacionView } from "@/features/contratacion/contratacion-view";
 import { MacroView } from "@/features/macro/macro-view";
-import { DiasView } from "@/features/trm/dias-view";
+import { TrmView } from "@/features/trm/trm-view";
 import { useCompany } from "@/stores/companies.store";
 
 export default function EconomiaPage() {
@@ -18,7 +18,7 @@ export default function EconomiaPage() {
       title="Economía"
       tabs={[
         { value: "macro", label: "Macro", icon: GlobeIcon, content: <MacroView /> },
-        { value: "trm", label: "TRM", icon: ListOrderedIcon, content: <DiasView /> },
+        { value: "trm", label: "TRM", icon: ListOrderedIcon, content: <TrmView /> },
         { value: "contratacion", label: "Contratación", icon: LandmarkIcon, content: <ContratacionView />, hidden: !withNit },
         { value: "competidores", label: "Competidores", icon: UsersIcon, content: <CompetidoresView />, hidden: !withNit },
       ]}

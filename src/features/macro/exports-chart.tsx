@@ -1,7 +1,7 @@
 "use client";
 
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ChartPanel } from "@/components/layouts/chart-panel";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import type { Observation } from "@/core/domain/observation";
 import { formatMillionsUsd, formatQuarter } from "./format";
@@ -14,12 +14,7 @@ export function ExportsChart({ observations }: { observations: readonly Observat
   const data = observations.map((item) => ({ date: item.date, value: item.value }));
 
   return (
-    <Card className="min-w-0 gap-0 py-0">
-      <CardHeader className="border-b px-4 py-2 [.border-b]:pb-2">
-        <CardTitle className="text-sm leading-5 font-semibold">Exportaciones por trimestre</CardTitle>
-        <CardDescription>Total nacional, sin corte por sector. Cada barra es un trimestre, en millones de USD.</CardDescription>
-      </CardHeader>
-      <CardContent className="py-4">
+    <ChartPanel title="Exportaciones por trimestre" description="Total nacional, sin corte por sector. Cada barra es un trimestre, en millones de USD.">
         <ChartContainer config={CONFIG} className="aspect-auto h-64 w-full min-w-0">
           <BarChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
             <CartesianGrid vertical={false} />
@@ -36,7 +31,6 @@ export function ExportsChart({ observations }: { observations: readonly Observat
             <Bar dataKey="value" fill="var(--color-value)" radius={2} isAnimationActive={false} />
           </BarChart>
         </ChartContainer>
-      </CardContent>
-    </Card>
+    </ChartPanel>
   );
 }

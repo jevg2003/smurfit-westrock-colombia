@@ -1,7 +1,7 @@
 "use client";
 
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ChartPanel } from "@/components/layouts/chart-panel";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import type { Observation } from "@/core/domain/observation";
 import { formatPct } from "./format";
@@ -35,12 +35,10 @@ export function AnnualChart({ gdp, cpi }: { gdp: readonly Observation[]; cpi: re
   const last = data.at(-1);
 
   return (
-    <Card className="min-w-0 gap-0 py-0">
-      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 border-b px-4 py-2 [.border-b]:pb-2">
-        <div className="flex min-w-0 flex-col gap-px">
-          <CardTitle className="text-sm leading-5 font-semibold">PIB e inflación por año</CardTitle>
-          <CardDescription>{first && last ? `De ${first.year} a ${last.year}, en porcentaje.` : "Sin datos"}</CardDescription>
-        </div>
+    <ChartPanel
+      title="PIB e inflación por año"
+      description={first && last ? `De ${first.year} a ${last.year}, en porcentaje.` : "Sin datos"}
+      actions={
         <ul className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
           <li className="flex items-center gap-1.5">
             <span aria-hidden="true" className="size-2 rounded-full bg-info" />
@@ -51,8 +49,8 @@ export function AnnualChart({ gdp, cpi }: { gdp: readonly Observation[]; cpi: re
             Inflación anual
           </li>
         </ul>
-      </CardHeader>
-      <CardContent className="py-4">
+      }
+    >
         <ChartContainer config={CONFIG} className="aspect-auto h-64 w-full min-w-0">
           <LineChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
             <CartesianGrid vertical={false} />
@@ -69,7 +67,6 @@ export function AnnualChart({ gdp, cpi }: { gdp: readonly Observation[]; cpi: re
             <Line dataKey="ipc" type="monotone" stroke="var(--color-ipc)" strokeWidth={1.5} dot={false} connectNulls isAnimationActive={false} />
           </LineChart>
         </ChartContainer>
-      </CardContent>
-    </Card>
+    </ChartPanel>
   );
 }
