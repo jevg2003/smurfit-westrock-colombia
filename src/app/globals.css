@@ -2,6 +2,9 @@
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
+/* Base UI marks orientation as data-orientation="…", not as bare data-horizontal/data-vertical attributes. */
+@custom-variant data-horizontal (&[data-orientation="horizontal"]);
+@custom-variant data-vertical (&[data-orientation="vertical"]);
 
 :root {
   --background: #f7f7f5;
