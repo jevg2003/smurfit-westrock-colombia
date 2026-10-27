@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { CSSProperties, ReactNode } from "react";
 import { CompanySwitcher } from "./company-switcher";
-import { BRAND_HREF, HOME_HREF, NAV_GROUPS, isNavActive, navTitle } from "./nav";
+import { BRAND_HREF, CONFIG_ITEM, HOME_HREF, NAV, isNavActive, navTitle } from "./nav";
 import { BrandIntro } from "@/components/brand/brand-intro";
 import { SwcSymbol } from "@/components/brand/swc-logo";
 import { ThemeTogglerButton } from "@/components/animate-ui/components/buttons/theme-toggler";
@@ -27,7 +27,6 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
@@ -39,7 +38,7 @@ import {
 
 function Logo() {
   return (
-    <Link href={BRAND_HREF} aria-label="Smart Work Core, radar" className="rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
+    <Link href={BRAND_HREF} aria-label="Smart Work Core, resumen" className="rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
       <SwcSymbol className="size-7 text-foreground" />
     </Link>
   );
@@ -57,11 +56,10 @@ function MobileTrigger() {
 }
 
 interface Props {
-  actions?: ReactNode;
   children: ReactNode;
 }
 
-export function AppShell({ actions, children }: Props) {
+export function AppShell({ children }: Props) {
   const pathname = usePathname();
   const company = useActiveCompany();
   const title = navTitle(pathname);
@@ -80,33 +78,36 @@ export function AppShell({ actions, children }: Props) {
         </SidebarHeader>
 
         <SidebarContent>
-          {NAV_GROUPS.map((group) => (
-            <SidebarGroup key={group.label}>
-              <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {group.items.map(({ href, label, icon: Icon }) => (
-                    <SidebarMenuItem key={href}>
-                      <SidebarMenuButton
-                        isActive={isNavActive(pathname, href)}
-                        tooltip={label}
-                        aria-label={label}
-                        render={<Link href={href} />}
-                      >
-                        <Icon aria-hidden="true" />
-                        <span className="group-data-[collapsible=icon]:sr-only">{label}</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          ))}
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {NAV.map(({ href, label, icon: Icon }) => (
+                  <SidebarMenuItem key={href}>
+                    <SidebarMenuButton isActive={isNavActive(pathname, href)} tooltip={label} aria-label={label} render={<Link href={href} />}>
+                      <Icon aria-hidden="true" />
+                      <span className="group-data-[collapsible=icon]:sr-only">{label}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
         </SidebarContent>
 
         <SidebarFooter className="items-center justify-center py-3 in-data-[mobile=true]:items-start in-data-[mobile=true]:px-4">
           <CompanySwitcher />
           <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                isActive={isNavActive(pathname, CONFIG_ITEM.href)}
+                tooltip={CONFIG_ITEM.label}
+                aria-label={CONFIG_ITEM.label}
+                render={<Link href={CONFIG_ITEM.href} />}
+              >
+                <CONFIG_ITEM.icon aria-hidden="true" />
+                <span className="group-data-[collapsible=icon]:sr-only">{CONFIG_ITEM.label}</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton tooltip="Inicio" aria-label="Inicio" render={<Link href={HOME_HREF} />}>
                 <HomeIcon aria-hidden="true" />
@@ -135,7 +136,6 @@ export function AppShell({ actions, children }: Props) {
             </Breadcrumb>
           </div>
           <div className="ml-auto flex shrink-0 items-center gap-2">
-            {pathname === "/dias" && actions}
             {pathname !== "/asistente" && company && <AssistantSheet />}
           </div>
         </header>
@@ -145,7 +145,7 @@ export function AppShell({ actions, children }: Props) {
           <footer className="max-w-prose text-xs text-muted-foreground print:hidden">
             <p className="font-medium">Smart Work Core: herramienta independiente, sin aval de las entidades que publican los datos.</p>
             <p>
-              Construido con datos públicos (datos.gov.co: TRM, SECOP II, Supersociedades y exportaciones; Banco Mundial: PIB e inflación; titulares de medios y Google News; Minambiente y decretos de Presidencia). Las señales salen de reglas escritas y
+              Construido con datos públicos (datos.gov.co: TRM, SECOP II, Supersociedades y exportaciones; Banco Mundial: PIB e inflación; titulares de medios y Google News; Minambiente y decretos de Presidencia). Los avisos salen de reglas escritas y
               visibles. El asistente de IA solo lee estos datos y puede equivocarse.
             </p>
           </footer>

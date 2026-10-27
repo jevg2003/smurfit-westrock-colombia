@@ -13,26 +13,8 @@
  */
 export const ACCESS_HOST = "swc.mecateo.co";
 
-/** Page routes of the `(app)` group (folder names under `src/app/(app)`). Each one is a prefix: `/home*`. */
-const PAGE_ROUTES = [
-  "home",
-  "senales",
-  "alertas",
-  "linea-de-tiempo",
-  "contratacion",
-  "briefing",
-  "preferencias",
-  "macro",
-  "competidores",
-  "seguimiento",
-  "noticias",
-  "regulacion",
-  "pestel",
-  "asistente",
-  "dias",
-  "fuentes",
-  "acerca",
-] as const;
+/** Page routes of the `(app)` group (folder names under `src/app/(app)`). Each one is a prefix: `/resumen*`. */
+const PAGE_ROUTES = ["resumen", "economia", "noticias", "analisis", "asistente", "configuracion"] as const;
 
 /** Non-page endpoints that must stay private: the API and the Next.js endpoints that are not static assets. */
 const OTHER_PRIVATE = ["api/*", "_next/image*", "_next/data/*", ".well-known/*"] as const;

@@ -30,7 +30,7 @@ describe("CompanyPicker", () => {
     expect(within(list).getAllByRole("listitem")).toHaveLength(2);
     await userEvent.click(screen.getByRole("button", { name: "Abrir Otra Empresa" }));
     expect(useCompaniesStore.getState().activeCompanyId).toBe("otra");
-    expect(push).toHaveBeenCalledWith("/home");
+    expect(push).toHaveBeenCalledWith("/resumen");
   });
 
   it("marks the active company with one badge", () => {

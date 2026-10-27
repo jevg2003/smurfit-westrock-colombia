@@ -25,7 +25,7 @@ interface Props<T extends RowData> {
   actions?: ReactNode;
   /** Filters row under the header. */
   toolbar?: ReactNode;
-  /** Plural noun for the pager, for example "señales". */
+  /** Plural noun for the pager, for example "avisos". */
   countLabel: string;
   emptyMessage: ReactNode;
   onRowClick?: (row: T) => void;

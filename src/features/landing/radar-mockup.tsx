@@ -5,7 +5,7 @@ import { Badge } from "@/components/reui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DIMENSION_LABELS } from "@/core/labels";
 import { Delta } from "@/features/trm/delta";
-import { AlertStateBadge, DimensionBadge, SeverityBadge } from "@/features/senales/badges";
+import { AlertStateBadge, DimensionBadge, SeverityBadge } from "@/features/avisos/badges";
 import { LazyBeam } from "./lazy-beam";
 import { LazyChart } from "./lazy-chart";
 import { SAMPLE_ALERTS, SAMPLE_STATS } from "./sample-data";

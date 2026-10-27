@@ -29,9 +29,7 @@ export function RegulacionView() {
 
   return (
     <div className="flex min-w-0 flex-col gap-4">
-      <PageIntro
-        title="Regulación"
-        description="Normas que pueden afectar a la empresa y por qué importan, más lo último de Minambiente y los decretos de Presidencia que coinciden con sus palabras clave."
+      <PageIntro description="Normas que pueden afectar a la empresa y por qué importan, más lo último de Minambiente y los decretos de Presidencia que coinciden con sus palabras clave."
       />
 
       {view.status === "error" && <ErrorState source="Regulación" message={view.errorMessage ?? "Error desconocido."} kind={view.errorKind} onRetry={view.retry} />}

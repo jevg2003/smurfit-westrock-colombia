@@ -33,9 +33,7 @@ export function PestelView() {
 
   return (
     <div className="flex min-w-0 flex-col gap-4">
-      <PageIntro
-        title="PESTEL"
-        description="Las señales ordenadas en seis factores: político, económico, social, tecnológico, ambiental y legal. Úsalo para pensar en las decisiones de la empresa."
+      <PageIntro description="Los avisos ordenados en seis factores: político, económico, social, tecnológico, ambiental y legal. Úsalo para pensar en las decisiones de la empresa."
       />
 
       <div className="flex min-w-0 flex-col gap-3">
@@ -62,7 +60,7 @@ export function PestelView() {
           <p className="text-xs text-muted-foreground">Elige las fechas. Mientras tanto se usan los últimos 30 días.</p>
         )}
         <p className="max-w-prose text-xs text-muted-foreground">
-          El factor de cada señal sale de una regla escrita. La tendencia compara conteos con el período anterior de igual
+          El factor de cada aviso sale de una regla escrita. La tendencia compara conteos con el período anterior de igual
           duración. El impacto (oportunidad, amenaza o por evaluar) también sale de una tabla por regla, no de IA.
         </p>
         {data.trm.status === "error" && (

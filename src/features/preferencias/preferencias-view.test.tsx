@@ -5,7 +5,6 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { deriveNewsGroupDefinitions } from "@/core/company/profile";
 import { TEST_COMPANY } from "@/core/company/test-fixtures";
 import { resetStores } from "@/features/entorno/test-utils";
-import { AtipicosCard } from "@/features/trm/atipicos-card";
 import { usePreferencesStore } from "@/stores/preferences.store";
 import { PreferenciasView } from "./preferencias-view";
 
@@ -20,14 +19,9 @@ describe("PreferenciasView", () => {
     expect(screen.getByText(/Variación diaria de la TRM de 1% o más/)).toBeInTheDocument();
   });
 
-  it("validates, saves, and the rule text and the TRM components follow the new values", async () => {
+  it("validates, saves, and the rule text follows the new values", async () => {
     const user = userEvent.setup();
-    render(
-      <>
-        <PreferenciasView />
-        <AtipicosCard datos={[]} estaGuardado={() => false} onAlternarAlerta={() => {}} />
-      </>,
-    );
+    render(<PreferenciasView />);
 
     const watch = screen.getByLabelText(/Variación diaria de la TRM para vigilar/);
     await user.clear(watch);
@@ -43,7 +37,6 @@ describe("PreferenciasView", () => {
 
     expect(usePreferencesStore.getState().thresholds.trmDailyMovePct).toBe(1.5);
     expect(screen.getByText(/Variación diaria de la TRM de 1.5% o más/)).toBeInTheDocument();
-    expect(screen.getByText(/Se marcan los días con 1.5% o más de cambio/)).toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent("Preferencias guardadas");
   });
 

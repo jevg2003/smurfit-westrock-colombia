@@ -42,7 +42,7 @@ export function CompanyPicker() {
 
   const open = (id: string) => {
     setActive(id);
-    router.push("/home");
+    router.push("/resumen");
   };
 
   if (!hasHydrated || empty) return <Skeleton role="status" aria-label="Cargando tus empresas" className="h-72 rounded-xl" />;

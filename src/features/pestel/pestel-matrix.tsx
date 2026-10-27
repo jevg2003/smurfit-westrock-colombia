@@ -7,7 +7,7 @@ import { IMPACT_LABELS, SEVERITY_LABELS } from "@/core/labels";
 import { bogotaDateKey } from "@/core/time/bogota";
 import type { PestelFactorSummary, TrendDirection } from "@/core/usecases/build-pestel";
 import { PESTEL_LABELS } from "@/features/entorno/labels";
-import { SeverityBadge } from "@/features/senales/badges";
+import { SeverityBadge } from "@/features/avisos/badges";
 import { safeHttpUrl } from "@/lib/safe-url";
 import { PESTEL_HELP } from "./pestel-help";
 
@@ -40,17 +40,17 @@ export function FactorCard({ summary }: { summary: PestelFactorSummary }) {
             <h2 className="text-sm font-medium">{label}</h2>
             <span className="text-2xl leading-8 font-semibold tracking-tight tabular-nums">
               {summary.total}
-              <span className="sr-only"> señales en el período</span>
+              <span className="sr-only"> avisos en el período</span>
             </span>
           </div>
           <p className="text-xs text-muted-foreground">{PESTEL_HELP[summary.pestel]}</p>
         </div>
 
         {summary.total === 0 ? (
-          <p className="text-sm text-muted-foreground">Sin señales en este período.</p>
+          <p className="text-sm text-muted-foreground">Sin avisos en este período.</p>
         ) : (
           <>
-            <ul className="flex flex-wrap gap-1.5" aria-label="Señales por severidad">
+            <ul className="flex flex-wrap gap-1.5" aria-label="Avisos por severidad">
               {(["alert", "watch", "info"] as const).map((severity) =>
                 summary.bySeverity[severity] > 0 ? (
                   <li key={severity}>
@@ -86,7 +86,7 @@ export function FactorCard({ summary }: { summary: PestelFactorSummary }) {
 
         {summary.top.length > 0 && (
           <div className="flex flex-col gap-2">
-            <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Señales principales</h3>
+            <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Avisos principales</h3>
             <ul className="flex flex-col gap-2">
               {summary.top.map((signal) => {
                 const source = signal.provenance[0];
@@ -119,10 +119,10 @@ export function FactorCard({ summary }: { summary: PestelFactorSummary }) {
 
       <CardFooter className="border-t bg-muted/50 px-4 py-2">
         <Link
-          href={`/senales?pestel=${summary.pestel}`}
+          href={`/resumen?tab=avisos&pestel=${summary.pestel}`}
           className="group/action flex w-full min-w-0 items-center justify-between gap-3 rounded-full text-sm text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
         >
-          <span className="truncate">Ver señales de este factor</span>
+          <span className="truncate">Ver avisos de este factor</span>
           <ArrowRightIcon aria-hidden="true" className="size-4 shrink-0" />
         </Link>
       </CardFooter>

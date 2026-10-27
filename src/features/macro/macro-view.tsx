@@ -60,7 +60,7 @@ function MetricCard({ view, data, source, sourceLabel, icon, label, hint, period
         meta={latest ? period(latest) : undefined}
         value={latest ? value(latest) : "Sin dato"}
         hint={latest ? undefined : emptyText}
-        action={{ label: "Ver la fuente original", href: data?.provenance?.url ?? "/macro" }}
+        action={{ label: "Ver la fuente original", href: data?.provenance?.url ?? "/economia?tab=macro" }}
       >
         <div className="flex flex-col gap-1">
           {latest && <span className="text-xs text-muted-foreground">{hint(latest, previous)}</span>}
@@ -88,7 +88,7 @@ function TrmSection() {
               value={ultimo ? formatCop(ultimo.valor) : "Sin dato"}
               delta={ultimo ? <Delta value={ultimo.variacionPct} against="frente al día anterior" /> : undefined}
               hint={anterior ? `Día anterior: ${formatCop(anterior.valor)}` : undefined}
-              action={{ label: "Ver días y variaciones", href: "/dias" }}
+              action={{ label: "Ver días y variaciones", href: "/economia?tab=trm" }}
             >
               <ProvenanceNote attribution={SOURCES.trm.attribution} license={SOURCES.trm.license} />
             </StatCard>
@@ -147,9 +147,7 @@ export function MacroView() {
 
   return (
     <div className="flex min-w-0 flex-col gap-4">
-      <PageIntro
-        title="Macroeconomía"
-        description="El dólar, el crecimiento de la economía, la inflación y las exportaciones de Colombia. El PIB y la inflación son anuales y llegan con cerca de un año de retraso."
+      <PageIntro description="El dólar, el crecimiento de la economía, la inflación y las exportaciones de Colombia. El PIB y la inflación son anuales y llegan con cerca de un año de retraso."
         actions={<PeriodoSelect />}
       />
 

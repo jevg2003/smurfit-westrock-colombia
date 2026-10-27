@@ -7,7 +7,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { useCompaniesStore } from "@/stores/companies.store";
 
 const push = vi.fn();
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push, replace: vi.fn() }), usePathname: () => "/macro" }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push, replace: vi.fn() }), usePathname: () => "/economia" }));
 
 import { CompanySwitcher } from "./company-switcher";
 
@@ -44,7 +44,7 @@ describe("CompanySwitcher", () => {
   it("links to create a company and to see them all", async () => {
     renderSwitcher();
     await userEvent.click(screen.getByRole("button", { name: /Empresa Ejemplo/ }));
-    expect(await screen.findByRole("menuitem", { name: "Nueva empresa" })).toHaveAttribute("href", "/onboarding");
+    expect(await screen.findByRole("menuitem", { name: "Nueva empresa" })).toHaveAttribute("href", "/onboarding?nueva=1");
     expect(screen.getByRole("menuitem", { name: "Ver todas las empresas" })).toHaveAttribute("href", "/empresas");
   });
 

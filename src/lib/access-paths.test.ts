@@ -19,7 +19,7 @@ describe("isPublicPath", () => {
     "/api/chat",
     "/api/news",
     "/api/fuentes",
-    "/home",
+    "/resumen",
     "/noticias",
     "/_next/image",
     "/_next/image?url=%2Flanding%2Fa.webp",

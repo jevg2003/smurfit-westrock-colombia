@@ -52,7 +52,7 @@ export function ContratacionView() {
     () => (data?.contracts ?? []).filter((contract) => contract.supplierNit === company.nit),
     [data, company.nit],
   );
-  useRegisterPageContext(contractsContext("/contratacion", "Contratación", rows));
+  useRegisterPageContext(contractsContext("/economia", "Contratación", rows));
 
   const columns = useMemo<ColumnDef<DataGridFeatures, PublicContract>[]>(
     () => [
@@ -150,9 +150,7 @@ export function ContratacionView() {
 
   return (
     <div className="flex min-w-0 flex-col gap-4">
-      <PageIntro
-        title="Contratación"
-        description="Contratos públicos que firmó la empresa en los últimos 12 meses y cuándo vencen. Las ventanas de vencimiento se editan en Preferencias."
+      <PageIntro description="Contratos públicos que firmó la empresa en los últimos 12 meses y cuándo vencen. Las ventanas de vencimiento se editan en Configuración."
       />
 
       {view.status === "error" && (

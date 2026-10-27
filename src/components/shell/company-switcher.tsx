@@ -58,7 +58,7 @@ export function CompanySwitcher() {
                 <DropdownMenuSeparator />
               </>
             )}
-            <DropdownMenuItem render={<Link href="/onboarding" />}>Nueva empresa</DropdownMenuItem>
+            <DropdownMenuItem render={<Link href="/onboarding?nueva=1" />}>Nueva empresa</DropdownMenuItem>
             <DropdownMenuItem render={<Link href="/empresas" />}>Ver todas las empresas</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

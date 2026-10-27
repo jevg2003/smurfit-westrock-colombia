@@ -28,7 +28,7 @@ import { safeHttpUrl } from "@/lib/safe-url";
 const PAGE_SIZE = 30;
 const EXCLUDING = new Set(["is_not", "is_none_of"]);
 
-/** Headlines are matched against the term groups of Preferencias; here they can be narrowed further. */
+/** Headlines are matched against the term groups of Configuración; here they can be narrowed further. */
 function applyNewsFilters(items: readonly NewsItem[], query: FilterQuery): NewsItem[] {
   const conditions = flattenFilterConditions(query);
   if (conditions.length === 0) return [...items];
@@ -86,9 +86,7 @@ export function NoticiasView() {
 
   return (
     <div className="flex min-w-0 flex-col gap-4">
-      <PageIntro
-        title="Noticias"
-        description="Titulares de medios colombianos y de Google News que mencionan la empresa, los competidores, el sector, la regulación o riesgos operativos. Solo se muestra el titular, el medio, la fecha y el enlace."
+      <PageIntro description="Titulares de medios colombianos y de Google News que mencionan la empresa, los competidores, el sector, la regulación o riesgos operativos. Solo se muestra el titular, el medio, la fecha y el enlace."
       />
 
       <div className="flex flex-col gap-2">
@@ -131,7 +129,7 @@ export function NoticiasView() {
               <p className="text-sm font-medium">{relevanceSummary(news.relevantItems.length, news.items.length)}</p>
               <Checkbox id={showAllId} checked={showAll} onCheckedChange={(checked) => (setShowAll(checked === true), setVisible(PAGE_SIZE))} />
               <FieldLabel htmlFor={showAllId}>Ver todas</FieldLabel>
-              <span className="text-xs text-muted-foreground">Las relevantes mencionan tus términos, que se cambian en Preferencias.</span>
+              <span className="text-xs text-muted-foreground">Las relevantes mencionan sus términos, que se cambian en Configuración.</span>
             </Field>
 
             {filtered.length === 0 ? (

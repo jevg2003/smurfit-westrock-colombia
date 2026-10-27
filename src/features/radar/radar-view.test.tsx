@@ -4,6 +4,8 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PublicContract } from "@/core/domain/contract";
 import { fakeContainer, renderWithQuery, resetStores, secopDown, secopEmpty, secopOk, trmRecord } from "@/features/entorno/test-utils";
+import { useCompaniesStore } from "@/stores/companies.store";
+import { TEST_COMPANY } from "@/core/company/test-fixtures";
 import { useWatchlistStore } from "@/stores/watchlist.store";
 
 const secopFetch = vi.fn();
@@ -22,12 +24,22 @@ describe("RadarView", () => {
   });
   afterEach(cleanup);
 
-  it("shows the empty state when there are no new alerts", async () => {
+  it("shows the empty state when there are no new avisos", async () => {
     renderWithQuery(<RadarView />);
 
-    expect(await screen.findByText("No hay alertas nuevas")).toBeInTheDocument();
-    expect(screen.getByText("Aún no has revisado ninguna alerta.")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Días y variaciones" })).toHaveAttribute("href", "/dias");
+    expect(await screen.findByText("No hay avisos nuevos")).toBeInTheDocument();
+    expect(screen.getByText("Aún no ha revisado ningún aviso.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Días y variaciones" })).toHaveAttribute("href", "/economia?tab=trm");
+  });
+
+  it("hides the contract cards for a company without NIT", async () => {
+    const { nit: _nit, ...withoutNit } = TEST_COMPANY;
+    useCompaniesStore.setState({ companies: [withoutNit], activeCompanyId: withoutNit.id });
+    renderWithQuery(<RadarView />);
+
+    expect(await screen.findByText("TRM hoy")).toBeInTheDocument();
+    expect(screen.queryByText("Contratos por vencer")).not.toBeInTheDocument();
+    expect(screen.queryByText("Contratos de competidores")).not.toBeInTheDocument();
   });
 
   it("keeps working when SECOP fails and names the failing source", async () => {
@@ -72,7 +84,7 @@ describe("RadarView", () => {
       );
     });
 
-    it("shows every new alert until the toggle is on, then only the followed ones", async () => {
+    it("shows every new aviso until the toggle is on, then only the followed ones", async () => {
       useWatchlistStore.setState({ competitorNits: ["900000002"] });
       const user = userEvent.setup();
       renderWithQuery(<RadarView />);
@@ -80,7 +92,7 @@ describe("RadarView", () => {
       expect(await screen.findByText(/Competidora Uno firmó un contrato con Entidad A1/)).toBeInTheDocument();
       expect(screen.getByText(/Competidora Dos firmó un contrato con Entidad C1/)).toBeInTheDocument();
 
-      await user.click(screen.getByRole("checkbox", { name: "Solo mis seguimientos" }));
+      await user.click(screen.getByRole("checkbox", { name: "Solo lo que sigo" }));
 
       expect(screen.getByText(/Competidora Uno firmó un contrato con Entidad A1/)).toBeInTheDocument();
       expect(screen.queryByText(/Competidora Dos firmó/)).not.toBeInTheDocument();
@@ -91,7 +103,7 @@ describe("RadarView", () => {
       useWatchlistStore.setState({ competitorNits: [], indicators: [], onlyFollowed: true });
       renderWithQuery(<RadarView />);
 
-      expect(await screen.findByText("Ninguna alerta nueva es de lo que sigues")).toBeInTheDocument();
+      expect(await screen.findByText("Ningún aviso nuevo es de lo que sigue")).toBeInTheDocument();
     });
   });
 });

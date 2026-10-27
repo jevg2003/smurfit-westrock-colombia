@@ -14,7 +14,7 @@ describe("AcercaView", () => {
 
   it("covers the sections users need to trust the tool", () => {
     render(<AcercaView />);
-    for (const title of ["Qué es y qué no es", "Cómo se calculan las señales", "Cómo se usa la IA", "Licencias de los datos", "Privacidad"]) {
+    for (const title of ["Qué es y qué no es", "Cómo se generan los avisos", "Cómo se usa la IA", "Licencias de los datos", "Privacidad"]) {
       expect(screen.getByRole("heading", { name: title })).toBeInTheDocument();
     }
   });
@@ -29,7 +29,7 @@ describe("AcercaView", () => {
 
   it("links to the editable thresholds and to the source health screen", () => {
     render(<AcercaView />);
-    expect(screen.getByRole("link", { name: "Preferencias" })).toHaveAttribute("href", "/preferencias");
-    expect(screen.getByRole("link", { name: "Fuentes" })).toHaveAttribute("href", "/fuentes");
+    expect(screen.getByRole("link", { name: "Reglas y preferencias" })).toHaveAttribute("href", "/configuracion?tab=reglas");
+    expect(screen.getByRole("link", { name: "Fuentes" })).toHaveAttribute("href", "/configuracion?tab=fuentes");
   });
 });

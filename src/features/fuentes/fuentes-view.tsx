@@ -16,9 +16,7 @@ export function FuentesView() {
 
   return (
     <div className="flex min-w-0 flex-col gap-4">
-      <PageIntro
-        title="Fuentes"
-        description="Estado de cada fuente de datos: de dónde viene, con qué licencia, cuándo funcionó por última vez y qué falló. Cada fuente se puede reintentar por separado."
+      <PageIntro description="Estado de cada fuente de datos: de dónde viene, con qué licencia, cuándo funcionó por última vez y qué falló. Cada fuente se puede reintentar por separado."
       />
 
       {total === 0 ? (

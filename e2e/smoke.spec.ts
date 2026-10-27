@@ -65,9 +65,23 @@ async function mockSources(page: Page) {
   await page.route("**/api/energia**", (route) => route.fulfill(json(XM)));
 }
 
+// Each page and every tab it offers (the seeded company has a NIT, so Economía shows all four).
 const ROUTES = [
-  "/home", "/senales", "/alertas", "/linea-de-tiempo", "/contratacion", "/briefing", "/preferencias", "/macro",
-  "/competidores", "/seguimiento", "/noticias", "/regulacion", "/pestel", "/asistente", "/dias", "/fuentes", "/acerca",
+  "/resumen", "/resumen?tab=avisos", "/resumen?tab=linea-de-tiempo",
+  "/economia", "/economia?tab=trm", "/economia?tab=contratacion", "/economia?tab=competidores",
+  "/noticias", "/noticias?tab=regulacion",
+  "/analisis", "/analisis?tab=briefing",
+  "/asistente",
+  "/configuracion", "/configuracion?tab=reglas", "/configuracion?tab=fuentes", "/configuracion?tab=acerca",
+];
+
+// Routes of the old navigation and the tab that replaced each one.
+const LEGACY: [string, RegExp][] = [
+  ["/home", /\/resumen\?tab=radar$/],
+  ["/senales", /\/resumen\?tab=avisos$/],
+  ["/alertas", /\/resumen\?tab=avisos$/],
+  ["/dias", /\/economia\?tab=trm$/],
+  ["/preferencias", /\/configuracion\?tab=reglas$/],
 ];
 
 const isThirdPartyAbort = (text: string) => /ERR_ABORTED|net::ERR_|Failed to load resource/i.test(text);
@@ -96,10 +110,21 @@ test.describe("Smoke", () => {
   }
 });
 
+test.describe("Legacy routes", () => {
+  for (const [route, destination] of LEGACY) {
+    test(`${route} redirects to its tab`, async ({ page }) => {
+      await seedCompany(page);
+      await mockSources(page);
+      await page.goto(route);
+      await expect(page).toHaveURL(destination);
+    });
+  }
+});
+
 test.describe("Mobile layout (375px)", () => {
   test.use({ viewport: { width: 375, height: 800 } });
 
-  for (const route of ["/home", "/alertas", "/briefing"]) {
+  for (const route of ["/resumen", "/resumen?tab=avisos", "/analisis?tab=briefing"]) {
     test(`${route} has no horizontal page scroll`, async ({ page }) => {
       await mockSources(page);
       await page.goto(route);

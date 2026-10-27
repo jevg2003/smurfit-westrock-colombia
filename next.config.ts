@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import path from "node:path";
+import { LEGACY_REDIRECTS } from "./src/lib/legacy-redirects";
 
 /** Origins the browser calls directly (client adapters). Everything else goes through our own `/api` routes. */
 const BROWSER_CONNECT_ORIGINS = ["https://www.datos.gov.co", "https://api.worldbank.org"];
@@ -41,6 +42,10 @@ const nextConfig: NextConfig = {
   // Only the container build sets NEXT_OUTPUT=standalone. Vercel and `pnpm start` keep the default output.
   ...(process.env.NEXT_OUTPUT === "standalone" ? { output: "standalone" as const } : {}),
   turbopack: { root: path.resolve(__dirname) },
+  // Bookmarks of the old 17-item navigation land on the tab that replaced them.
+  async redirects() {
+    return LEGACY_REDIRECTS.map(({ source, destination, permanent }) => ({ source, destination, permanent }));
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

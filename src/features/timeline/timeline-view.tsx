@@ -39,9 +39,9 @@ import { SOURCES } from "@/features/entorno/sources";
 import { applyFilters } from "@/features/filtros/apply-filters";
 import { DateRangeFilter, type DayRange } from "@/features/filtros/date-range-filter";
 import { SelectFilters } from "@/features/filtros/select-filters";
-import { DimensionBadge, SeverityBadge } from "@/features/senales/badges";
+import { DimensionBadge, SeverityBadge } from "@/features/avisos/badges";
 import { FollowedFilterToggle } from "@/features/seguimiento/followed-filter-toggle";
-import { SignalDetailSheet } from "@/features/senales/signal-detail-sheet";
+import { SignalDetailSheet } from "@/features/avisos/signal-detail-sheet";
 import { useWatchlistStore } from "@/stores/watchlist.store";
 import { formatDiaBogota } from "@/lib/date";
 import { safeHttpUrl } from "@/lib/safe-url";
@@ -49,7 +49,7 @@ import { safeHttpUrl } from "@/lib/safe-url";
 const PAGE_SIZE = 30;
 
 const KIND_LABELS: Record<TimelineEvent["kind"], string> = {
-  signal: "Señal",
+  signal: "Aviso",
   contract: "Contrato",
   news: "Noticia",
   regulation: "Norma",
@@ -129,13 +129,11 @@ export function TimelineView() {
 
   const shown = filtered.slice(0, visible);
   const isFiltering = filtered.length !== events.length;
-  useRegisterPageContext(timelineContext(filtered, events.length, { "solo mis seguimientos": onlyFollowed ? "sí" : undefined }));
+  useRegisterPageContext(timelineContext(filtered, events.length, { "solo lo que sigo": onlyFollowed ? "sí" : undefined }));
 
   return (
     <div className="flex min-w-0 flex-col gap-4">
-      <PageIntro
-        title="Línea de tiempo"
-        description="Señales, contratos, noticias con tus términos y publicaciones de regulación en orden, del más reciente al más antiguo."
+      <PageIntro description="Avisos, contratos, noticias con sus términos y publicaciones de regulación en orden, del más reciente al más antiguo."
         actions={<FollowedFilterToggle />}
       />
 
@@ -178,7 +176,7 @@ export function TimelineView() {
                   <EmptyDescription>
                     {isFiltering
                       ? "Ningún evento cumple estos filtros o tu lista de seguimiento. Quita alguno para ver más."
-                      : "Todavía no hay señales ni contratos con los datos de hoy."}
+                      : "Todavía no hay avisos ni contratos con los datos de hoy."}
                   </EmptyDescription>
                 </EmptyHeader>
               </Empty>

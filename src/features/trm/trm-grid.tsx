@@ -76,7 +76,7 @@ export function TrmGrid({ title, icon, datos, estaGuardado, onAlternarAlerta, oc
       {
         accessorKey: "atipico",
         id: "atipico",
-        header: ({ column }) => <DataGridColumnHeader title="Señal" column={column} />,
+        header: ({ column }) => <DataGridColumnHeader title="Estado" column={column} />,
         cell: ({ row }) =>
           row.original.atipico ? (
             <Badge variant="warning-light" size="sm">
@@ -91,7 +91,7 @@ export function TrmGrid({ title, icon, datos, estaGuardado, onAlternarAlerta, oc
       },
       {
         id: "alerta",
-        header: () => <span className="sr-only">Alerta</span>,
+        header: () => <span className="sr-only">Aviso</span>,
         cell: ({ row }) => {
           const fecha = row.original.fecha;
           const guardada = estaGuardado(fecha);
@@ -102,7 +102,7 @@ export function TrmGrid({ title, icon, datos, estaGuardado, onAlternarAlerta, oc
                 variant="ghost"
                 size="icon-sm"
                 aria-pressed={guardada}
-                aria-label={`${guardada ? "Quitar de" : "Guardar en"} alertas el ${formatFecha(fecha)}`}
+                aria-label={`${guardada ? "Quitar de" : "Guardar en"} avisos el ${formatFecha(fecha)}`}
                 onClick={() => onAlternarAlerta(fecha)}
               >
                 <StarIcon aria-hidden="true" className={cn(guardada && "fill-current text-warning")} />

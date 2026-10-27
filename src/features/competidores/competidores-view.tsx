@@ -117,13 +117,11 @@ export function CompetidoresView() {
     ...(company.nit ? [{ name: company.name, nit: company.nit, isCompany: true }] : []),
     ...competitors.map((competitor) => ({ ...competitor, isCompany: false })),
   ];
-  useRegisterPageContext(contractsContext("/competidores", "Competidores", rows, [{ label: "Competidores", value: competitors.map((c) => c.name).join(", ") }]));
+  useRegisterPageContext(contractsContext("/economia", "Competidores", rows, [{ label: "Competidores", value: competitors.map((c) => c.name).join(", ") }]));
 
   return (
     <div className="flex min-w-0 flex-col gap-4">
-      <PageIntro
-        title="Competidores"
-        description="Qué tan grande y rentable es cada competidor frente a la empresa, y qué contratos públicos firmó en los últimos 12 meses."
+      <PageIntro description="Qué tan grande y rentable es cada competidor frente a la empresa, y qué contratos públicos firmó en los últimos 12 meses."
       />
 
       <div className="flex flex-col gap-2">

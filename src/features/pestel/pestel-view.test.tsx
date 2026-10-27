@@ -42,7 +42,7 @@ describe("PestelView", () => {
     for (const name of ["Político", "Económico", "Social", "Tecnológico", "Ambiental", "Legal"]) {
       expect(within(matrix).getByRole("article", { name: `Factor ${name}` })).toBeInTheDocument();
     }
-    expect(within(matrix).getAllByText("Sin señales en este período.")).toHaveLength(6);
+    expect(within(matrix).getAllByText("Sin avisos en este período.")).toHaveLength(6);
   });
 
   it("puts an expiring own contract under Político, with a link to the original record and a prefiltered link", async () => {
@@ -55,9 +55,9 @@ describe("PestelView", () => {
       "href",
       expect.stringContaining("datos.gov.co"),
     );
-    expect(within(political).getByRole("link", { name: /Ver señales de este factor/ })).toHaveAttribute(
+    expect(within(political).getByRole("link", { name: /Ver avisos de este factor/ })).toHaveAttribute(
       "href",
-      "/senales?pestel=political",
+      "/resumen?tab=avisos&pestel=political",
     );
     expect(within(political).getByText(/Por evaluar: 1/)).toBeInTheDocument();
     expect(within(political).getByText(/comparación de conteos, no un pronóstico/)).toBeInTheDocument();

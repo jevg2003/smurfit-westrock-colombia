@@ -29,7 +29,7 @@ interface FieldSpec {
 const THRESHOLD_FIELDS: { title: string; description: string; fields: FieldSpec[] }[] = [
   {
     title: "Dólar (TRM)",
-    description: "Cuánto debe moverse la TRM de un día a otro para que salga una señal.",
+    description: "Cuánto debe moverse la TRM de un día a otro para que salga un aviso.",
     fields: [
       {
         key: "trmDailyMovePct",
@@ -41,7 +41,7 @@ const THRESHOLD_FIELDS: { title: string; description: string; fields: FieldSpec[
       {
         key: "trmDailyAlertPct",
         label: "Variación diaria de la TRM para alertar",
-        help: "Desde este cambio, la señal pasa de vigilar a alerta.",
+        help: "Desde este cambio, el aviso pasa de vigilar a alerta.",
         unit: "%",
         inputMode: "decimal",
       },
@@ -49,7 +49,7 @@ const THRESHOLD_FIELDS: { title: string; description: string; fields: FieldSpec[
   },
   {
     title: "Energía eléctrica (XM)",
-    description: "Cuánto debe moverse el precio de bolsa de la electricidad, de una semana a otra, para que salga una señal.",
+    description: "Cuánto debe moverse el precio de bolsa de la electricidad, de una semana a otra, para que salga un aviso.",
     fields: [
       {
         key: "energySpotWeeklyMovePct",
@@ -61,7 +61,7 @@ const THRESHOLD_FIELDS: { title: string; description: string; fields: FieldSpec[
       {
         key: "energySpotWeeklyAlertPct",
         label: "Variación semanal del precio de bolsa para alertar",
-        help: "Desde este cambio, la señal pasa de vigilar a alerta.",
+        help: "Desde este cambio, el aviso pasa de vigilar a alerta.",
         unit: "%",
         inputMode: "decimal",
       },
@@ -119,9 +119,7 @@ export function PreferenciasView() {
 
   return (
     <div className="flex min-w-0 flex-col gap-4">
-      <PageIntro
-        title="Preferencias"
-        description="Ajusta cuándo salta una señal y qué palabras buscamos en las noticias. Todo se guarda en este navegador."
+      <PageIntro description="Ajuste cuándo salta un aviso y qué palabras se buscan en las noticias. Todo se guarda en este navegador."
         actions={<ResetButton onReset={() => setGeneration((value) => value + 1)} />}
       />
       {!hasHydrated ? (
@@ -187,7 +185,7 @@ function ThresholdsCard() {
       >
         <CardHeader className="border-b px-4 py-3 [.border-b]:pb-3">
           <CardTitle className="text-sm font-semibold">Umbrales de las reglas</CardTitle>
-          <CardDescription>Los cambios se aplican a las señales, a las alertas nuevas y al texto de cada regla.</CardDescription>
+          <CardDescription>Los cambios se aplican a los avisos y al texto de cada regla.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-5 py-4">
           {THRESHOLD_FIELDS.map((group) => (
@@ -310,7 +308,7 @@ function TermsCard() {
         const excludeAny = parseWords(value[excludeKey(group.id)]);
         if (requireAny.ok && excludeAny.ok) setContext(group.id, { requireAny: requireAny.value, excludeAny: excludeAny.value });
       }
-      setMessage("Términos guardados. Se usan en las noticias y en las señales.");
+      setMessage("Términos guardados. Se usan en las noticias y en los avisos.");
     },
   });
 

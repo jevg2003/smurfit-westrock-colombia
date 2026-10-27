@@ -66,7 +66,7 @@ describe("TimelineView", () => {
     expect(await screen.findByText(/CARVAJAL EMPAQUES firmó un contrato con Entidad C1/)).toBeInTheDocument();
     expect(screen.getAllByText(/La TRM (subió|bajó)/).length).toBeGreaterThan(0);
 
-    await user.click(screen.getByRole("checkbox", { name: "Solo mis seguimientos" }));
+    await user.click(screen.getByRole("checkbox", { name: "Solo lo que sigo" }));
 
     expect(screen.getByText(/COMPETIDORA UNO firmó un contrato con Entidad A1/)).toBeInTheDocument();
     expect(screen.queryByText(/CARVAJAL EMPAQUES firmó/)).not.toBeInTheDocument();

@@ -1,24 +1,35 @@
 import { describe, expect, it } from "vitest";
-import { BRAND_HREF, HOME_HREF, NAV, isNavActive, navTitle } from "./nav";
+import { BRAND_HREF, CONFIG_ITEM, HOME_HREF, NAV, isNavActive, navTitle } from "./nav";
 
 describe("shell navigation", () => {
-  it("points the Radar entry at /home", () => {
-    expect(NAV.find((item) => item.label === "Radar")?.href).toBe("/home");
+  it("has five items in order", () => {
+    expect(NAV.map((item) => [item.label, item.href])).toEqual([
+      ["Resumen", "/resumen"],
+      ["Economía", "/economia"],
+      ["Noticias", "/noticias"],
+      ["Análisis", "/analisis"],
+      ["Asistente", "/asistente"],
+    ]);
   });
 
-  it("marks Radar active on /home and not on the landing /", () => {
-    expect(isNavActive("/home", "/home")).toBe(true);
-    expect(isNavActive("/", "/home")).toBe(false);
+  it("puts Configuración apart, in the footer", () => {
+    expect(CONFIG_ITEM).toMatchObject({ label: "Configuración", href: "/configuracion" });
+    expect(NAV.some((item) => item.href === CONFIG_ITEM.href)).toBe(false);
   });
 
-  it("links the brand to /home and the landing link to /", () => {
-    expect(BRAND_HREF).toBe("/home");
+  it("marks an item active on its path and not on the landing /", () => {
+    expect(isNavActive("/resumen", "/resumen")).toBe(true);
+    expect(isNavActive("/", "/resumen")).toBe(false);
+  });
+
+  it("links the brand to /resumen and the landing link to /", () => {
+    expect(BRAND_HREF).toBe("/resumen");
     expect(HOME_HREF).toBe("/");
   });
 
   it("derives the page title from the pathname", () => {
-    expect(navTitle("/home")).toBe("Radar");
-    expect(navTitle("/senales")).toBe("Señales");
+    expect(navTitle("/resumen")).toBe("Resumen");
+    expect(navTitle("/configuracion")).toBe("Configuración");
     expect(navTitle("/unknown")).toBe("Smart Work Core");
   });
 });
