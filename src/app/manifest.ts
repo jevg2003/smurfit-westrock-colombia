@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Smart Work Core",
     short_name: "SWC",
-    description: "Contexto de Colombia convertido en señales para decidir.",
+    description: "Contexto de Colombia convertido en avisos para decidir.",
     start_url: "/",
     display: "standalone",
     background_color: "#1A1F24",

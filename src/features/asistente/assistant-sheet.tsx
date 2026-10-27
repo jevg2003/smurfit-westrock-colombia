@@ -140,7 +140,7 @@ function SheetBody() {
         ) : (
           <div className="flex min-h-0 flex-1 flex-col justify-between gap-4">
             <p className="max-w-prose text-sm text-muted-foreground">
-              Pregúntame por lo que ves en esta pantalla. También puedo consultar la TRM, los contratos, los competidores y las señales.
+              Pregúntame por lo que ves en esta pantalla. También puedo consultar la TRM, los contratos, los competidores y los avisos.
             </p>
             <Composer onSubmit={start} placeholder="Pregunta sobre esta pantalla" />
           </div>

@@ -26,7 +26,7 @@ const LABELS: Record<string, { running: string; done: string }> = {
   get_regulation: { running: "Consultando la regulación", done: "Consulté la regulación" },
   get_energy_price: { running: "Consultando el precio de la energía", done: "Consulté el precio de la energía" },
   web_search: { running: "Buscando en internet", done: "Busqué en internet" },
-  detect_signals: { running: "Aplicando las reglas de señales", done: "Apliqué las reglas de señales" },
+  detect_signals: { running: "Aplicando las reglas de avisos", done: "Apliqué las reglas de avisos" },
 };
 
 interface Source {

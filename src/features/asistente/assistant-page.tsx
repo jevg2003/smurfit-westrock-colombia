@@ -72,7 +72,7 @@ export function AssistantPage() {
     <div className="mx-auto flex min-h-[32rem] w-full max-w-5xl flex-1 flex-col gap-4">
       <PageIntro
         title="Asistente"
-        description="Pregunta por la TRM, los contratos, los competidores y las señales. En esta página no ve tu pantalla."
+        description="Pregunta por la TRM, los contratos, los competidores y los avisos. En esta página no ve tu pantalla."
         actions={
           <Button variant="outline" size="sm" className="md:hidden" onClick={() => setHistoryOpen(true)}>
             <HistoryIcon aria-hidden="true" data-icon="inline-start" />

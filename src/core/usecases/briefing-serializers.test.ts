@@ -37,16 +37,16 @@ describe("briefingToMarkdown", () => {
     expect(markdown).toContain("Regla: regla de prueba");
   });
 
-  it("lists alerts with state and note", () => {
-    expect(markdown).toContain("## Alertas");
-    expect(markdown).toContain("Descartada");
+  it("lists avisos with state and note", () => {
+    expect(markdown).toContain("## Estado de los avisos");
+    expect(markdown).toContain("Descartado");
     expect(markdown).toContain("No aplica");
   });
 
   it("says so when the period has no signals", () => {
     const empty = buildBriefing({ signals: [], alerts: [], clock });
     if (!empty.ok) throw new Error("briefing failed");
-    expect(briefingToMarkdown(empty.value)).toContain("Sin señales en este período.");
+    expect(briefingToMarkdown(empty.value)).toContain("Sin avisos en este período.");
   });
 });
 
@@ -68,8 +68,8 @@ describe("briefingToCsv", () => {
     expect(csv).not.toMatch(/(^|,)=SUM/m);
   });
 
-  it("includes the alert state and note", () => {
-    expect(lines.find((line) => line.startsWith("alerta"))).toContain("descartada");
+  it("includes the aviso state and note", () => {
+    expect(lines.find((line) => line.startsWith("estado de aviso"))).toContain("descartado");
     expect(csv).toContain("No aplica");
   });
 });

@@ -31,7 +31,7 @@ export function signalsContext(
     route,
     title,
     filters: present(extra.filters ?? {}),
-    keyNumbers: [{ label: "Señales a la vista", value: String(signals.length) }, ...(extra.keyNumbers ?? [])],
+    keyNumbers: [{ label: "Avisos a la vista", value: String(signals.length) }, ...(extra.keyNumbers ?? [])],
     rows: signals.slice(0, CONTEXT_ROWS).map((signal) => ({
       label: signal.title,
       detail: `${signal.severity} · ${day(signal.occurredAt)} · ${signal.ruleText}`,
@@ -46,7 +46,7 @@ export function timelineContext(
   filters: Record<string, string | undefined> = {},
 ): PageContext {
   return {
-    route: "/linea-de-tiempo",
+    route: "/resumen",
     title: "Línea de tiempo",
     filters: present(filters),
     keyNumbers: [
@@ -82,14 +82,14 @@ export function contractsContext(
 
 export function briefingContext(briefing: Briefing | undefined, mode: string): PageContext {
   return {
-    route: "/briefing",
+    route: "/analisis",
     title: "Briefing",
     filters: { período: mode === "custom" ? "rango libre" : "semana anterior" },
     keyNumbers: briefing
       ? [
           { label: "Período", value: `${day(briefing.periodFrom)} a ${day(briefing.periodTo)}` },
-          { label: "Alertas del período", value: String(briefing.alerts.length) },
-          { label: "Señales del período", value: String(briefing.sections.reduce((sum, section) => sum + section.signals.length, 0)) },
+          { label: "Estado de los avisos del período", value: String(briefing.alerts.length) },
+          { label: "Avisos del período", value: String(briefing.sections.reduce((sum, section) => sum + section.signals.length, 0)) },
         ]
       : [],
     rows: briefing?.sections
@@ -114,7 +114,7 @@ export function macroContext(series: {
   exportsProvenance?: Provenance;
 }): PageContext {
   return {
-    route: "/macro",
+    route: "/economia",
     title: "Macroeconomía",
     keyNumbers: [
       ...latestOf("PIB real", series.gdp, series.gdpProvenance),
@@ -126,7 +126,7 @@ export function macroContext(series: {
 
 export function followContext(competitorNits: readonly string[], indicators: readonly string[]): PageContext {
   return {
-    route: "/seguimiento",
+    route: "/configuracion",
     title: "Seguimiento",
     keyNumbers: [
       { label: "Competidores seguidos", value: String(competitorNits.length) },

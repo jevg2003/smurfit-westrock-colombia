@@ -53,9 +53,7 @@ export function BriefingView() {
 
   return (
     <div className="flex min-w-0 flex-col gap-4">
-      <PageIntro
-        title="Briefing"
-        description="Un resumen del período listo para compartir. Por defecto es la semana anterior, de lunes a domingo (hora de Bogotá)."
+      <PageIntro description="Un resumen del período listo para compartir. Por defecto es la semana anterior, de lunes a domingo (hora de Bogotá)."
         actions={
           <>
             <Button size="sm" disabled={!briefing} onClick={() => window.print()}>
@@ -125,7 +123,7 @@ export function BriefingView() {
           {!hasContent && (
             <Empty className="border border-dashed print:hidden">
               <EmptyHeader>
-                <EmptyTitle>No hay señales en este período</EmptyTitle>
+                <EmptyTitle>No hay avisos en este período</EmptyTitle>
                 <EmptyDescription>
                   Prueba con otro rango, o revisa si alguna fuente falló. El archivo se puede descargar igual.
                 </EmptyDescription>

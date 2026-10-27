@@ -22,7 +22,7 @@ export interface NewsData {
   off: boolean;
 }
 
-/** The news term groups with the terms and the context/exclusion words the user has configured in Preferencias. */
+/** The news term groups with the terms and the context/exclusion words the user has configured in Configuración. */
 export function useNewsTermGroups(): TermGroup[] {
   const newsTermGroups = usePreferencesStore((state) => state.newsTermGroups);
   const newsContext = usePreferencesStore((state) => state.newsContext);

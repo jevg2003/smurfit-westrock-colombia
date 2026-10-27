@@ -65,7 +65,7 @@ export function createAlertsStore({ storage, clock = systemClock, companyId = UN
       (set, get) => {
         const transition = (signalId: string, target: Alert["state"], note: string | undefined) => {
           const current = get().alerts.find((alert) => alert.signalId === signalId);
-          if (!current) return fail("not_found", "No existe una alerta para esa señal.");
+          if (!current) return fail("not_found", "No existe un aviso para esa regla.");
           if (!ALLOWED_TARGETS[current.state].includes(target)) {
             return fail("invalid_transition", `No se puede pasar de ${current.state} a ${target}.`);
           }
@@ -100,7 +100,7 @@ export function createAlertsStore({ storage, clock = systemClock, companyId = UN
           dismiss: (signalId, note) =>
             note?.trim()
               ? transition(signalId, "dismissed", note)
-              : fail("note_required", "Escribe una nota para descartar la alerta."),
+              : fail("note_required", "Escribe una nota para descartar el aviso."),
           remove: (signalId) => set({ alerts: get().alerts.filter((alert) => alert.signalId !== signalId) }),
         };
       },

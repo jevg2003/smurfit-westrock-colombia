@@ -145,7 +145,7 @@ export function DecisionsSection({ decisions, onOpen, onCreate }: Props) {
           <EmptyHeader>
             <EmptyTitle>Aún no hay decisiones</EmptyTitle>
             <EmptyDescription>
-              Crea una desde una plantilla o en blanco. Puedes vincularla a las señales de cada factor.
+              Crea una desde una plantilla o en blanco. Puedes vincularla a los avisos de cada factor.
             </EmptyDescription>
           </EmptyHeader>
         </Empty>

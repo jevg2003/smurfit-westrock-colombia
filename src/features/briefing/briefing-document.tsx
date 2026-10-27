@@ -25,7 +25,7 @@ export function BriefingDocument({ briefing, extras }: { briefing: Briefing; ext
         <p className="text-xs font-medium">{briefing.note}</p>
       </header>
 
-      {total === 0 && <p className="text-sm text-muted-foreground">Sin señales en este período.</p>}
+      {total === 0 && <p className="text-sm text-muted-foreground">Sin avisos en este período.</p>}
 
       {briefing.sections.map((section) => (
         <section key={section.dimension} className="flex flex-col gap-3 break-inside-avoid-page">
@@ -67,7 +67,7 @@ export function BriefingDocument({ briefing, extras }: { briefing: Briefing; ext
 
       {briefing.alerts.length > 0 && (
         <section className="flex flex-col gap-2 break-inside-avoid-page">
-          <h3 className="text-base font-semibold">Alertas del período</h3>
+          <h3 className="text-base font-semibold">Estado de los avisos del período</h3>
           <ul className="flex flex-col gap-1.5 text-sm">
             {briefing.alerts.map((alert) => (
               <li key={alert.signalId} className="break-words">
@@ -95,7 +95,7 @@ function PestelReading({ extras }: { extras: BriefingPestelExtras }) {
       <section aria-label="Lectura PESTEL" className="flex flex-col gap-3 break-inside-avoid-page">
         <h3 className="text-base font-semibold">Lectura PESTEL</h3>
         <p className="text-xs text-muted-foreground">
-          El factor de cada señal sale de la regla que la generó. La tendencia compara conteos con el período anterior de
+          El factor de cada aviso sale de la regla que lo generó. La tendencia compara conteos con el período anterior de
           igual duración; no es un pronóstico.
         </p>
         <ul className="flex flex-col gap-3">

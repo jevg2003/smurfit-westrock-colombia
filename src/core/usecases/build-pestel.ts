@@ -107,11 +107,11 @@ export function openDecisions(decisions: readonly Decision[]): Decision[] {
 
 /** `Señales: 3 (1 alerta, 2 vigilar)`, or the empty-period sentence. */
 export function describeCounts(summary: PestelFactorSummary): string {
-  if (summary.total === 0) return "Sin señales en este período.";
+  if (summary.total === 0) return "Sin avisos en este período.";
   const parts = (["alert", "watch", "info"] as const)
     .filter((severity) => summary.bySeverity[severity] > 0)
     .map((severity) => `${summary.bySeverity[severity]} ${SEVERITY_LABELS[severity].toLowerCase()}`);
-  return `Señales: ${summary.total} (${parts.join(", ")})`;
+  return `Avisos: ${summary.total} (${parts.join(", ")})`;
 }
 
 /** `Amenaza: 1, Por evaluar: 2`, or an empty string when there are no signals. */

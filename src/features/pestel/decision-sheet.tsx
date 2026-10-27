@@ -283,7 +283,7 @@ function EditForm({ decision, signals, onClose }: { decision: Decision; signals:
           ))}
         </div>
         <SheetTitle className="text-base leading-snug">{decision.title}</SheetTitle>
-        <SheetDescription>Edita la decisión, vincula señales y cambia su estado.</SheetDescription>
+        <SheetDescription>Edita la decisión, vincula avisos y cambia su estado.</SheetDescription>
       </SheetHeader>
 
       <div className="flex flex-1 flex-col gap-5 px-4">
@@ -453,10 +453,10 @@ function EditForm({ decision, signals, onClose }: { decision: Decision; signals:
             </details.Field>
           </section>
 
-          <section className="flex flex-col gap-2" aria-label="Señales vinculadas">
-            <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Señales vinculadas</h3>
+          <section className="flex flex-col gap-2" aria-label="Avisos vinculados">
+            <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Avisos vinculados</h3>
             {signals.length === 0 && staleLinked.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No hay señales activas para vincular.</p>
+              <p className="text-sm text-muted-foreground">No hay avisos activos para vincular.</p>
             ) : (
               <details.Field name="linked">
                 {(field) => (
@@ -490,7 +490,7 @@ function EditForm({ decision, signals, onClose }: { decision: Decision; signals:
                           />
                           <FieldLabel htmlFor={`${ids}-s-${id}`} className="min-w-0 flex-col items-start gap-0 font-normal">
                             <span className="font-mono text-xs break-all">{id}</span>
-                            <span className="text-xs text-muted-foreground">Esta señal ya no se activa con los datos de hoy.</span>
+                            <span className="text-xs text-muted-foreground">Este aviso ya no se activa con los datos de hoy.</span>
                           </FieldLabel>
                         </Field>
                       </li>

@@ -17,7 +17,7 @@ function Reader() {
 
 afterEach(cleanup);
 
-const summary: PageContext = { route: "/senales", title: "Señales", keyNumbers: [{ label: "Total", value: "3" }] };
+const summary: PageContext = { route: "/resumen", title: "Avisos", keyNumbers: [{ label: "Total", value: "3" }] };
 
 describe("page context", () => {
   it("exposes what the visible screen registered", () => {
@@ -27,7 +27,7 @@ describe("page context", () => {
         <Reader />
       </PageContextProvider>,
     );
-    expect(screen.getByRole("status")).toHaveTextContent("Señales");
+    expect(screen.getByRole("status")).toHaveTextContent("Avisos");
   });
 
   it("clears the context when the screen unmounts", () => {

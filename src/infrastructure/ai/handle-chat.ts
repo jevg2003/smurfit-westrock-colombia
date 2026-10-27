@@ -46,7 +46,7 @@ const requestSchema = z.object({
   messages: z.array(messageSchema).min(1).max(200),
   mode: z.enum(["page", "sheet"]),
   pageContext: z.unknown().optional(),
-  /** The user's contract-expiry windows from Preferencias. */
+  /** The user's contract-expiry windows from Configuración. */
   thresholds: thresholdsSchema.default(DEFAULT_WINDOWS),
   /** Web search is on unless the user turns it off in the composer. */
   webSearch: z.boolean().default(true),

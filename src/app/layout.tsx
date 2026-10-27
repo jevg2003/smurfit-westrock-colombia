@@ -8,7 +8,7 @@ const geist = Geist({ subsets: ["latin"], variable: "--font-geist-sans" });
 
 export const metadata: Metadata = {
   title: "Smart Work Core · Contexto de Colombia para decidir",
-  description: "Smart Work Core lee el contexto de Colombia (dólar, contratación pública, competidores, noticias y regulación) y lo convierte en señales para decidir.",
+  description: "Smart Work Core lee el contexto de Colombia (dólar, contratación pública, competidores, noticias y regulación) y lo convierte en avisos para decidir.",
   icons: {
     icon: [
       { url: "/icon.svg", type: "image/svg+xml" },

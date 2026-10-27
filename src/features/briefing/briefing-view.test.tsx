@@ -93,6 +93,6 @@ describe("BriefingView", () => {
     useSignalsMock.mockReturnValue(withSignals([OUT_OF_WEEK]));
     renderWithQuery(<BriefingView />);
 
-    expect(screen.getByText("No hay señales en este período")).toBeInTheDocument();
+    expect(screen.getByText("No hay avisos en este período")).toBeInTheDocument();
   });
 });

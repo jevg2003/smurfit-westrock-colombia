@@ -81,7 +81,7 @@ describe("handleChat", () => {
   });
 
   it("puts the page context in the prompt only in sheet mode", async () => {
-    const pageContext = { route: "/contratacion", title: "Contratación visible" };
+    const pageContext = { route: "/economia", title: "Contratación visible" };
 
     const sheet = makeDeps();
     await (await handleChat(post({ messages: [userMessage("x")], mode: "sheet", pageContext }), sheet)).text();

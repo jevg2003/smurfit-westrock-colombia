@@ -60,7 +60,7 @@ export function decisionsToMarkdown(decisions: readonly Decision[]): string {
     if (decision.owner) lines.push(`- Responsable: ${plain(decision.owner)}`);
     if (decision.reviewAt) lines.push(`- Revisar el: ${decision.reviewAt}`);
     if (decision.rationale) lines.push(`- Motivo: ${plain(decision.rationale)}`);
-    if (decision.linkedSignalIds.length > 0) lines.push(`- Señales vinculadas: ${decision.linkedSignalIds.join(", ")}`);
+    if (decision.linkedSignalIds.length > 0) lines.push(`- Avisos vinculados: ${decision.linkedSignalIds.join(", ")}`);
     lines.push("", "Opciones:", "");
     if (decision.options.length === 0) lines.push("- Sin opciones registradas.");
     for (const option of decision.options) {

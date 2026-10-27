@@ -22,9 +22,9 @@ export const SEVERITY_LABELS: Record<Severity, string> = {
 };
 
 export const ALERT_STATE_LABELS: Record<AlertState, string> = {
-  new: "Nueva",
-  reviewed: "Revisada",
-  dismissed: "Descartada",
+  new: "Nuevo",
+  reviewed: "Revisado",
+  dismissed: "Descartado",
 };
 
 export const INDICATOR_LABELS: Record<IndicatorId, string> = {

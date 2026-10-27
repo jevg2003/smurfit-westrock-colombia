@@ -73,7 +73,7 @@ describe("briefingToMarkdown with a PESTEL reading", () => {
 
   it("marks factors without signals instead of hiding them", () => {
     expect(md).toContain("### Legal");
-    expect(md).toContain("Sin señales en este período.");
+    expect(md).toContain("Sin avisos en este período.");
   });
 
   it("lists only open and evaluating decisions", () => {
@@ -101,7 +101,7 @@ describe("briefingToCsv with a PESTEL reading", () => {
 
   it("puts the factor label and the count comparison in the row", () => {
     const row = lines.find((line) => line.startsWith("lectura PESTEL") && line.includes("Político"));
-    expect(row).toContain("Señales: 1");
+    expect(row).toContain("Avisos: 1");
     expect(row).toContain("Comparación de conteos");
   });
 });

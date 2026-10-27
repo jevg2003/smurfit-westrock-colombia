@@ -40,7 +40,7 @@ export interface AssistantToolDeps {
   news(limit: number): Promise<NewsResponse>;
   regulation(): Promise<RegulationResponse>;
   curatedNorms(): RegulationEntry[];
-  /** The user's contract-expiry windows (Preferencias). "Soon" means within `watchDays`. */
+  /** The user's contract-expiry windows (Configuración). "Soon" means within `watchDays`. */
   thresholds: ExpiryThresholds;
   /** The active company, sent by the browser. Its NIT and its competitors' NITs are the only ones the tools look up. */
   company: CompanyContext;

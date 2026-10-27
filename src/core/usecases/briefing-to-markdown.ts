@@ -39,7 +39,7 @@ export function briefingToMarkdown(briefing: Briefing, extras?: BriefingPestelEx
     "",
   ];
 
-  if (briefing.sections.length === 0) lines.push("Sin señales en este período.", "");
+  if (briefing.sections.length === 0) lines.push("Sin avisos en este período.", "");
   for (const section of briefing.sections) {
     lines.push(`## ${DIMENSION_LABELS[section.dimension]}`, "");
     for (const signal of section.signals) lines.push(...signalBlock(signal));
@@ -48,7 +48,7 @@ export function briefingToMarkdown(briefing: Briefing, extras?: BriefingPestelEx
   if (extras) lines.push(...pestelLines(extras));
 
   if (briefing.alerts.length > 0) {
-    lines.push("## Alertas", "");
+    lines.push("## Estado de los avisos", "");
     for (const alert of briefing.alerts) {
       const snapshot = alert.signalSnapshot;
       lines.push(
@@ -66,7 +66,7 @@ function pestelLines({ pestel, decisions }: BriefingPestelExtras): string[] {
   const lines = [
     "## Lectura PESTEL",
     "",
-    "> El factor de cada señal sale de la regla que la generó. La tendencia compara conteos con el período anterior de igual duración; no es un pronóstico.",
+    "> El factor de cada aviso sale de la regla que lo generó. La tendencia compara conteos con el período anterior de igual duración; no es un pronóstico.",
     "",
   ];
   for (const factor of pestel) {

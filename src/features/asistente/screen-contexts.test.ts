@@ -6,11 +6,11 @@ import { CONTEXT_ROWS, signalsContext, followContext, macroContext } from "./scr
 describe("screen contexts", () => {
   it("builds a bounded, schema-valid summary of the signals on screen", () => {
     const signals = Array.from({ length: 40 }, (_, i) => makeSignal(`s${i}`));
-    const context = signalsContext("/senales", "Señales", signals, { filters: { severidad: "alerta", vacío: undefined } });
+    const context = signalsContext("/resumen", "Avisos", signals, { filters: { severidad: "alerta", vacío: undefined } });
     expect(pageContextSchema.safeParse(context).success).toBe(true);
     expect(context.rows).toHaveLength(CONTEXT_ROWS);
     expect(context.filters).toEqual({ severidad: "alerta" });
-    expect(context.keyNumbers?.[0]).toEqual({ label: "Señales a la vista", value: "40" });
+    expect(context.keyNumbers?.[0]).toEqual({ label: "Avisos a la vista", value: "40" });
     expect(fitsPageContextBudget(context)).toBe(true);
   });
 

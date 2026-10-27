@@ -12,7 +12,7 @@ import { AssistantSheet } from "./assistant-sheet";
 import { ChatRuntimeProvider } from "./chat-runtime";
 import { PageContextProvider, useRegisterPageContext } from "./page-context";
 
-const summary: PageContext = { route: "/contratacion", title: "Contratación", keyNumbers: [{ label: "Contratos a la vista", value: "4" }] };
+const summary: PageContext = { route: "/economia", title: "Contratación", keyNumbers: [{ label: "Contratos a la vista", value: "4" }] };
 
 function Screen() {
   useRegisterPageContext(summary);

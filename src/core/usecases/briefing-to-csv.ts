@@ -20,7 +20,7 @@ export const BRIEFING_CSV_COLUMNS = [
   "nota",
 ] as const;
 
-function row(kind: "señal" | "alerta", signal: Signal, state: string, date: string, note: string): CsvCell[] {
+function row(kind: "aviso" | "estado de aviso", signal: Signal, state: string, date: string, note: string): CsvCell[] {
   const source = signal.provenance[0];
   return [
     kind,
@@ -38,13 +38,13 @@ function row(kind: "señal" | "alerta", signal: Signal, state: string, date: str
   ];
 }
 
-/** One row per signal and one per alert. Text cells starting with a formula character are neutralized. */
+/** One row per aviso and one per aviso state. Text cells starting with a formula character are neutralized. */
 export function briefingToCsv(briefing: Briefing, extras?: BriefingPestelExtras): string {
   const signalRows = briefing.sections.flatMap((section) =>
-    section.signals.map((signal) => row("señal", signal, "", bogotaDateKey(signal.occurredAt), "")),
+    section.signals.map((signal) => row("aviso", signal, "", bogotaDateKey(signal.occurredAt), "")),
   );
   const alertRows = briefing.alerts.map((alert) =>
-    row("alerta", alert.signalSnapshot, ALERT_STATE_LABELS[alert.state].toLowerCase(), bogotaDateKey(alert.updatedAt), alert.note ?? ""),
+    row("estado de aviso", alert.signalSnapshot, ALERT_STATE_LABELS[alert.state].toLowerCase(), bogotaDateKey(alert.updatedAt), alert.note ?? ""),
   );
   return toCsv(BRIEFING_CSV_COLUMNS, [...signalRows, ...alertRows, ...(extras ? pestelRows(extras) : [])], {
     neutralizeFormulas: true,
@@ -63,7 +63,7 @@ function pestelRows({ pestel, decisions }: BriefingPestelExtras): CsvCell[][] {
     [describeCounts(factor), describeImpacts(factor) && `Impacto según la regla: ${describeImpacts(factor)}`, factor.trend.label]
       .filter(Boolean)
       .join(" · "),
-    "El factor de cada señal sale de la regla que la generó",
+    "El factor de cada aviso sale de la regla que lo generó",
     "",
     "",
     "",
