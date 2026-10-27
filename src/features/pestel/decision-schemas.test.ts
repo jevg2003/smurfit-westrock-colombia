@@ -8,7 +8,7 @@ describe("createDecisionSchema", () => {
   it("asks for a title", () => {
     const result = createDecisionSchema.safeParse({ title: "   ", question: "", factors: [] });
     expect(result.success).toBe(false);
-    expect(messages(result)).toEqual(["Escribe un título para la decisión."]);
+    expect(messages(result)).toEqual(["Escriba un título para la decisión."]);
   });
 
   it("accepts a title with an empty question", () => {
@@ -38,7 +38,7 @@ describe("detailsSchema", () => {
   });
 
   it("rejects a broken date and an empty title", () => {
-    expect(messages(detailsSchema.safeParse({ ...base, reviewAt: "05/11/2026" }))).toEqual(["Elige una fecha válida."]);
-    expect(messages(detailsSchema.safeParse({ ...base, title: " " }))).toEqual(["Escribe un título para la decisión."]);
+    expect(messages(detailsSchema.safeParse({ ...base, reviewAt: "05/11/2026" }))).toEqual(["Elija una fecha válida."]);
+    expect(messages(detailsSchema.safeParse({ ...base, title: " " }))).toEqual(["Escriba un título para la decisión."]);
   });
 });

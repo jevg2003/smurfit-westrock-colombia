@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { Pestel } from "@/core/domain/dimension";
 
-const TITLE_REQUIRED = "Escribe un título para la decisión.";
+const TITLE_REQUIRED = "Escriba un título para la decisión.";
 const RATIONALE_REQUIRED = "Escribe el motivo para marcar la decisión como decidida o descartada.";
 
 const factors = z.array(z.custom<Pestel>((value) => typeof value === "string"));
@@ -25,7 +25,7 @@ export const detailsSchema = z.object({
   linked: z.array(z.string()),
   owner: z.string(),
   /** Empty, or a calendar day `YYYY-MM-DD`. */
-  reviewAt: z.string().regex(/^(\d{4}-\d{2}-\d{2})?$/, "Elige una fecha válida."),
+  reviewAt: z.string().regex(/^(\d{4}-\d{2}-\d{2})?$/, "Elija una fecha válida."),
 });
 
 /** A rationale is required to mark a decision decided or discarded. */

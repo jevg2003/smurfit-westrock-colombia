@@ -13,7 +13,7 @@ export function BriefingDocument({ briefing, extras }: { briefing: Briefing; ext
   return (
     <article
       aria-label="Vista previa del briefing"
-      className="flex min-w-0 flex-col gap-5 rounded-xl border bg-card p-5 text-card-foreground print:border-0 print:p-0 print:text-black"
+      className="flex min-w-0 flex-col gap-5 print:text-black"
     >
       <header className="flex flex-col gap-1 border-b pb-3">
         <h2 className="text-xl font-semibold tracking-tight">Briefing del entorno</h2>
@@ -28,7 +28,7 @@ export function BriefingDocument({ briefing, extras }: { briefing: Briefing; ext
       {total === 0 && <p className="text-sm text-muted-foreground">Sin avisos en este período.</p>}
 
       {briefing.sections.map((section) => (
-        <section key={section.dimension} className="flex flex-col gap-3 break-inside-avoid-page">
+        <section key={section.dimension} id={`briefing-${section.dimension}`} className="flex scroll-mt-2 flex-col gap-3 break-inside-avoid-page">
           <h3 className="text-base font-semibold">{DIMENSION_LABELS[section.dimension]}</h3>
           <ul className="flex flex-col gap-3">
             {section.signals.map((signal) => {
@@ -66,7 +66,7 @@ export function BriefingDocument({ briefing, extras }: { briefing: Briefing; ext
       {extras && <PestelReading extras={extras} />}
 
       {briefing.alerts.length > 0 && (
-        <section className="flex flex-col gap-2 break-inside-avoid-page">
+        <section id="estado-avisos" className="flex scroll-mt-2 flex-col gap-2 break-inside-avoid-page">
           <h3 className="text-base font-semibold">Estado de los avisos del período</h3>
           <ul className="flex flex-col gap-1.5 text-sm">
             {briefing.alerts.map((alert) => (
@@ -92,7 +92,7 @@ function PestelReading({ extras }: { extras: BriefingPestelExtras }) {
 
   return (
     <>
-      <section aria-label="Lectura PESTEL" className="flex flex-col gap-3 break-inside-avoid-page">
+      <section id="lectura-pestel" aria-label="Lectura PESTEL" className="flex scroll-mt-2 flex-col gap-3 break-inside-avoid-page">
         <h3 className="text-base font-semibold">Lectura PESTEL</h3>
         <p className="text-xs text-muted-foreground">
           El factor de cada aviso sale de la regla que lo generó. La tendencia compara conteos con el período anterior de
@@ -136,7 +136,7 @@ function PestelReading({ extras }: { extras: BriefingPestelExtras }) {
       </section>
 
       {open.length > 0 && (
-        <section aria-label="Decisiones abiertas" className="flex flex-col gap-2 break-inside-avoid-page">
+        <section id="decisiones-abiertas" aria-label="Decisiones abiertas" className="flex scroll-mt-2 flex-col gap-2 break-inside-avoid-page">
           <h3 className="text-base font-semibold">Decisiones abiertas</h3>
           <ul className="flex flex-col gap-1.5 text-sm">
             {open.map((decision) => (

@@ -1,14 +1,10 @@
 "use client";
 
-import type { ColumnDef } from "@tanstack/react-table";
-import { DownloadIcon, EyeIcon, FileTextIcon, GavelIcon, PlusIcon } from "lucide-react";
-import { useMemo } from "react";
-import { Badge } from "@/components/reui/badge";
-import { DataGridColumnHeader } from "@/components/reui/data-grid/data-grid-column-header";
-import type { DataGridFeatures } from "@/components/reui/data-grid/data-grid";
-import { DataTableCard } from "@/components/shell/data-table-card";
+import { DownloadIcon, EyeIcon, FileTextIcon, PlusIcon } from "lucide-react";
+import { EventItem, type EventTone } from "@/components/events/event-item";
+import { EventList } from "@/components/events/event-list";
+import { RegionEmpty } from "@/components/states/region-empty";
 import { Button } from "@/components/ui/button";
-import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import type { Decision, DecisionStatus } from "@/core/domain/decision";
 import { DECISION_STATUS_LABELS } from "@/core/labels";
 import { bogotaDateKey } from "@/core/time/bogota";
@@ -16,14 +12,7 @@ import { PESTEL_LABELS } from "@/features/entorno/labels";
 import { downloadCsv, downloadText } from "@/lib/download";
 import { decisionsToCsv, decisionsToMarkdown } from "./decisions-export";
 
-const STATUS_VARIANT = {
-  open: "primary-light",
-  evaluating: "warning-light",
-  decided: "success-light",
-  discarded: "invert-light",
-} as const;
-
-const STATUS_ORDER: Record<DecisionStatus, number> = { open: 0, evaluating: 1, decided: 2, discarded: 3 };
+const STATUS_TONE: Record<DecisionStatus, EventTone> = { open: "low", evaluating: "medium", decided: "positive", discarded: "neutral" };
 
 interface Props {
   decisions: Decision[];
@@ -31,101 +20,24 @@ interface Props {
   onCreate: () => void;
 }
 
-/** The user's decisions as a ReUI data grid, with create and CSV / Markdown export. */
+/** The log of decisions the user is weighing, newest first, with create and CSV / Markdown export. */
 export function DecisionsSection({ decisions, onOpen, onCreate }: Props) {
-  const columns = useMemo<ColumnDef<DataGridFeatures, Decision>[]>(
-    () => [
-      {
-        id: "title",
-        accessorFn: (row) => row.title,
-        header: ({ column }) => <DataGridColumnHeader title="Decisión" column={column} />,
-        cell: ({ row }) => (
-          <div className="flex min-w-0 flex-col gap-1 py-1">
-            <span className="font-medium whitespace-normal">{row.original.title}</span>
-            <span className="flex flex-wrap gap-1.5">
-              {row.original.pestelFactors.map((factor) => (
-                <Badge key={factor} variant="outline" size="sm">
-                  {PESTEL_LABELS[factor]}
-                </Badge>
-              ))}
-            </span>
-          </div>
-        ),
-        size: 380,
-        enableHiding: false,
-      },
-      {
-        id: "status",
-        accessorFn: (row) => STATUS_ORDER[row.status],
-        header: ({ column }) => <DataGridColumnHeader title="Estado" column={column} />,
-        cell: ({ row }) => (
-          <Badge variant={STATUS_VARIANT[row.original.status]} size="sm">
-            {DECISION_STATUS_LABELS[row.original.status]}
-          </Badge>
-        ),
-        size: 140,
-        enableHiding: false,
-      },
-      {
-        id: "reviewAt",
-        accessorFn: (row) => row.reviewAt ?? "",
-        header: ({ column }) => <DataGridColumnHeader title="Revisar el" column={column} />,
-        cell: ({ row }) => <span className="whitespace-nowrap tabular-nums">{row.original.reviewAt ?? "Sin fecha"}</span>,
-        size: 130,
-        enableHiding: false,
-      },
-      {
-        id: "updated",
-        accessorFn: (row) => Date.parse(row.updatedAt),
-        header: ({ column }) => <DataGridColumnHeader title="Actualizada" column={column} />,
-        cell: ({ row }) => <span className="whitespace-nowrap tabular-nums">{bogotaDateKey(row.original.updatedAt)}</span>,
-        size: 130,
-        enableHiding: false,
-      },
-      {
-        id: "actions",
-        header: () => <span className="sr-only">Acciones</span>,
-        cell: ({ row }) => (
-          <div className="flex justify-end" onClick={(event) => event.stopPropagation()}>
-            <Button variant="ghost" size="sm" aria-label={`Abrir: ${row.original.title}`} onClick={() => onOpen(row.original.id)}>
-              <EyeIcon aria-hidden="true" data-icon="inline-start" />
-              Abrir
-            </Button>
-          </div>
-        ),
-        size: 110,
-        enableSorting: false,
-        enableHiding: false,
-      },
-    ],
-    [onOpen],
-  );
-
   const stem = () => `decisiones-${bogotaDateKey(new Date())}`;
+  const newestFirst = [...decisions].sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
 
   return (
-    <DataTableCard
-      title="Decisiones"
-      icon={<GavelIcon aria-hidden="true" />}
-      description="Decisiones que estás pensando, con opciones, a favor y en contra. Se guardan solo en este navegador."
-      rows={decisions}
-      columns={columns}
-      getRowId={(row) => row.id}
-      initialSort={[{ id: "updated", desc: true }]}
-      countLabel="decisiones"
-      onRowClick={(row) => onOpen(row.id)}
-      actions={
-        <>
+    <section aria-label="Decisiones" className="flex flex-col gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 px-3">
+        <div className="flex flex-col gap-px">
+          <h2 className="text-sm font-semibold">Decisiones</h2>
+          <p className="text-xs text-muted-foreground">Las que está pensando, con opciones, a favor y en contra. Se guardan solo en este navegador.</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
           <Button size="sm" onClick={onCreate}>
             <PlusIcon aria-hidden="true" data-icon="inline-start" />
             Nueva decisión
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={decisions.length === 0}
-            onClick={() => downloadCsv(`${stem()}.csv`, decisionsToCsv(decisions))}
-          >
+          <Button variant="outline" size="sm" disabled={decisions.length === 0} onClick={() => downloadCsv(`${stem()}.csv`, decisionsToCsv(decisions))}>
             <DownloadIcon aria-hidden="true" data-icon="inline-start" />
             Exportar CSV
           </Button>
@@ -138,18 +50,36 @@ export function DecisionsSection({ decisions, onOpen, onCreate }: Props) {
             <FileTextIcon aria-hidden="true" data-icon="inline-start" />
             Exportar Markdown
           </Button>
-        </>
-      }
-      emptyMessage={
-        <Empty className="border-0 p-6">
-          <EmptyHeader>
-            <EmptyTitle>Aún no hay decisiones</EmptyTitle>
-            <EmptyDescription>
-              Crea una desde una plantilla o en blanco. Puedes vincularla a los avisos de cada factor.
-            </EmptyDescription>
-          </EmptyHeader>
-        </Empty>
-      }
-    />
+        </div>
+      </div>
+
+      {decisions.length === 0 ? (
+        <RegionEmpty title="Aún no hay decisiones" description="Cree una desde una plantilla o en blanco. Puede vincularla a los avisos de cada factor." />
+      ) : (
+        <EventList
+          flat
+          label="Decisiones"
+          items={newestFirst.map((decision) => ({ decision, at: decision.updatedAt }))}
+          getKey={({ decision }) => decision.id}
+          renderItem={({ decision }) => (
+            <EventItem
+              title={decision.title}
+              at={decision.updatedAt}
+              source="Decisión"
+              topic={decision.pestelFactors.map((factor) => PESTEL_LABELS[factor]).join(", ")}
+              badge={{ label: DECISION_STATUS_LABELS[decision.status], tone: STATUS_TONE[decision.status] }}
+              detail={decision.reviewAt ? `Revisar el ${decision.reviewAt}` : undefined}
+              actions={
+                <Button variant="ghost" size="sm" aria-label={`Abrir: ${decision.title}`} onClick={() => onOpen(decision.id)}>
+                  <EyeIcon aria-hidden="true" data-icon="inline-start" />
+                  Abrir
+                </Button>
+              }
+              onOpen={() => onOpen(decision.id)}
+            />
+          )}
+        />
+      )}
+    </section>
   );
 }

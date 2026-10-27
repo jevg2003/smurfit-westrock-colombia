@@ -138,7 +138,7 @@ function CreateForm({ onCreated }: { onCreated: (id: string) => void }) {
                   className="flex w-full min-w-0 flex-col gap-1 rounded-lg border p-3 text-start text-sm outline-none transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 aria-pressed:border-primary"
                 >
                   <span className="flex flex-wrap items-center gap-2">
-                    <Badge variant="info-light" size="sm">
+                    <Badge variant="info-light">
                       Plantilla
                     </Badge>
                     <span className="font-medium">{item.title}</span>
@@ -273,11 +273,11 @@ function EditForm({ decision, signals, onClose }: { decision: Decision; signals:
     <>
       <SheetHeader className="gap-2 pe-12">
         <div className="flex flex-wrap items-center gap-1.5">
-          <Badge variant="outline" size="sm">
+          <Badge variant="outline">
             {DECISION_STATUS_LABELS[decision.status]}
           </Badge>
           {decision.pestelFactors.map((factor) => (
-            <Badge key={factor} variant="outline" size="sm">
+            <Badge key={factor} variant="outline">
               {PESTEL_LABELS[factor]}
             </Badge>
           ))}
@@ -382,7 +382,7 @@ function EditForm({ decision, signals, onClose }: { decision: Decision; signals:
               {(optionsField) => (
                 <>
                   {optionsField.state.value.length === 0 && (
-                    <p className="text-sm text-muted-foreground">Aún no hay opciones. Agrega al menos dos para comparar.</p>
+                    <p className="text-sm text-muted-foreground">Aún no hay opciones. Agregue al menos dos para comparar.</p>
                   )}
                   <ul className="flex flex-col gap-3">
                     {optionsField.state.value.map((option, index) => (

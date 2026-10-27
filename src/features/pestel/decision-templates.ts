@@ -19,7 +19,7 @@ export const DECISION_TEMPLATES: readonly DecisionTemplate[] = [
     question: "Con la TRM actual, ¿conviene cubrir las compras y deudas en dólares del próximo trimestre?",
     pestelFactors: ["economic"],
     optionLabels: ["Cubrir", "Cubrir una parte", "No cubrir"],
-    guide: "Mira las señales de TRM y la pantalla Macro. Piensa en tus compras y deudas en dólares.",
+    guide: "Mire los avisos de TRM y la pantalla Macro. Piense en las compras y deudas en dólares.",
   },
   {
     id: "public-contracts",
@@ -35,7 +35,7 @@ export const DECISION_TEMPLATES: readonly DecisionTemplate[] = [
     question: "Frente a las nuevas obligaciones de una norma, ¿qué acciones tomamos y en qué plazo?",
     pestelFactors: ["legal", "environmental"],
     optionLabels: ["Cumplir con un plan propio", "Buscar asesoría especializada", "Esperar aclaración de la norma"],
-    guide: "Revisa el texto de la norma y confirma si aplica a la empresa y desde cuándo.",
+    guide: "Revise el texto de la norma y confirme si aplica a la empresa y desde cuándo.",
   },
   {
     id: "energy-cost",

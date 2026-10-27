@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { makeContract } from "@/core/rules/test-fixtures";
 import { addDaysToKey, bogotaDateKey } from "@/core/time/bogota";
+import { mockViewport } from "@/components/layouts/viewport.test-utils";
 import { fakeContainer, renderWithQuery, resetStores, secopEmpty, secopOk, trmRecord } from "@/features/entorno/test-utils";
 import { useDecisionsStore } from "@/stores/decisions.store";
 
@@ -26,6 +27,7 @@ const OWN_EXPIRING = makeContract({ id: "CO1.PCCNTR.OWN", endsAt: "2026-12-31T00
 
 describe("PestelView", () => {
   beforeEach(() => {
+    mockViewport(1280);
     resetStores();
     useDecisionsStore.setState({ decisions: [] });
     secopFetch.mockResolvedValue(secopEmpty);
@@ -33,16 +35,20 @@ describe("PestelView", () => {
     downloadCsv.mockClear();
     downloadText.mockClear();
   });
-  afterEach(cleanup);
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
 
-  it("shows the six factors, even when none has signals", async () => {
+  it("lists the six factors, even when none has avisos, and shows the first one in the pane", async () => {
     renderWithQuery(<PestelView />);
 
     const matrix = await screen.findByRole("region", { name: "Matriz PESTEL" });
     for (const name of ["Político", "Económico", "Social", "Tecnológico", "Ambiental", "Legal"]) {
-      expect(within(matrix).getByRole("article", { name: `Factor ${name}` })).toBeInTheDocument();
+      expect(within(matrix).getByRole("button", { name: new RegExp(`^${name}`) })).toBeInTheDocument();
     }
-    expect(within(matrix).getAllByText("Sin avisos en este período.")).toHaveLength(6);
+    expect(within(matrix).getAllByText("Sin avisos en este período")).toHaveLength(6);
+    expect(screen.getByRole("article", { name: "Factor Político" })).toBeInTheDocument();
   });
 
   it("puts an expiring own contract under Político, with a link to the original record and a prefiltered link", async () => {
@@ -51,16 +57,20 @@ describe("PestelView", () => {
 
     const political = await screen.findByRole("article", { name: "Factor Político" });
     await waitFor(() => expect(within(political).getByText(/vence en/)).toBeInTheDocument());
-    expect(within(political).getByRole("link", { name: /Registro original/ })).toHaveAttribute(
-      "href",
-      expect.stringContaining("datos.gov.co"),
-    );
-    expect(within(political).getByRole("link", { name: /Ver avisos de este factor/ })).toHaveAttribute(
-      "href",
-      "/resumen?tab=avisos&pestel=political",
-    );
+    expect(within(political).getByRole("link", { name: /vence en/ })).toHaveAttribute("href", expect.stringContaining("datos.gov.co"));
+    expect(within(political).getByRole("link", { name: /Ver avisos de este factor/ })).toHaveAttribute("href", "/resumen?tab=avisos&pestel=political");
     expect(within(political).getByText(/Por evaluar: 1/)).toBeInTheDocument();
     expect(within(political).getByText(/comparación de conteos, no un pronóstico/)).toBeInTheDocument();
+  });
+
+  it("switches the pane to the factor that was picked in the list", async () => {
+    renderWithQuery(<PestelView />);
+    const matrix = await screen.findByRole("region", { name: "Matriz PESTEL" });
+
+    await userEvent.click(within(matrix).getByRole("button", { name: /^Legal/ }));
+
+    expect(screen.getByRole("article", { name: "Factor Legal" })).toBeInTheDocument();
+    expect(screen.queryByRole("article", { name: "Factor Político" })).not.toBeInTheDocument();
   });
 
   it("creates a decision from a template, labeled as plantilla, and then edits it", async () => {
@@ -120,7 +130,7 @@ describe("PestelView", () => {
     await user.click(await screen.findByRole("button", { name: /Nueva decisión/ }));
     await user.click(screen.getByRole("button", { name: "Crear decisión" }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("Escribe un título para la decisión.");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Escriba un título para la decisión.");
     expect(useDecisionsStore.getState().decisions).toHaveLength(0);
   });
 
