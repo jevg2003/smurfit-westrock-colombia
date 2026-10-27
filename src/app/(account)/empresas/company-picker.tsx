@@ -24,8 +24,8 @@ import { useCompaniesStore } from "@/stores/companies.store";
 import { deleteCompany } from "@/stores/company-data";
 import { useHydrationStore } from "@/stores/hydration.store";
 
-/** Secondary line of a row: the city when known, otherwise the first line of the activity. */
-const detailOf = (company: CompanyProfile) => company.city?.trim() || company.activity;
+/** Secondary line of a row: sector and city when known, otherwise the first line of the activity. */
+const detailOf = (company: CompanyProfile) => [company.sector, company.city].map((part) => part?.trim()).filter(Boolean).join(", ") || company.activity;
 
 export function CompanyPicker() {
   const router = useRouter();
@@ -93,7 +93,7 @@ export function CompanyPicker() {
         ))}
       </ItemGroup>
 
-      <Button variant="outline" className="w-fit" onClick={() => router.push("/onboarding")}>
+      <Button variant="outline" className="w-fit" onClick={() => router.push("/onboarding?nueva=1")}>
         <PlusIcon aria-hidden="true" />
         Crear nueva empresa
       </Button>

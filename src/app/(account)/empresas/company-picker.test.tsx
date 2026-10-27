@@ -42,7 +42,13 @@ describe("CompanyPicker", () => {
   it("sends the user to create a company", async () => {
     render(<CompanyPicker />);
     await userEvent.click(screen.getByRole("button", { name: "Crear nueva empresa" }));
-    expect(push).toHaveBeenCalledWith("/onboarding");
+    expect(push).toHaveBeenCalledWith("/onboarding?nueva=1");
+  });
+
+  it("shows the sector and the city on the secondary line", () => {
+    useCompaniesStore.setState({ companies: [{ ...TEST_COMPANY, sector: "Alimentos", city: "Cali" }, other], activeCompanyId: null });
+    render(<CompanyPicker />);
+    expect(screen.getByText("Alimentos, Cali")).toBeInTheDocument();
   });
 
   it("deletes a company only after confirming, and removes its saved data", async () => {

@@ -33,3 +33,14 @@ export function blockOf(draft: Pick<OnboardingDraft, "stage" | "questions" | "cu
 export const stepNumberOf = (block: OnboardingBlock): 1 | 2 | 3 => (block === "empresa" ? 1 : block === "objetivos" ? 2 : 3);
 
 export const questionsOfBlock = (draft: Pick<OnboardingDraft, "questions">, block: AiBlock): Question[] => draft.questions.filter((question) => question.block === block);
+
+const SEED_PROGRESS = 5;
+const PROGRESS_PER_ANSWER = 10;
+const MAX_COUNTED_ANSWERS = 8;
+
+/** 0 to 100 for the thin bar: a little for the seed, ten for each answered question, full at the confirm step. */
+export function progressOf(draft: Pick<OnboardingDraft, "stage" | "questions" | "answers">): number {
+  if (draft.stage === "confirm") return 100;
+  const answered = draft.questions.filter((question) => draft.answers[question.id] !== undefined).length;
+  return SEED_PROGRESS + Math.min(answered, MAX_COUNTED_ANSWERS) * PROGRESS_PER_ANSWER;
+}
