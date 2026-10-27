@@ -3,7 +3,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { buildProfile, type ConfirmValues } from "@/core/onboarding/confirm";
+import { buildProfile, updateProfile, type ConfirmValues } from "@/core/onboarding/confirm";
 import { buildRequest, nextAction } from "@/core/onboarding/flow";
 import type { Answer, OnboardingNotice, OnboardingRequest, OnboardingSeed } from "@/core/onboarding/schemas";
 import { useCompaniesStore } from "@/stores/companies.store";
@@ -70,12 +70,16 @@ export function useOnboardingFlow() {
   const createCompany = (values: ConfirmValues) => {
     const current = draftState().draft;
     if (!current) return;
-    const profile = buildProfile(values, current.patch, { id: crypto.randomUUID(), now: new Date() });
-    useCompaniesStore.getState().add(profile);
-    useCompaniesStore.getState().setActive(profile.id);
+    const companies = useCompaniesStore.getState();
+    const now = new Date();
+    // A round that re-answers a company updates it; if that company is gone meanwhile, it becomes a new one.
+    const existing = current.companyId ? companies.companies.find((company) => company.id === current.companyId) : undefined;
+    const profile = existing ? updateProfile(existing, values, { patch: current.patch, now }) : buildProfile(values, current.patch, { id: crypto.randomUUID(), now });
+    companies.add(profile);
+    companies.setActive(profile.id);
     setFinished(true);
     draftState().clear();
-    router.push("/home");
+    router.push(existing ? "/configuracion?tab=empresa" : "/resumen");
   };
 
   return {

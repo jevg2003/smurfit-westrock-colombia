@@ -85,3 +85,38 @@ export function buildProfile(values: ConfirmValues, patch: ProfilePatch, { id, n
     regulationExcludeKeywords: uniqueTerms(patch.regulationExcludeKeywords ?? DEFAULT_REGULATION_EXCLUDE_KEYWORDS),
   };
 }
+
+/** The seed (first form) an existing company would have given. */
+export const profileToSeed = (profile: CompanyProfile): OnboardingSeed => ({
+  name: profile.name,
+  ...(profile.nit ? { nit: profile.nit } : {}),
+  ...(profile.city ? { city: profile.city } : {}),
+});
+
+/** Everything the onboarding can fill in, read back from a saved profile (so a new round starts from it). */
+export const profileToPatch = (profile: CompanyProfile): ProfilePatch => ({
+  ...(profile.sector ? { sector: profile.sector } : {}),
+  activity: profile.activity,
+  ...(profile.city ? { city: profile.city } : {}),
+  regions: profile.regions,
+  competitors: profile.competitors,
+  newsGroups: profile.newsGroups,
+  colombiaContextWords: profile.colombiaContextWords,
+  excludeWords: profile.excludeWords,
+  regulationKeywords: profile.regulationKeywords,
+  regulationExcludeKeywords: profile.regulationExcludeKeywords,
+  goals: profile.goals,
+});
+
+/**
+ * The profile after the user reviewed `values`. It is the same company: id, creation date and thresholds stay,
+ * and the parts the form does not show come from `patch` (by default the profile itself).
+ */
+export function updateProfile(
+  profile: CompanyProfile,
+  values: ConfirmValues,
+  { patch = profileToPatch(profile), now }: { patch?: ProfilePatch; now: Date },
+): CompanyProfile {
+  const rebuilt = buildProfile(values, patch, { id: profile.id, now });
+  return { ...rebuilt, createdAt: profile.createdAt, thresholds: profile.thresholds };
+}

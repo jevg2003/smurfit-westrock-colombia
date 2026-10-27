@@ -7,6 +7,8 @@ export type DraftStage = (typeof DRAFT_STAGES)[number];
 
 /** The one onboarding in progress. Everything the user answered lives here, so a reload loses nothing. */
 export const onboardingDraftSchema = z.object({
+  /** Set when the round re-answers an existing company: finishing it updates that company instead of creating one. */
+  companyId: z.string().optional(),
   seed: seedSchema.nullable(),
   stage: z.enum(DRAFT_STAGES),
   /** Questions asked so far, in order, with the ones the user may still change. */

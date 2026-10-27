@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_REGULATION_KEYWORDS } from "@/core/company/defaults";
 import { companyProfileSchema } from "@/core/company/profile";
-import { buildConfirmValues, buildProfile, confirmFormSchema } from "./confirm";
+import { TEST_COMPANY } from "@/core/company/test-fixtures";
+import { buildConfirmValues, buildProfile, confirmFormSchema, profileToPatch, profileToSeed, updateProfile } from "./confirm";
 import type { ProfilePatch } from "./schemas";
 
 const now = new Date("2026-10-27T10:00:00.000Z");
@@ -81,5 +82,43 @@ describe("buildProfile", () => {
     const profile = buildProfile(values, {}, { id: "a", now });
     expect(profile.regulationKeywords).toEqual(["agua", "residuos"]);
     expect(profile.colombiaContextWords).toContain("Pasto");
+  });
+});
+
+describe("editing an existing company", () => {
+  it("round-trips a profile through the confirm values without changing it", () => {
+    const seed = profileToSeed(TEST_COMPANY);
+    const patch = profileToPatch(TEST_COMPANY);
+    const updated = updateProfile(TEST_COMPANY, buildConfirmValues(seed, patch), { patch, now });
+    expect(updated).toMatchObject({
+      id: TEST_COMPANY.id,
+      name: TEST_COMPANY.name,
+      nit: TEST_COMPANY.nit,
+      activity: TEST_COMPANY.activity,
+      competitors: TEST_COMPANY.competitors,
+      goals: TEST_COMPANY.goals,
+      thresholds: TEST_COMPANY.thresholds,
+      createdAt: TEST_COMPANY.createdAt,
+      regulationKeywords: TEST_COMPANY.regulationKeywords,
+    });
+    expect(updated.newsGroups.company.contextTerms).toEqual(TEST_COMPANY.newsGroups.company.contextTerms);
+    expect(updated.newsGroups.sector).toEqual(TEST_COMPANY.newsGroups.sector);
+    expect(updated.updatedAt).toBe(now.toISOString());
+    expect(companyProfileSchema.safeParse(updated).success).toBe(true);
+  });
+
+  it("applies the edited values and drops a cleared NIT, keeping id, thresholds and creation date", () => {
+    const values = { ...buildConfirmValues(profileToSeed(TEST_COMPANY), profileToPatch(TEST_COMPANY)), name: "Nuevo Nombre", nit: "", sector: "Metalmecánica" };
+    const updated = updateProfile(TEST_COMPANY, values, { patch: profileToPatch(TEST_COMPANY), now });
+    expect(updated).toMatchObject({ id: TEST_COMPANY.id, name: "Nuevo Nombre", sector: "Metalmecánica", createdAt: TEST_COMPANY.createdAt });
+    expect(updated.nit).toBeUndefined();
+    expect(updated.thresholds).toEqual(TEST_COMPANY.thresholds);
+  });
+
+  it("keeps what the profile has and the new answers add on top of it", () => {
+    const patch = { ...profileToPatch(TEST_COMPANY), colombiaContextWords: ["Rionegro"], sector: "Metalmecánica" };
+    const updated = updateProfile(TEST_COMPANY, buildConfirmValues(profileToSeed(TEST_COMPANY), patch), { patch, now });
+    expect(updated.colombiaContextWords).toContain("Rionegro");
+    expect(updated.colombiaContextWords).toContain("Colombia");
   });
 });

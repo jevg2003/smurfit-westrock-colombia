@@ -1,6 +1,8 @@
 import "@/lib/zod-config";
 import { create } from "zustand";
 import { persist, type StateStorage } from "zustand/middleware";
+import type { CompanyProfile } from "@/core/company/profile";
+import { profileToPatch, profileToSeed } from "@/core/onboarding/confirm";
 import { onboardingDraftSchema, type OnboardingDraft } from "@/core/onboarding/draft";
 import type { AiBlock, Answer, OnboardingSeed, ProfilePatch, Question } from "@/core/onboarding/schemas";
 import type { Clock } from "@/core/ports/clock";
@@ -14,6 +16,8 @@ export interface OnboardingDraftState {
   draft: OnboardingDraft | null;
   /** Begins an empty onboarding, replacing any previous one. */
   start(): void;
+  /** Begins a round for an existing company, prefilled with what it has; finishing it updates that company. */
+  startFor(profile: CompanyProfile): void;
   /** Saves the first form and moves on to the questions (or back to where the user was). */
   saveSeed(seed: OnboardingSeed): void;
   /** Appends a question the AI just asked and shows it. A question already stored is only shown. */
@@ -54,6 +58,7 @@ export function createOnboardingDraftStore({ storage, clock = systemClock }: Onb
         return {
           draft: null,
           start: () => set({ draft: emptyDraft() }),
+          startFor: (profile) => set({ draft: { ...emptyDraft(), companyId: profile.id, seed: profileToSeed(profile), patch: profileToPatch(profile) } }),
           saveSeed: (seed) => change((draft) => ({ seed, stage: "questions", cursor: Math.min(draft.cursor, Math.max(draft.questions.length - 1, 0)) })),
           addQuestion: (question) =>
             change((draft) => {

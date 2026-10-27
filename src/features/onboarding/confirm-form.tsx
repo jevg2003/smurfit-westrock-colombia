@@ -9,8 +9,7 @@ import { Button } from "@/components/ui/button";
 import { FieldDescription, FieldError, FieldLegend, FieldSet } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { NEWS_GROUP_IDS, NEWS_GROUP_LABELS } from "@/core/company/profile";
-import { buildConfirmValues, confirmFormSchema, type ConfirmValues } from "@/core/onboarding/confirm";
-import type { OnboardingSeed, ProfilePatch } from "@/core/onboarding/schemas";
+import { confirmFormSchema, type ConfirmValues } from "@/core/onboarding/confirm";
 import { NIT_ERROR } from "./seed-form";
 import { StepActions } from "./step-actions";
 
@@ -87,17 +86,19 @@ function CompetitorsEditor({ value, onAdd, onRemove }: CompetitorsEditorProps) {
 }
 
 interface ConfirmFormProps {
-  seed: OnboardingSeed;
-  patch: ProfilePatch;
-  busy: boolean;
-  onBack(): void;
+  defaultValues: ConfirmValues;
+  busy?: boolean;
+  submitLabel: string;
+  /** Heading and help of the form; the settings tab already has its own. */
+  intro?: { title: string; description: string };
+  onBack?(): void;
   onSubmit(values: ConfirmValues): void;
 }
 
-/** Last step: the generated profile, fully editable before the company is created. */
-export function ConfirmForm({ seed, patch, busy, onBack, onSubmit }: ConfirmFormProps) {
+/** The whole company profile as one editable form: the last onboarding step and the Empresa tab of Configuración. */
+export function ConfirmForm({ defaultValues, busy = false, submitLabel, intro, onBack, onSubmit }: ConfirmFormProps) {
   const form = useForm({
-    defaultValues: buildConfirmValues(seed, patch),
+    defaultValues,
     validationLogic: revalidateLogic(),
     validators: { onDynamic: confirmFormSchema },
     onSubmit: ({ value }) => onSubmit(value),
@@ -113,10 +114,12 @@ export function ConfirmForm({ seed, patch, busy, onBack, onSubmit }: ConfirmForm
         void form.handleSubmit();
       }}
     >
-      <div className="flex flex-col gap-1">
-        <h2 className="text-lg font-semibold tracking-tight">Confirme su empresa</h2>
-        <p className="text-xs text-muted-foreground">Revise lo que preparamos. Puede cambiarlo ahora o después en Configuración.</p>
-      </div>
+      {intro && (
+        <div className="flex flex-col gap-1">
+          <h2 className="text-lg font-semibold tracking-tight">{intro.title}</h2>
+          <p className="text-xs text-muted-foreground">{intro.description}</p>
+        </div>
+      )}
 
       <section aria-label="Empresa" className="flex flex-col gap-4">
         <form.Field name="name">{(field) => <TextField field={field} label="Nombre de la empresa" />}</form.Field>
@@ -168,7 +171,7 @@ export function ConfirmForm({ seed, patch, busy, onBack, onSubmit }: ConfirmForm
         <form.Field name="priorities">{(field) => <ChipListField field={field} label="Prioridades" placeholder="Escriba una prioridad" />}</form.Field>
       </section>
 
-      <StepActions busy={busy} submitLabel="Crear empresa" onBack={onBack} />
+      <StepActions busy={busy} submitLabel={submitLabel} onBack={onBack} />
     </form>
   );
 }

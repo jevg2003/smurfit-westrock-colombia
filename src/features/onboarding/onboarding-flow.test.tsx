@@ -5,6 +5,8 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { OnboardingDraft } from "@/core/onboarding/draft";
 import type { Answer, OnboardingResponse, Question } from "@/core/onboarding/schemas";
+import { TEST_COMPANY } from "@/core/company/test-fixtures";
+import { profileToPatch, profileToSeed } from "@/core/onboarding/confirm";
 import { useCompaniesStore } from "@/stores/companies.store";
 import { useHydrationStore } from "@/stores/hydration.store";
 import { useOnboardingDraftStore } from "@/stores/onboarding-draft.store";
@@ -303,7 +305,7 @@ describe("OnboardingFlow confirm step", () => {
     await userEvent.type(name, "Acme Colombia");
     await userEvent.click(screen.getByRole("button", { name: "Crear empresa" }));
 
-    await waitFor(() => expect(push).toHaveBeenCalledWith("/home"));
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/resumen"));
     const { companies, activeCompanyId } = useCompaniesStore.getState();
     expect(companies).toHaveLength(1);
     expect(companies[0]).toMatchObject({ name: "Acme Colombia", sector: "Alimentos", city: "Cali", goals: { target: "Exportar" } });
@@ -338,5 +340,46 @@ describe("OnboardingFlow confirm step", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Atrás" }));
     expect(await screen.findByRole("heading", { name: "¿Quiénes son sus clientes?" })).toBeInTheDocument();
     expect(useOnboardingDraftStore.getState().draft?.stage).toBe("questions");
+  });
+});
+
+describe("OnboardingFlow re-answering an existing company", () => {
+  beforeEach(() => {
+    push.mockClear();
+    requestStep.mockReset();
+    window.localStorage.clear();
+    useCompaniesStore.setState({ companies: [TEST_COMPANY], activeCompanyId: null });
+    useHydrationStore.setState({ hasHydrated: true });
+    useOnboardingDraftStore.setState({
+      draft: baseDraft({
+        companyId: TEST_COMPANY.id,
+        stage: "confirm",
+        seed: profileToSeed(TEST_COMPANY),
+        patch: profileToPatch(TEST_COMPANY),
+        blocksDone: { empresa: true, objetivos: true },
+      }),
+    });
+  });
+  afterEach(cleanup);
+
+  it("prefills the confirm form with the company and offers to save, not to create", async () => {
+    renderFlow();
+    expect(await screen.findByRole("textbox", { name: "Nombre de la empresa" })).toHaveValue(TEST_COMPANY.name);
+    expect(screen.queryByRole("button", { name: "Crear empresa" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Guardar cambios" })).toBeInTheDocument();
+  });
+
+  it("updates the same company, keeps its thresholds, makes it active and clears the draft", async () => {
+    renderFlow();
+    const sector = within(await screen.findByRole("region", { name: "Empresa" })).getByRole("textbox", { name: "Sector" });
+    await userEvent.type(sector, "Metalmecánica");
+    await userEvent.click(screen.getByRole("button", { name: "Guardar cambios" }));
+
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/configuracion?tab=empresa"));
+    const { companies, activeCompanyId } = useCompaniesStore.getState();
+    expect(companies).toHaveLength(1);
+    expect(companies[0]).toMatchObject({ id: TEST_COMPANY.id, sector: "Metalmecánica", thresholds: TEST_COMPANY.thresholds, createdAt: TEST_COMPANY.createdAt });
+    expect(activeCompanyId).toBe(TEST_COMPANY.id);
+    expect(useOnboardingDraftStore.getState().draft).toBeNull();
   });
 });

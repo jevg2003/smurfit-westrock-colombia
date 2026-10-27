@@ -7,6 +7,7 @@ import { Alert, AlertAction, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { buildConfirmValues } from "@/core/onboarding/confirm";
 import { blockOf, progressOf, stepNumberOf } from "@/core/onboarding/draft";
 import { useHydrationStore } from "@/stores/hydration.store";
 import { useOnboardingDraftStore } from "@/stores/onboarding-draft.store";
@@ -112,7 +113,14 @@ export function OnboardingFlow({ askAboutDraft }: { askAboutDraft: boolean }) {
         {draft.stage === "questions" && thinking && (isLast || !question) && <Skeleton role="status" aria-label="Preparando la siguiente pregunta" className="h-16" />}
 
         {draft.stage === "confirm" && draft.seed && (
-          <ConfirmForm seed={draft.seed} patch={draft.patch} busy={thinking} onBack={flow.goBack} onSubmit={flow.createCompany} />
+          <ConfirmForm
+            defaultValues={buildConfirmValues(draft.seed, draft.patch)}
+            busy={thinking}
+            submitLabel={draft.companyId ? "Guardar cambios" : "Crear empresa"}
+            intro={{ title: draft.companyId ? "Confirme los cambios" : "Confirme su empresa", description: "Revise lo que preparamos. Puede cambiarlo ahora o después en Configuración." }}
+            onBack={flow.goBack}
+            onSubmit={flow.createCompany}
+          />
         )}
       </div>
     </OnboardingShell>

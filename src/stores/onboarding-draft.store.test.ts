@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Answer, Question } from "@/core/onboarding/schemas";
+import { TEST_COMPANY } from "@/core/company/test-fixtures";
 import { ONBOARDING_DRAFT_KEY, createOnboardingDraftStore } from "./onboarding-draft.store";
 import { createFakeClock, createMemoryStorage } from "./test-utils";
 
@@ -152,5 +153,29 @@ describe("onboarding draft store", () => {
     const { store } = setup({ [ONBOARDING_DRAFT_KEY]: JSON.stringify({ state: { draft: { stage: "nope", questions: "x" } }, version: 1 }) });
     await store.persist.rehydrate();
     expect(store.getState().draft).toBeNull();
+  });
+
+  it("starts a round for an existing company: its data as seed and patch, at the seed stage", () => {
+    const { state, storage } = setup();
+    state().startFor(TEST_COMPANY);
+    expect(state().draft).toMatchObject({
+      companyId: TEST_COMPANY.id,
+      stage: "seed",
+      seed: { name: TEST_COMPANY.name, nit: TEST_COMPANY.nit, city: TEST_COMPANY.city },
+      questions: [],
+      answers: {},
+      patch: { activity: TEST_COMPANY.activity, competitors: TEST_COMPANY.competitors },
+    });
+    expect(persisted(storage).companyId).toBe(TEST_COMPANY.id);
+  });
+
+  it("replaces a draft in progress and a new start forgets the company", () => {
+    const { state } = setup();
+    state().start();
+    state().saveSeed({ name: "Otra" });
+    state().startFor(TEST_COMPANY);
+    expect(state().draft?.seed?.name).toBe(TEST_COMPANY.name);
+    state().start();
+    expect(state().draft?.companyId).toBeUndefined();
   });
 });
