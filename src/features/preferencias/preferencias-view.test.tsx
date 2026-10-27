@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { deriveNewsGroupDefinitions } from "@/core/company/profile";
@@ -16,6 +16,7 @@ describe("PreferenciasView", () => {
     render(<PreferenciasView />);
 
     expect(screen.getByLabelText(/Variación diaria de la TRM para vigilar/)).toHaveValue("1");
+    expect(screen.getByLabelText(/Variación diaria de la TRM para vigilar/)).toHaveAttribute("aria-required", "true");
     expect(screen.getByText(/Variación diaria de la TRM de 1% o más/)).toBeInTheDocument();
   });
 
@@ -46,28 +47,18 @@ describe("PreferenciasView", () => {
 
     await user.clear(screen.getByLabelText(/Variación diaria de la TRM para vigilar/));
     await user.clear(screen.getByLabelText(/Días antes del fin para vigilar/));
-    await user.type(screen.getByLabelText(/Días antes del fin para vigilar/), "45,5");
+    await user.type(screen.getByLabelText(/Días antes del fin para vigilar/), "800");
     await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
 
     expect(await screen.findByText("Escriba un número.")).toBeInTheDocument();
-    expect(screen.getByText("Usa un número entero de días.")).toBeInTheDocument();
+    expect(screen.getByText("El valor no puede pasar de 730.")).toBeInTheDocument();
     expect(screen.getByLabelText(/Variación diaria de la TRM para vigilar/)).toHaveAttribute("aria-invalid", "true");
     expect(usePreferencesStore.getState().thresholds).toEqual(TEST_COMPANY.thresholds);
   });
 
-  it("refuses a term that is too long and keeps the saved terms", async () => {
-    const user = userEvent.setup();
+  it("takes the length of a term from the company limits", () => {
     render(<PreferenciasView />);
-    const before = usePreferencesStore.getState().newsTermGroups.sector;
-
-    const sector = screen.getByLabelText("Sector");
-    await user.clear(sector);
-    await user.click(sector);
-    await user.paste("a".repeat(81));
-    await user.click(screen.getByRole("button", { name: "Guardar términos" }));
-
-    expect(await screen.findByText("Cada término puede tener hasta 80 caracteres.")).toBeInTheDocument();
-    expect(usePreferencesStore.getState().newsTermGroups.sector).toEqual(before);
+    expect(within(screen.getByRole("group", { name: "Sector" })).getByLabelText("Sector")).toHaveAttribute("maxlength", "120");
   });
 
   it("restores the defaults", async () => {
@@ -85,9 +76,11 @@ describe("PreferenciasView", () => {
     const user = userEvent.setup();
     render(<PreferenciasView />);
 
-    const sector = screen.getByLabelText("Sector");
-    await user.clear(sector);
-    await user.type(sector, "hierro{Enter}acero");
+    const group = within(screen.getByRole("group", { name: "Sector" }));
+    for (const term of usePreferencesStore.getState().newsTermGroups.sector) {
+      await user.click(group.getByRole("button", { name: `Quitar ${term}` }));
+    }
+    await user.type(group.getByLabelText("Sector"), "hierro{Enter}acero{Enter}");
     await user.click(screen.getByRole("button", { name: "Guardar términos" }));
 
     expect(usePreferencesStore.getState().newsTermGroups.sector).toEqual(["hierro", "acero"]);
@@ -97,12 +90,15 @@ describe("PreferenciasView", () => {
     const user = userEvent.setup();
     render(<PreferenciasView />);
 
-    const context = screen.getByLabelText("Palabras de contexto (Empresa y competidores)");
-    await user.clear(context);
-    await user.type(context, "Itagüí");
-    const exclude = screen.getByLabelText("Palabras a excluir (Sector)");
-    await user.clear(exclude);
-    await user.type(exclude, "fútbol");
+    const { company, sector } = usePreferencesStore.getState().newsContext;
+    const companyGroup = within(screen.getByRole("group", { name: "Empresa y competidores" }));
+    const sectorGroup = within(screen.getByRole("group", { name: "Sector" }));
+    const contextList = within(companyGroup.getByRole("list", { name: "Agregados en Palabras de contexto (Empresa y competidores)" }));
+    for (const word of company.requireAny) await user.click(contextList.getByRole("button", { name: `Quitar ${word}` }));
+    const excludeList = within(sectorGroup.getByRole("list", { name: "Agregados en Palabras a excluir (Sector)" }));
+    for (const word of sector.excludeAny) await user.click(excludeList.getByRole("button", { name: `Quitar ${word}` }));
+    await user.type(companyGroup.getByLabelText("Palabras de contexto (Empresa y competidores)"), "Itagüí{Enter}");
+    await user.type(sectorGroup.getByLabelText("Palabras a excluir (Sector)"), "fútbol{Enter}");
     await user.click(screen.getByRole("button", { name: "Guardar términos" }));
 
     expect(usePreferencesStore.getState().newsContext.company.requireAny).toEqual(["Itagüí"]);
@@ -112,23 +108,10 @@ describe("PreferenciasView", () => {
   it("offers context and excluded words for every group", () => {
     render(<PreferenciasView />);
     for (const group of deriveNewsGroupDefinitions(TEST_COMPANY)) {
-      expect(screen.getByLabelText(`Palabras de contexto (${group.label})`)).toBeInTheDocument();
-      expect(screen.getByLabelText(`Palabras a excluir (${group.label})`)).toBeInTheDocument();
+      const fieldset = within(screen.getByRole("group", { name: group.label }));
+      expect(fieldset.getByLabelText(`Palabras de contexto (${group.label})`)).toBeInTheDocument();
+      expect(fieldset.getByLabelText(`Palabras a excluir (${group.label})`)).toBeInTheDocument();
     }
   });
 
-  it("refuses a context word that is too long and keeps the saved words", async () => {
-    const user = userEvent.setup();
-    render(<PreferenciasView />);
-    const before = usePreferencesStore.getState().newsContext.company;
-
-    const context = screen.getByLabelText("Palabras de contexto (Empresa y competidores)");
-    await user.clear(context);
-    await user.click(context);
-    await user.paste("a".repeat(81));
-    await user.click(screen.getByRole("button", { name: "Guardar términos" }));
-
-    expect(await screen.findByText("Cada palabra puede tener hasta 80 caracteres.")).toBeInTheDocument();
-    expect(usePreferencesStore.getState().newsContext.company).toEqual(before);
-  });
 });

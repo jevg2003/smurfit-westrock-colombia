@@ -5,7 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { optionalNitInputSchema } from "@/core/company/nit";
-import { AutoTextareaField, ChipListField, NitField, TextField } from "./form-fields";
+import { AutoTextareaField, ChipListField, NitField, NumberField, TextField } from "./form-fields";
 
 afterEach(cleanup);
 
@@ -137,5 +137,52 @@ describe("NitField", () => {
     render(<Harness />);
     await userEvent.type(screen.getByLabelText("NIT"), "123456789012345");
     expect(screen.getByLabelText("NIT")).toHaveValue("1.234.567.890");
+  });
+});
+
+describe("NumberField", () => {
+  function NumberHarness({ onSubmit }: { onSubmit: (value: { pct: number | undefined; days: number | undefined }) => void }) {
+    const schema = z.object({ pct: z.number("Escriba un número.").positive().max(50, "Muy alto."), days: z.int().positive().max(730) });
+    const form = useForm({
+      defaultValues: { pct: undefined as number | undefined, days: undefined as number | undefined },
+      validationLogic: revalidateLogic(),
+      validators: { onDynamic: schema },
+      onSubmit: ({ value }) => onSubmit(value),
+    });
+    return (
+      <form
+        noValidate
+        onSubmit={(event) => {
+          event.preventDefault();
+          void form.handleSubmit();
+        }}
+      >
+        <form.Field name="pct">{(field) => <NumberField field={field} label="Porcentaje" unit="%" />}</form.Field>
+        <form.Field name="days">{(field) => <NumberField field={field} label="Días" />}</form.Field>
+        <button type="submit">Enviar</button>
+      </form>
+    );
+  }
+
+  it("accepts a decimal comma and stores a number", async () => {
+    const onSubmit = vi.fn();
+    render(<NumberHarness onSubmit={onSubmit} />);
+    await userEvent.type(screen.getByLabelText("Porcentaje"), "1,5");
+    await userEvent.type(screen.getByLabelText("Días"), "45");
+    await userEvent.click(screen.getByRole("button", { name: "Enviar" }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledWith({ pct: 1.5, days: 45 }));
+  });
+
+  it("does not allow decimals where the schema asks for whole numbers", async () => {
+    render(<NumberHarness onSubmit={() => {}} />);
+    await userEvent.type(screen.getByLabelText("Días"), "4,5");
+    expect(screen.getByLabelText("Días")).toHaveValue("45");
+  });
+
+  it("shows the message of the schema for a value out of range or empty", async () => {
+    render(<NumberHarness onSubmit={() => {}} />);
+    await userEvent.type(screen.getByLabelText("Porcentaje"), "80");
+    await userEvent.click(screen.getByRole("button", { name: "Enviar" }));
+    expect(await screen.findByText("Muy alto.")).toBeInTheDocument();
   });
 });

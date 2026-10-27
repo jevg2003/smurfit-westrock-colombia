@@ -1,19 +1,12 @@
+import "@/lib/zod-config";
 import { z } from "zod";
+import { termList } from "@/core/company/fields";
 import type { Thresholds } from "@/core/company/defaults";
 
 export type ThresholdKey = keyof Thresholds;
-export type ThresholdFields = Record<ThresholdKey, string>;
-export type ThresholdErrors = Partial<Record<ThresholdKey, string>>;
 
-export type Validation<T, E> = { ok: true; value: T } | { ok: false; errors: E };
-
-interface Rule {
-  /** Whole numbers only (days). */
-  integer: boolean;
-  max: number;
-}
-
-const RULES: Record<ThresholdKey, Rule> = {
+/** What each threshold accepts: whole numbers only (days) and the largest value. */
+const RULES: Record<ThresholdKey, { integer: boolean; max: number }> = {
   trmDailyMovePct: { integer: false, max: 50 },
   trmDailyAlertPct: { integer: false, max: 50 },
   contractExpiryWatchDays: { integer: true, max: 730 },
@@ -23,116 +16,35 @@ const RULES: Record<ThresholdKey, Rule> = {
   energySpotWeeklyAlertPct: { integer: false, max: 200 },
 };
 
-/** Accepts a decimal comma ("1,5") as well as a point. */
-export function parseNumber(text: string): number | null {
-  const normalized = text.trim().replace(",", ".");
-  if (normalized === "" || !/^-?(\d+\.?\d*|\.\d+)$/.test(normalized)) return null;
-  const value = Number(normalized);
-  return Number.isFinite(value) ? value : null;
+function thresholdField({ integer, max }: { integer: boolean; max: number }) {
+  const base = integer ? z.int("Use un número entero de días.") : z.number("Escriba un número.");
+  return base.positive("El valor debe ser mayor que cero.").max(max, `El valor no puede pasar de ${max}.`);
 }
 
-/** Validates the threshold form. Returns every problem at once, one message per field. */
-export function validateThresholds(fields: ThresholdFields): Validation<Thresholds, ThresholdErrors> {
-  const errors: ThresholdErrors = {};
-  const values: { -readonly [K in ThresholdKey]?: number } = {};
+const shape = Object.fromEntries((Object.keys(RULES) as ThresholdKey[]).map((key) => [key, thresholdField(RULES[key])])) as Record<ThresholdKey, ReturnType<typeof thresholdField>>;
 
-  for (const key of Object.keys(RULES) as ThresholdKey[]) {
-    const rule = RULES[key];
-    const raw = parseNumber(fields[key]);
-    if (raw === null) {
-      errors[key] = "Escriba un número.";
-    } else if (raw <= 0) {
-      errors[key] = "El valor debe ser mayor que cero.";
-    } else if (rule.integer && !Number.isInteger(raw)) {
-      errors[key] = "Usa un número entero de días.";
-    } else if (raw > rule.max) {
-      errors[key] = `El valor no puede pasar de ${rule.max}.`;
-    } else {
-      values[key] = raw;
-    }
-  }
-
-  if (values.trmDailyMovePct !== undefined && values.trmDailyAlertPct !== undefined && !errors.trmDailyAlertPct) {
-    if (values.trmDailyAlertPct < values.trmDailyMovePct) {
-      errors.trmDailyAlertPct = "El umbral de alerta debe ser igual o mayor que el de vigilar.";
-    }
-  }
-  if (values.energySpotWeeklyMovePct !== undefined && values.energySpotWeeklyAlertPct !== undefined && !errors.energySpotWeeklyAlertPct) {
-    if (values.energySpotWeeklyAlertPct < values.energySpotWeeklyMovePct) {
-      errors.energySpotWeeklyAlertPct = "El umbral de alerta debe ser igual o mayor que el de vigilar.";
-    }
-  }
-  if (values.contractExpiryWatchDays !== undefined && values.contractExpiryAlertDays !== undefined && !errors.contractExpiryAlertDays) {
-    if (values.contractExpiryAlertDays > values.contractExpiryWatchDays) {
-      errors.contractExpiryAlertDays = "Los días de alerta deben ser igual o menores que los de vigilar.";
-    }
-  }
-
-  if (Object.keys(errors).length > 0) return { ok: false, errors };
-  return { ok: true, value: values as { -readonly [K in ThresholdKey]: number } };
-}
-
-export const MAX_TERM_LENGTH = 80;
-export const MAX_TERMS_PER_GROUP = 30;
-
-/** One term per line. Blank lines and repeated terms are dropped. */
-export function parseTerms(text: string): Validation<string[], string> {
-  const terms = [...new Set(text.split(/\r?\n/).map((line) => line.trim()).filter((line) => line.length > 0))];
-  if (terms.some((term) => term.length > MAX_TERM_LENGTH)) {
-    return { ok: false, errors: `Cada término puede tener hasta ${MAX_TERM_LENGTH} caracteres.` };
-  }
-  if (terms.length > MAX_TERMS_PER_GROUP) {
-    return { ok: false, errors: `Usa hasta ${MAX_TERMS_PER_GROUP} términos por grupo.` };
-  }
-  return { ok: true, value: terms };
-}
+/** The threshold form's values: numbers, empty (undefined) while the user has not typed one. */
+export type ThresholdValues = { [K in ThresholdKey]: number | undefined };
 
 /**
- * Schema the threshold form validates with (TanStack Form takes any standard schema). It wraps
- * `validateThresholds`, so the rules live in one place and every field reports its own message.
+ * Schema the threshold form validates with. Each field's range and "whole numbers only" are read by the
+ * fields themselves; the order between a watch level and its alert level is checked on the whole form.
  */
-export const thresholdsSchema = z
-  .object({
-    trmDailyMovePct: z.string(),
-    trmDailyAlertPct: z.string(),
-    contractExpiryWatchDays: z.string(),
-    contractExpiryAlertDays: z.string(),
-    competitorContractWindowDays: z.string(),
-    energySpotWeeklyMovePct: z.string(),
-    energySpotWeeklyAlertPct: z.string(),
-  })
-  .superRefine((fields, ctx) => {
-    const result = validateThresholds(fields);
-    if (result.ok) return;
-    for (const [key, message] of Object.entries(result.errors)) ctx.addIssue({ code: "custom", path: [key], message });
-  });
+export const thresholdsSchema = z.object(shape).superRefine((values, ctx) => {
+  const alertAbove = (watch: ThresholdKey, alert: ThresholdKey) => {
+    if (values[alert] < values[watch]) ctx.addIssue({ code: "custom", path: [alert], message: "El umbral de alerta debe ser igual o mayor que el de vigilar." });
+  };
+  alertAbove("trmDailyMovePct", "trmDailyAlertPct");
+  alertAbove("energySpotWeeklyMovePct", "energySpotWeeklyAlertPct");
+  if (values.contractExpiryAlertDays > values.contractExpiryWatchDays) {
+    ctx.addIssue({ code: "custom", path: ["contractExpiryAlertDays"], message: "Los días de alerta deben ser igual o menores que los de vigilar." });
+  }
+});
 
-/** One schema entry per news term group; each group's textarea is checked with `parseTerms`. */
+/** One term list per news group, with the same limits as the company profile. */
 export function termsSchema<Id extends string>(groupIds: readonly Id[]) {
-  const group = z.string().superRefine((text, ctx) => {
-    const result = parseTerms(text);
-    if (!result.ok) ctx.addIssue({ code: "custom", message: result.errors });
-  });
-  return z.object(Object.fromEntries(groupIds.map((id) => [id, group])) as Record<Id, typeof group>);
+  return z.object(Object.fromEntries(groupIds.map((id) => [id, termList()])) as Record<Id, ReturnType<typeof termList>>);
 }
 
-/** Context and excluded words: one word or phrase per line. Blank lines and repeats are dropped. */
-export function parseWords(text: string): Validation<string[], string> {
-  const words = [...new Set(text.split(/\r?\n/).map((line) => line.trim()).filter((line) => line.length > 0))];
-  if (words.some((word) => word.length > MAX_TERM_LENGTH)) {
-    return { ok: false, errors: `Cada palabra puede tener hasta ${MAX_TERM_LENGTH} caracteres.` };
-  }
-  if (words.length > MAX_TERMS_PER_GROUP) {
-    return { ok: false, errors: `Usa hasta ${MAX_TERMS_PER_GROUP} palabras por grupo.` };
-  }
-  return { ok: true, value: words };
-}
-
-/** One schema entry per words field (context or exclusions of a group), each checked with `parseWords`. */
-export function wordsSchema<Key extends string>(keys: readonly Key[]) {
-  const field = z.string().superRefine((text, ctx) => {
-    const result = parseWords(text);
-    if (!result.ok) ctx.addIssue({ code: "custom", message: result.errors });
-  });
-  return z.object(Object.fromEntries(keys.map((key) => [key, field])) as Record<Key, typeof field>);
-}
+/** Context and excluded words: the same list as the terms, one schema entry per field. */
+export const wordsSchema = termsSchema;

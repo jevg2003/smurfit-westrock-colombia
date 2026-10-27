@@ -1,124 +1,78 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_THRESHOLDS } from "@/core/company/defaults";
-import { parseTerms, parseWords, termsSchema, wordsSchema, thresholdsSchema, validateThresholds, type ThresholdFields } from "./validate";
+import { TERMS_PER_GROUP_MAX, TERM_MAX } from "@/core/company/fields";
+import { fieldMeta } from "@/lib/schema-meta";
+import { termsSchema, thresholdsSchema, wordsSchema, type ThresholdValues } from "./validate";
 
-const fields = (overrides: Partial<ThresholdFields> = {}): ThresholdFields => ({
-  trmDailyMovePct: "1",
-  trmDailyAlertPct: "2",
-  contractExpiryWatchDays: "90",
-  contractExpiryAlertDays: "30",
-  competitorContractWindowDays: "30",
-  energySpotWeeklyMovePct: "15",
-  energySpotWeeklyAlertPct: "30",
+const values = (overrides: Partial<ThresholdValues> = {}): ThresholdValues => ({
+  trmDailyMovePct: 1,
+  trmDailyAlertPct: 2,
+  contractExpiryWatchDays: 90,
+  contractExpiryAlertDays: 30,
+  competitorContractWindowDays: 30,
+  energySpotWeeklyMovePct: 15,
+  energySpotWeeklyAlertPct: 30,
   ...overrides,
-});
-
-describe("validateThresholds", () => {
-  it("requires the energy alert level to be at least the watch level", () => {
-    const inverted = validateThresholds(fields({ energySpotWeeklyMovePct: "20", energySpotWeeklyAlertPct: "10" }));
-    expect(inverted.ok).toBe(false);
-    if (!inverted.ok) expect(inverted.errors.energySpotWeeklyAlertPct).toMatch(/igual o mayor/);
-    expect(validateThresholds(fields({ energySpotWeeklyMovePct: "12,5" })).ok).toBe(true);
-  });
-
-  it("accepts the defaults, with a decimal comma", () => {
-    const result = validateThresholds(fields({ trmDailyMovePct: "1,5", trmDailyAlertPct: "3" }));
-    expect(result).toEqual({ ok: true, value: { ...DEFAULT_THRESHOLDS, trmDailyMovePct: 1.5, trmDailyAlertPct: 3 } });
-  });
-
-  it("rejects empty, non numeric, zero and negative values with a message per field", () => {
-    const result = validateThresholds(
-      fields({ trmDailyMovePct: "", trmDailyAlertPct: "abc", contractExpiryWatchDays: "0", contractExpiryAlertDays: "-3" }),
-    );
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(Object.keys(result.errors).sort()).toEqual(
-        ["contractExpiryAlertDays", "contractExpiryWatchDays", "trmDailyAlertPct", "trmDailyMovePct"].sort(),
-      );
-      expect(result.errors.trmDailyMovePct).toBe("Escriba un número.");
-    }
-  });
-
-  it("requires whole days and sensible order between watch and alert", () => {
-    const decimalDays = validateThresholds(fields({ contractExpiryWatchDays: "45.5" }));
-    expect(decimalDays.ok).toBe(false);
-
-    const inverted = validateThresholds(fields({ trmDailyMovePct: "3", trmDailyAlertPct: "2" }));
-    expect(inverted.ok).toBe(false);
-    if (!inverted.ok) expect(inverted.errors.trmDailyAlertPct).toMatch(/igual o mayor/);
-
-    const days = validateThresholds(fields({ contractExpiryWatchDays: "20", contractExpiryAlertDays: "30" }));
-    expect(days.ok).toBe(false);
-    if (!days.ok) expect(days.errors.contractExpiryAlertDays).toMatch(/igual o menor/);
-  });
-});
-
-describe("parseTerms", () => {
-  it("splits lines, trims and removes duplicates", () => {
-    expect(parseTerms(" gas natural \n\nItagüí\ngas natural")).toEqual({ ok: true, value: ["gas natural", "Itagüí"] });
-  });
-
-  it("rejects terms that are too long", () => {
-    const result = parseTerms("a".repeat(81));
-    expect(result.ok).toBe(false);
-  });
 });
 
 const issueMap = (result: { success: boolean; error?: { issues: { path: PropertyKey[]; message: string }[] } }) =>
   Object.fromEntries((result.error?.issues ?? []).map((issue) => [String(issue.path[0]), issue.message]));
 
 describe("thresholdsSchema (the schema the form validates with)", () => {
-  it("accepts valid text fields", () => {
-    expect(thresholdsSchema.safeParse(fields()).success).toBe(true);
+  it("accepts valid numbers", () => {
+    expect(thresholdsSchema.safeParse(values()).success).toBe(true);
   });
 
   it("gives one neutral Spanish message per field, all at once", () => {
     const result = thresholdsSchema.safeParse(
-      fields({ trmDailyMovePct: "", trmDailyAlertPct: "abc", contractExpiryWatchDays: "0", contractExpiryAlertDays: "1.5", competitorContractWindowDays: "400" }),
+      values({ trmDailyMovePct: undefined, trmDailyAlertPct: -1, contractExpiryWatchDays: 0, contractExpiryAlertDays: 1.5, competitorContractWindowDays: 400 }),
     );
     expect(issueMap(result)).toEqual({
       trmDailyMovePct: "Escriba un número.",
-      trmDailyAlertPct: "Escriba un número.",
+      trmDailyAlertPct: "El valor debe ser mayor que cero.",
       contractExpiryWatchDays: "El valor debe ser mayor que cero.",
-      contractExpiryAlertDays: "Usa un número entero de días.",
+      contractExpiryAlertDays: "Use un número entero de días.",
       competitorContractWindowDays: "El valor no puede pasar de 365.",
     });
   });
 
   it("keeps the order rules between watch and alert", () => {
-    expect(issueMap(thresholdsSchema.safeParse(fields({ trmDailyMovePct: "3", trmDailyAlertPct: "2" })))).toEqual({
+    expect(issueMap(thresholdsSchema.safeParse(values({ trmDailyMovePct: 3, trmDailyAlertPct: 2 })))).toEqual({
       trmDailyAlertPct: "El umbral de alerta debe ser igual o mayor que el de vigilar.",
     });
+    expect(issueMap(thresholdsSchema.safeParse(values({ energySpotWeeklyMovePct: 20, energySpotWeeklyAlertPct: 10 })))).toEqual({
+      energySpotWeeklyAlertPct: "El umbral de alerta debe ser igual o mayor que el de vigilar.",
+    });
+    expect(issueMap(thresholdsSchema.safeParse(values({ contractExpiryWatchDays: 20, contractExpiryAlertDays: 30 })))).toEqual({
+      contractExpiryAlertDays: "Los días de alerta deben ser igual o menores que los de vigilar.",
+    });
+  });
+
+  it("exposes the range of each threshold to its field", () => {
+    expect(fieldMeta(thresholdsSchema, "trmDailyMovePct")).toMatchObject({ required: true, min: 0, max: 50 });
+    expect(fieldMeta(thresholdsSchema, "energySpotWeeklyAlertPct")).toMatchObject({ max: 200 });
+    expect(fieldMeta(thresholdsSchema, "contractExpiryWatchDays")).toMatchObject({ max: 730, integer: true });
+    expect(fieldMeta(thresholdsSchema, "trmDailyMovePct").integer).toBeUndefined();
   });
 });
 
-describe("termsSchema", () => {
+describe("termsSchema and wordsSchema", () => {
   const schema = termsSchema(["company", "sector"]);
 
-  it("accepts one term per line", () => {
-    expect(schema.safeParse({ company: "a\nb", sector: "" }).success).toBe(true);
+  it("accepts lists of terms", () => {
+    expect(schema.safeParse({ company: ["a", "b"], sector: [] }).success).toBe(true);
   });
 
-  it("names the group whose terms are too long", () => {
-    const result = schema.safeParse({ company: "ok", sector: "a".repeat(81) });
-    expect(issueMap(result)).toEqual({ sector: "Cada término puede tener hasta 80 caracteres." });
-  });
-});
-
-describe("parseWords", () => {
-  it("takes one word or phrase per line, dropping blanks and repeats", () => {
-    expect(parseWords(" Colombia \n\nItagüí\nColombia")).toEqual({ ok: true, value: ["Colombia", "Itagüí"] });
+  it("names the group whose term is too long, with the company limit", () => {
+    expect(issueMap(schema.safeParse({ company: ["ok"], sector: ["a".repeat(TERM_MAX + 1)] }))).toEqual({ sector: "Use 120 caracteres como máximo." });
   });
 
-  it("refuses words that are too long or too many", () => {
-    expect(parseWords("a".repeat(81))).toEqual({ ok: false, errors: "Cada palabra puede tener hasta 80 caracteres." });
-    expect(parseWords(Array.from({ length: 31 }, (_, i) => `p${i}`).join("\n"))).toEqual({ ok: false, errors: "Usa hasta 30 palabras por grupo." });
+  it("limits the number of terms per group", () => {
+    const many = Array.from({ length: TERMS_PER_GROUP_MAX + 1 }, (_, i) => `p${i}`);
+    expect(issueMap(schema.safeParse({ company: many, sector: [] }))).toEqual({ company: "Use 40 términos como máximo." });
   });
-});
 
-describe("wordsSchema", () => {
-  it("names the field whose words are invalid", () => {
-    const result = wordsSchema(["companyContext", "companyExclude"]).safeParse({ companyContext: "ok", companyExclude: "a".repeat(81) });
-    expect(issueMap(result)).toEqual({ companyExclude: "Cada palabra puede tener hasta 80 caracteres." });
+  it("shares the limits with the company profile and the fields", () => {
+    expect(fieldMeta(schema, "sector")).toMatchObject({ maxItems: TERMS_PER_GROUP_MAX, itemMaxLength: TERM_MAX, required: false });
+    expect(fieldMeta(wordsSchema(["companyContext"]), "companyContext")).toMatchObject({ maxItems: TERMS_PER_GROUP_MAX, itemMaxLength: TERM_MAX });
   });
 });

@@ -104,10 +104,13 @@ export function TextField({ field, label, hint, hideLabel, schema, ...props }: T
   )
 }
 
-type NumberFieldProps = BaseProps & { unit?: string; inputMode?: "decimal" | "numeric"; onValueChange?(): void }
+type NumberFieldProps = BaseProps & { unit?: string; onValueChange?(): void }
 
-/** A number typed as text (a decimal comma is accepted); the rules (range, integer) are the schema's. */
-export function NumberField({ field, label, hint, hideLabel, schema, unit, inputMode = "decimal", onValueChange }: NumberFieldProps) {
+/**
+ * A number typed with the Colombian format (decimal comma; a point is accepted too). The form value is a number
+ * (undefined while empty); whole-number and range rules come from the schema.
+ */
+export function NumberField({ field, label, hint, hideLabel, schema, unit, onValueChange }: NumberFieldProps) {
   const id = useId()
   const invalid = invalidOf(field)
   const meta = useFieldMeta(field, schema)
@@ -115,20 +118,25 @@ export function NumberField({ field, label, hint, hideLabel, schema, unit, input
     <Field data-invalid={invalid}>
       <LabelRow htmlFor={id} label={label} hideLabel={hideLabel} required={meta.required} />
       <div className="flex items-center gap-2">
-        <Input
+        <NumericFormat
+          customInput={Input}
           id={id}
           name={field.name}
-          type="text"
-          inputMode={meta.integer ? "numeric" : inputMode}
-          value={field.state.value}
-          maxLength={meta.maxLength}
+          value={field.state.value ?? ""}
+          decimalSeparator=","
+          allowedDecimalSeparators={[",", "."]}
+          decimalScale={meta.integer ? 0 : undefined}
+          allowNegative={false}
+          inputMode={meta.integer ? "numeric" : "decimal"}
+          autoComplete="off"
           aria-required={meta.required || undefined}
           aria-invalid={invalid || undefined}
           aria-describedby={hint ? `${id}-hint` : undefined}
           className="max-w-32"
           onBlur={field.handleBlur}
-          onChange={(event) => {
-            field.handleChange(event.target.value)
+          onValueChange={({ floatValue }, { source }) => {
+            if (source !== "event") return
+            field.handleChange(floatValue)
             onValueChange?.()
           }}
         />
@@ -291,7 +299,7 @@ export function ChipListField({ field, label, hint, placeholder, addLabel = "Agr
         {meta.maxItems !== undefined && <CharCounter length={items.length} max={meta.maxItems} className="ms-auto" />}
       </LabelRow>
       {items.length > 0 && (
-        <ul aria-label={label} className="flex flex-wrap gap-1">
+        <ul aria-label={`Agregados en ${label}`} className="flex flex-wrap gap-1">
           {items.map((item) => (
             <li key={item}>
               <Badge variant="outline" className="gap-1 pe-0.5">
