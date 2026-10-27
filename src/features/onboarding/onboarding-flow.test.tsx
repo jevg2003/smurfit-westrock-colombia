@@ -374,10 +374,13 @@ describe("OnboardingFlow confirm step", () => {
 
   it("adds and removes competitors", async () => {
     renderFlow();
-    await userEvent.click(await screen.findByRole("button", { name: "Quitar competidor Alpina" }));
-    await userEvent.type(screen.getByRole("textbox", { name: "Nombre del competidor" }), "Colanta");
-    await userEvent.type(screen.getByRole("textbox", { name: "NIT del competidor" }), "890904478");
+    await userEvent.click(await screen.findByRole("button", { name: "Acciones de Alpina" }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: "Quitar" }));
     await userEvent.click(screen.getByRole("button", { name: "Agregar competidor" }));
+    const dialog = await screen.findByRole("dialog");
+    await userEvent.type(within(dialog).getByRole("textbox", { name: /Nombre/ }), "Colanta");
+    await userEvent.type(within(dialog).getByRole("textbox", { name: /NIT/ }), "890904478");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Agregar" }));
     await userEvent.click(screen.getByRole("button", { name: "Crear empresa" }));
     await waitFor(() => expect(push).toHaveBeenCalled());
     const [company] = useCompaniesStore.getState().companies;
