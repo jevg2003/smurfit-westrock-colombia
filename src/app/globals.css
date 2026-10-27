@@ -245,3 +245,11 @@
   background-size: 48px 48px;
   mask-image: radial-gradient(ellipse 70% 80% at 30% 0%, #000 30%, transparent 100%);
 }
+
+/* Scrolls without drawing a scrollbar (tab bars that overflow on a phone). */
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}

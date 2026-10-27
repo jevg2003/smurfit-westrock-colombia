@@ -13,4 +13,9 @@ describe("globals.css orientation variants", () => {
   ])("maps %s to data-orientation=%s", (variant, value) => {
     expect(css).toContain(`@custom-variant ${variant} (&[data-orientation="${value}"]);`);
   });
+
+  it("defines scrollbar-none to hide scrollbars in every engine", () => {
+    expect(css).toMatch(/@utility scrollbar-none \{[^}]*scrollbar-width: none;/);
+    expect(css).toContain("::-webkit-scrollbar");
+  });
 });

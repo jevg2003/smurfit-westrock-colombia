@@ -2,7 +2,7 @@
 
 import type { LucideIcon } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Suspense, type ReactNode } from "react";
+import { Suspense, useEffect, useRef, type ReactNode } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export interface PageTab {
@@ -27,6 +27,15 @@ function PageTabsContent({ title, tabs }: Props) {
   const requested = useSearchParams()?.get("tab");
   const visible = tabs.filter((tab) => !tab.hidden);
   const active = visible.find((tab) => tab.value === requested) ?? visible[0];
+  const list = useRef<HTMLDivElement>(null);
+  const activeValue = active?.value;
+
+  // On a phone the bar scrolls sideways without a scrollbar: keep the open tab in view.
+  useEffect(() => {
+    const selected = list.current?.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]');
+    selected?.scrollIntoView?.({ inline: "nearest", block: "nearest" });
+  }, [activeValue]);
+
   if (!active) return null;
 
   return (
@@ -37,9 +46,13 @@ function PageTabsContent({ title, tabs }: Props) {
         onValueChange={(value) => router.push(`${pathname}?tab=${String(value)}`, { scroll: false })}
         className="min-h-0 min-w-0 flex-1 gap-3"
       >
-        <TabsList aria-label={`Secciones de ${title}`} className="w-full shrink-0 justify-start overflow-x-auto sm:justify-center">
+        <TabsList
+          ref={list}
+          aria-label={`Secciones de ${title}`}
+          className="scrollbar-none max-w-full shrink-0 justify-start overflow-x-auto overflow-y-hidden"
+        >
           {visible.map(({ value, label: text, icon: Icon }) => (
-            <TabsTrigger key={value} value={value} className="flex-none px-3 sm:flex-1">
+            <TabsTrigger key={value} value={value} className="flex-none px-3">
               <Icon aria-hidden="true" />
               {text}
             </TabsTrigger>

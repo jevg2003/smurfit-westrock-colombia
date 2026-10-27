@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { ScrollRegion } from "./scroll-region";
 
 interface Props {
   /** Period selector, fixed on top. */
@@ -22,13 +23,11 @@ export function IndicatorsLayout({ period, notices, strip, chart, events, events
       <section aria-label="Indicadores" className="shrink-0 overflow-x-auto">
         {strip}
       </section>
-      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-        <section aria-label="Serie" className="min-w-0 lg:overflow-y-auto">
-          {chart}
-        </section>
-        <section aria-label={eventsLabel} className="min-h-0 min-w-0 lg:overflow-y-auto lg:border-s lg:ps-4">
+      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:grid-rows-[minmax(0,1fr)]">
+        <ScrollRegion aria-label="Serie">{chart}</ScrollRegion>
+        <ScrollRegion aria-label={eventsLabel} className="lg:border-s lg:ps-4">
           {events}
-        </section>
+        </ScrollRegion>
       </div>
     </div>
   );

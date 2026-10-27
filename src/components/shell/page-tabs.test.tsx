@@ -78,4 +78,12 @@ describe("PageTabs", () => {
     expect(screen.getByRole("tab", { name: "Radar" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getAllByRole("tab")).toHaveLength(2);
   });
+
+  it("keeps the bar at its content width, scrolling sideways with no scrollbar and never vertically", () => {
+    render(<PageTabs title="Resumen" tabs={tabs()} />);
+    const bar = screen.getByRole("tablist");
+    for (const name of ["max-w-full", "overflow-x-auto", "overflow-y-hidden", "scrollbar-none"]) expect(bar).toHaveClass(name);
+    expect(bar).not.toHaveClass("w-full");
+    for (const tab of screen.getAllByRole("tab")) expect(tab).not.toHaveClass("sm:flex-1");
+  });
 });

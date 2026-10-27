@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { ScrollRegion } from "./scroll-region";
 
 interface Props {
   /** Fixed above the list. Usually a `FilterBar`. */
@@ -22,14 +23,12 @@ export function FeedLayout({ filters, notices, aside, asideLabel = "Resumen", ch
     <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
       {filters}
       {notices}
-      <div className={cn("grid min-h-0 flex-1 gap-4", aside && "lg:grid-cols-[minmax(0,7fr)_minmax(0,3fr)]")}>
-        <section aria-label="Lista de eventos" className="min-h-0 min-w-0 lg:overflow-y-auto">
-          {children}
-        </section>
+      <div className={cn("grid min-h-0 flex-1 gap-4 lg:grid-rows-[minmax(0,1fr)]", aside && "lg:grid-cols-[minmax(0,7fr)_minmax(0,3fr)]")}>
+        <ScrollRegion aria-label="Lista de eventos">{children}</ScrollRegion>
         {aside && (
-          <aside aria-label={asideLabel} className="order-first min-h-0 min-w-0 lg:order-none lg:overflow-y-auto lg:border-s lg:ps-4 print:hidden">
+          <ScrollRegion as="aside" aria-label={asideLabel} className="order-first lg:order-none lg:border-s lg:ps-4 print:hidden">
             {aside}
-          </aside>
+          </ScrollRegion>
         )}
       </div>
     </div>

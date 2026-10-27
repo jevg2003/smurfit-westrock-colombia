@@ -4,6 +4,7 @@ import { ArrowLeftIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { ScrollRegion } from "./scroll-region";
 import { DESKTOP_QUERY, TABLET_QUERY, useMediaQuery } from "./use-media-query";
 
 interface Props {
@@ -31,19 +32,17 @@ export function ListDetailLayout({ filters, notices, list, listLabel = "Lista", 
     <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
       {filters}
       {notices}
-      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
-        <section aria-label={listLabel} className="min-h-0 min-w-0 lg:overflow-y-auto">
-          {list}
-        </section>
+      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:grid-rows-[minmax(0,1fr)]">
+        <ScrollRegion aria-label={listLabel}>{list}</ScrollRegion>
 
         {desktop ? (
-          <section aria-label={detailLabel} className="min-h-0 min-w-0 overflow-y-auto border-s ps-4">
+          <ScrollRegion aria-label={detailLabel} className="border-s ps-4">
             {detail ?? desktopDetail ?? (
-              <div className="flex h-full min-h-40 items-center justify-center p-6 text-center text-sm text-muted-foreground">
+              <div className="flex min-h-40 flex-1 items-center justify-center p-6 text-center text-sm text-muted-foreground">
                 Elija un elemento de la lista
               </div>
             )}
-          </section>
+          </ScrollRegion>
         ) : (
           <Sheet open={detail !== null} onOpenChange={(open) => !open && onCloseDetail()}>
             <SheetContent className="gap-0 overflow-y-auto max-md:max-w-none">
