@@ -10,15 +10,15 @@ import { fixedClock, makeContract } from "./test-fixtures";
 const NOW = "2026-10-20T15:00:00.000Z";
 const TODAY = bogotaDateKey(new Date(NOW));
 const COMPETITORS = [
-  { nit: "860026759", name: "Cartones América" },
-  { nit: "890925108", name: "Papeles y Cartones" },
+  { nit: "900000002", name: "Competidora Uno" },
+  { nit: "900000004", name: "Competidora Tres" },
 ];
 
 function signedAgo(days: number, overrides: Partial<PublicContract> = {}) {
   return makeContract({
     id: `C${days}`,
-    supplierNit: "860026759",
-    supplierName: "CARTONES AMERICA S.A.",
+    supplierNit: "900000002",
+    supplierName: "COMPETIDORA UNO S.A.",
     signedAt: `${addDaysToKey(TODAY, -days)}T00:00:00.000-05:00`,
     ...overrides,
   });
@@ -39,7 +39,7 @@ describe("secop.competitor-new-contract.v1", () => {
   });
 
   it("ignores suppliers that are not configured competitors (including the company)", () => {
-    expect(run([signedAgo(5, { supplierNit: "890300406" })])).toEqual([]);
+    expect(run([signedAgo(5, { supplierNit: "900000001" })])).toEqual([]);
     expect(run([signedAgo(5, { supplierNit: "999999999" })])).toEqual([]);
   });
 
@@ -52,7 +52,7 @@ describe("secop.competitor-new-contract.v1", () => {
       pestel: "economic",
     });
     expect(signal.id).toBe(`${SECOP_COMPETITOR_NEW_CONTRACT_RULE_ID}:C5:${addDaysToKey(TODAY, -5)}`);
-    expect(signal.title).toContain("Cartones América");
+    expect(signal.title).toContain("Competidora Uno");
     expect(signal.ruleText).toContain("30 días");
     expect(signal.evidence).toEqual([{ kind: "contract", ref: "C5" }]);
     expect(signal.occurredAt).toBe(`${addDaysToKey(TODAY, -5)}T00:00:00.000-05:00`);

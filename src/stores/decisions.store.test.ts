@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { DECISIONS_STORAGE_KEY, createDecisionsStore } from "./decisions.store";
+import { createDecisionsStore } from "./decisions.store";
 import { createFakeClock, createMemoryStorage } from "./test-utils";
+
+const DECISIONS_STORAGE_KEY = "swc:_:decisions:v1";
 
 function setup() {
   const storage = createMemoryStorage();
@@ -68,10 +70,10 @@ describe("decisions store", () => {
     expect(store.getState().decisions).toEqual([]);
   });
 
-  it("persists under swc:decisions:v1 and rehydrates on demand", async () => {
+  it("persists under swc:_:decisions:v1 and rehydrates on demand", async () => {
     const { store, storage } = setup();
     store.getState().create(DRAFT);
-    expect(DECISIONS_STORAGE_KEY).toBe("swc:decisions:v1");
+    expect(DECISIONS_STORAGE_KEY).toBe("swc:_:decisions:v1");
     const saved = JSON.parse(storage.data.get(DECISIONS_STORAGE_KEY)!);
     expect(saved.state.decisions).toHaveLength(1);
 

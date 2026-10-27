@@ -13,9 +13,8 @@ import type { Pestel } from "@/core/domain/dimension";
 import type { Result } from "@/core/domain/result";
 import type { Clock } from "@/core/ports/clock";
 import { browserStorage } from "./browser-storage";
+import { UNSCOPED_COMPANY, scopedKey } from "./company-scope";
 import { systemClock } from "./system-clock";
-
-export const DECISIONS_STORAGE_KEY = "swc:decisions:v1";
 
 export interface DecisionDraft {
   title: string;
@@ -47,11 +46,13 @@ export interface DecisionsStoreOptions {
   storage?: StateStorage;
   clock?: Clock;
   newId?: () => string;
+  /** Company whose data the store starts on; `bindStoreToCompany` moves it later. */
+  companyId?: string;
 }
 
 const randomId = () => globalThis.crypto.randomUUID();
 
-export function createDecisionsStore({ storage, clock = systemClock, newId = randomId }: DecisionsStoreOptions = {}) {
+export function createDecisionsStore({ storage, clock = systemClock, newId = randomId, companyId = UNSCOPED_COMPANY }: DecisionsStoreOptions = {}) {
   return create<DecisionsState>()(
     persist(
       (set, get) => ({
@@ -100,10 +101,15 @@ export function createDecisionsStore({ storage, clock = systemClock, newId = ran
         remove: (id) => set({ decisions: get().decisions.filter((decision) => decision.id !== id) }),
       }),
       {
-        name: DECISIONS_STORAGE_KEY,
+        name: scopedKey(companyId, "decisions"),
         version: 1,
         storage: browserStorage(storage),
         skipHydration: true,
+        // The whole state comes from the saved data, so switching company never keeps the previous decisions.
+        merge: (persisted, current) => ({
+          ...current,
+          decisions: Array.isArray((persisted as Partial<DecisionsState> | undefined)?.decisions) ? (persisted as DecisionsState).decisions : [],
+        }),
         partialize: (state) => ({ decisions: state.decisions }),
       },
     ),

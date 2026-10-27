@@ -7,8 +7,8 @@ const cachedFetch: typeof fetch = (input, init) => fetch(input, { ...init, next:
 
 /**
  * Closed proxy for the media RSS feeds (no CORS in the browser). The client may only name a feed id
- * from `NEWS_FEEDS`; it can never pass a URL.
+ * from `NEWS_FEEDS` and send the term groups of its company; it can never pass a URL.
  */
-export async function GET(request: Request) {
+export async function POST(request: Request) {
   return handleNewsRequest(request, { fetchImpl: cachedFetch });
 }

@@ -3,7 +3,9 @@
 import { Chat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { createContext, useContext, useState, type ReactNode } from "react";
+import { buildCompanyContext } from "@/core/company/context";
 import type { PageContext } from "@/infrastructure/ai/page-context";
+import { selectActiveCompany, useCompaniesStore } from "@/stores/companies.store";
 import { useChatStore, type ChatMode } from "@/stores/chat.store";
 import { usePreferencesStore } from "@/stores/preferences.store";
 import { createChatFetch } from "./chat-fetch";
@@ -45,12 +47,14 @@ export function createChatRuntime(): ChatRuntime {
       transport: new DefaultChatTransport({
         api: API,
         fetch: chatFetch,
-        // Read at send time, so the latest preferences and the current screen are always used.
+        // Read at send time, so the latest preferences, the active company and the current screen are always used.
         body: () => {
           const binding = bindings.get(id);
           const mode = binding?.mode ?? "page";
           const { thresholds } = usePreferencesStore.getState();
+          const company = selectActiveCompany(useCompaniesStore.getState());
           return {
+            company: company ? buildCompanyContext(company) : undefined,
             mode,
             pageContext: mode === "sheet" ? (binding?.getPageContext() ?? undefined) : undefined,
             thresholds: { watchDays: thresholds.contractExpiryWatchDays, alertDays: thresholds.contractExpiryAlertDays },

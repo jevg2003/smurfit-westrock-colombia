@@ -16,7 +16,8 @@ export interface SignalInputs {
   trmRecords: readonly TrmInputRecord[];
   /** ISO 8601 UTC instant at which the TRM data was read. */
   trmFetchedAt: string;
-  companyNit: string;
+  /** Absent when the company has no NIT: its own contracts cannot be told apart. */
+  companyNit?: string;
   competitors: readonly CompetitorRef[];
   /** Headlines (media RSS and Google News). Absent when the source is off or failed. */
   news?: readonly NewsItem[];

@@ -49,11 +49,11 @@ describe("pestelForNewsTerm", () => {
     expect(pestelForNewsTerm("operations", "gas natural")).toBe("economic");
     expect(pestelForNewsTerm("operations", "dólar")).toBe("economic");
     expect(pestelForNewsTerm("operations", "paro camionero")).toBe("social");
-    expect(pestelForNewsTerm("operations", "Cauca")).toBe("social");
+    expect(pestelForNewsTerm("operations", "bloqueo de vías")).toBe("social");
   });
 
   it("tags company mentions as social and sector terms as economic", () => {
-    expect(pestelForNewsTerm("company", "Smurfit Westrock")).toBe("social");
+    expect(pestelForNewsTerm("company", "Empresa Ejemplo")).toBe("social");
     expect(pestelForNewsTerm("sector", "papel")).toBe("economic");
   });
 });

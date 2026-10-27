@@ -2,8 +2,8 @@ import type { UIMessage } from "ai";
 import { create } from "zustand";
 import { persist, type StateStorage } from "zustand/middleware";
 import { browserStorage } from "./browser-storage";
+import { UNSCOPED_COMPANY, scopedKey } from "./company-scope";
 
-export const CHAT_STORAGE_KEY = "swc:chats:v1";
 export const MAX_CONVERSATIONS = 30;
 export const MAX_MESSAGES_PER_CONVERSATION = 100;
 export const DEFAULT_CHAT_TITLE = "Conversación nueva";
@@ -96,12 +96,15 @@ export interface ChatStoreOptions {
   storage?: StateStorage;
   now?: () => string;
   newId?: () => string;
+  /** Company whose data the store starts on; `bindStoreToCompany` moves it later. */
+  companyId?: string;
 }
 
 export function createChatStore({
   storage,
   now = () => new Date().toISOString(),
   newId = () => crypto.randomUUID(),
+  companyId = UNSCOPED_COMPANY,
 }: ChatStoreOptions = {}) {
   const update = (conversations: Conversation[], id: string, change: (conversation: Conversation) => Conversation) =>
     conversations.map((conversation) => (conversation.id === id ? change(conversation) : conversation));
@@ -163,7 +166,7 @@ export function createChatStore({
           })),
       }),
       {
-        name: CHAT_STORAGE_KEY,
+        name: scopedKey(companyId, "chats"),
         version: 1,
         storage: browserStorage(storage),
         skipHydration: true,

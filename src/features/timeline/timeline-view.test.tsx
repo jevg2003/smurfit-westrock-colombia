@@ -57,9 +57,9 @@ describe("TimelineView", () => {
         attribution: "Agencia Nacional de Contratación Pública - Colombia Compra Eficiente vía datos.gov.co",
       },
     });
-    secopFetch.mockResolvedValue(secopOk([contract("A1", "860026759", "CARTONES AMERICA"), contract("C1", "890319047", "CARVAJAL EMPAQUES")]));
+    secopFetch.mockResolvedValue(secopOk([contract("A1", "900000002", "COMPETIDORA UNO"), contract("C1", "900000003", "CARVAJAL EMPAQUES")]));
     fetchTrm.mockResolvedValue([trmRecord("2026-10-19", "4000"), trmRecord("2026-10-16", "3900")]);
-    useWatchlistStore.setState({ competitorNits: ["860026759"], indicators: [] });
+    useWatchlistStore.setState({ competitorNits: ["900000002"], indicators: [] });
     const user = userEvent.setup();
     renderWithQuery(<TimelineView />);
 
@@ -68,7 +68,7 @@ describe("TimelineView", () => {
 
     await user.click(screen.getByRole("checkbox", { name: "Solo mis seguimientos" }));
 
-    expect(screen.getByText(/CARTONES AMERICA firmó un contrato con Entidad A1/)).toBeInTheDocument();
+    expect(screen.getByText(/COMPETIDORA UNO firmó un contrato con Entidad A1/)).toBeInTheDocument();
     expect(screen.queryByText(/CARVAJAL EMPAQUES firmó/)).not.toBeInTheDocument();
     expect(screen.queryByText(/La TRM (subió|bajó)/)).not.toBeInTheDocument();
   });

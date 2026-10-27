@@ -1,5 +1,9 @@
 import { expect, test, type Page } from "@playwright/test";
-import { mockChat, send, STREAM_HEADERS, uiMessageStream } from "./support";
+import { companyKey, E2E_COMPANY, mockChat, seedCompany, send, STREAM_HEADERS, uiMessageStream } from "./support";
+
+test.beforeEach(async ({ page }) => {
+  await seedCompany(page);
+});
 
 const QUESTION = "¿Cómo se movió la TRM esta semana?";
 const ANSWER = "La TRM cerró la semana en 3163,76 COP por USD.";
@@ -14,7 +18,7 @@ test.describe("Asistente page", () => {
     await expect(log.getByText(QUESTION)).toBeVisible();
     await expect(log.getByText(ANSWER)).toBeVisible();
     expect(bodies).toHaveLength(1);
-    expect(bodies[0]).toMatchObject({ mode: "page" });
+    expect(bodies[0]).toMatchObject({ mode: "page", company: { name: E2E_COMPANY.name, nit: E2E_COMPANY.nit } });
 
     // Local persistence: after a reload the conversation is listed in the sidebar and reopens.
     await page.reload();
@@ -72,7 +76,7 @@ test.describe("Assistant sheet", () => {
 
 const log = (page: Page) => page.getByRole("log", { name: "Conversación con el asistente" });
 const PROCESS_URL = "https://community.secop.gov.co/proceso/CO1.PCCNTR.123";
-const CONTRACTS_ANSWER = `Estos contratos vencen pronto:\n\n- CARTON DE COLOMBIA, 72 días, vigilar. [Abrir proceso](${PROCESS_URL})`;
+const CONTRACTS_ANSWER = `Estos contratos vencen pronto:\n\n- EMPRESA EJEMPLO, 72 días, vigilar. [Abrir proceso](${PROCESS_URL})`;
 
 test.describe("Contracts answer", () => {
   test("renders the process link as a safe external anchor", async ({ page }) => {
@@ -91,12 +95,12 @@ test.describe("Contracts answer", () => {
 
 test.describe("Request body", () => {
   test("carries the user's thresholds and web search, which defaults to on", async ({ page }) => {
-    await page.addInitScript(() => {
+    await page.addInitScript((key) => {
       localStorage.setItem(
-        "swc:preferences:v1",
+        key,
         JSON.stringify({ state: { thresholds: { contractExpiryWatchDays: 45, contractExpiryAlertDays: 10 } }, version: 1 }),
       );
-    });
+    }, companyKey("preferences"));
     const bodies = await mockChat(page, ANSWER);
     await page.goto("/asistente");
 
@@ -166,12 +170,12 @@ test.describe("Sheet history", () => {
     await send(page, QUESTION);
     await expect(dialog.getByText(ANSWER)).toBeVisible();
     await expect
-      .poll(() => page.evaluate(() => localStorage.getItem("swc:chats:v1") ?? ""))
+      .poll(() => page.evaluate((key) => localStorage.getItem(key) ?? "", companyKey("chats")))
       .toContain(ANSWER);
-    const id = await page.evaluate(() => {
-      const saved = JSON.parse(localStorage.getItem("swc:chats:v1") ?? "{}") as { state?: { conversations?: Array<{ id: string }> } };
+    const id = await page.evaluate((key) => {
+      const saved = JSON.parse(localStorage.getItem(key) ?? "{}") as { state?: { conversations?: Array<{ id: string }> } };
       return saved.state?.conversations?.[0]?.id ?? "";
-    });
+    }, companyKey("chats"));
     expect(id).not.toBe("");
 
     const requested = page.waitForRequest((request) => request.url().includes("/asistente?c=") || request.url().includes("/asistente?_rsc") );

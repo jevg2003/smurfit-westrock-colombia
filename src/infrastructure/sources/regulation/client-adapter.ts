@@ -18,6 +18,11 @@ export interface RegulationBlock {
   message?: string;
 }
 
+/** The keywords of the active company that make a decree relevant. */
+export interface RegulationQuery {
+  terms: { include: readonly string[]; exclude: readonly string[] };
+}
+
 export interface RegulationFeedData {
   minambiente: RegulationBlock;
   presidencia: RegulationBlock;
@@ -46,13 +51,18 @@ function toItem(item: RegulationApiItem, fetchedAt: string): RegulationItem[] {
  */
 export function createRegulationAdapter({
   fetcher = createFetcher(),
-}: RegulationAdapterOptions = {}): SourceAdapter<Record<string, never>, RegulationFeedData> {
+}: RegulationAdapterOptions = {}): SourceAdapter<RegulationQuery, RegulationFeedData> {
   return {
     sourceId: "minambiente",
-    async fetch(_query, { signal }): Promise<Result<{ data: RegulationFeedData; provenance: Provenance }>> {
+    async fetch(query, { signal }): Promise<Result<{ data: RegulationFeedData; provenance: Provenance }>> {
       let response: Response;
       try {
-        response = await fetcher(REGULATION_API_PATH, { signal, headers: { accept: "application/json" } });
+        response = await fetcher(REGULATION_API_PATH, {
+          method: "POST",
+          body: JSON.stringify({ keywords: query.terms }),
+          signal,
+          headers: { accept: "application/json", "content-type": "application/json" },
+        });
       } catch (error) {
         const reason = error instanceof FetchFailure ? error.reason : "network";
         return failure("network", reason === "timeout" ? "La regulación no respondió a tiempo." : "No se pudo conectar con la regulación.");

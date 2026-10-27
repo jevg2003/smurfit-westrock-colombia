@@ -8,7 +8,7 @@ const THRESHOLDS = { watchDays: 90, alertDays: 30 };
 const contract = (overrides: Partial<PublicContract>): PublicContract => ({
   id: "c",
   entity: "e",
-  supplierNit: "890300406",
+  supplierNit: "900000001",
   supplierName: "s",
   value: 1,
   signedAt: "2026-01-01T00:00:00.000-05:00",

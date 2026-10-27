@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Provenance } from "@/core/domain/provenance";
 import type { PublicContract } from "@/core/domain/contract";
+import { TEST_COMPANY_CONTEXT } from "@/core/company/test-fixtures";
 import { createFetcher } from "@/infrastructure/http/fetcher";
 import { createSecopContractsAdapter } from "@/infrastructure/sources/datos-gov-co/secop-contratos/adapter";
 import secopSample from "@/infrastructure/sources/datos-gov-co/secop-contratos/fixtures/secop-contratos.sample.json";
@@ -14,7 +15,7 @@ const provenance = (sourceId: Provenance["sourceId"]): Provenance => ({
   attribution: "Test",
 });
 
-const contract = (id: string, signedAt: string, endsAt: string, supplierNit = "890300406"): PublicContract => ({
+const contract = (id: string, signedAt: string, endsAt: string, supplierNit = "900000001"): PublicContract => ({
   id,
   entity: "Entidad de prueba",
   supplierNit,
@@ -39,7 +40,7 @@ function makeDeps(overrides: Partial<AssistantToolDeps> = {}): AssistantToolDeps
       fetch: vi.fn(async () => ({
         ok: true as const,
         value: {
-          data: [contract("c1", "2026-09-01", "2026-11-01"), contract("c2", "2026-10-01", "2027-06-01", "860026759")],
+          data: [contract("c1", "2026-09-01", "2026-11-01"), contract("c2", "2026-10-01", "2027-06-01", "900000002")],
           provenance: provenance("secop"),
         },
       })),
@@ -67,17 +68,18 @@ function makeDeps(overrides: Partial<AssistantToolDeps> = {}): AssistantToolDeps
         ok: true as const,
         value: {
           data: [
-            { nit: "890300406", name: "Cartón de Colombia", cutoffYear: 2024, revenue: 10, netIncome: 1, unitNote: "n", provenance: provenance("supersociedades") },
-            { nit: "860026759", name: "Cartones América", cutoffYear: 2024, revenue: 5, netIncome: 1, unitNote: "n", provenance: provenance("supersociedades") },
+            { nit: "900000001", name: "Empresa Ejemplo", cutoffYear: 2024, revenue: 10, netIncome: 1, unitNote: "n", provenance: provenance("supersociedades") },
+            { nit: "900000002", name: "Competidora Uno", cutoffYear: 2024, revenue: 5, netIncome: 1, unitNote: "n", provenance: provenance("supersociedades") },
           ],
           provenance: provenance("supersociedades"),
         },
       })),
     },
     thresholds: { watchDays: 90, alertDays: 30 },
+    company: TEST_COMPANY_CONTEXT,
     news: vi.fn(async () => ({
       items: [
-        { id: "n1", title: "Cartón sube", url: "https://medio.test/a", outlet: "Medio", publishedAt: "2026-10-19T10:00:00.000Z", via: "rss" as const, feedId: "medio" },
+        { id: "n1", title: "Acero sube", url: "https://medio.test/a", outlet: "Medio", publishedAt: "2026-10-19T10:00:00.000Z", via: "rss" as const, feedId: "medio" },
       ],
       feeds: [],
       fetchedAt: "2026-10-20T12:00:00.000Z",
@@ -137,8 +139,8 @@ describe("createAssistantTools", () => {
 
   it("get_secop_contracts filters by NIT and carries provenance", async () => {
     const deps = makeDeps();
-    const out = await run(createAssistantTools(deps), "get_secop_contracts", { nit: "860026759" });
-    expect(deps.secop.fetch).toHaveBeenCalledWith({ nits: ["860026759"] }, expect.anything());
+    const out = await run(createAssistantTools(deps), "get_secop_contracts", { nit: "900000002" });
+    expect(deps.secop.fetch).toHaveBeenCalledWith({ nits: ["900000002"] }, expect.anything());
     expect(out.data.contracts).toHaveLength(2);
     expect(out.provenance.sourceId).toBe("secop");
   });
@@ -199,7 +201,7 @@ describe("createAssistantTools", () => {
   it("get_news returns recent headlines with links and provenance", async () => {
     const out = await run(createAssistantTools(makeDeps()), "get_news", { limit: 5 });
     expect(out.status).toBe("ok");
-    expect(out.data.items[0]).toMatchObject({ title: "Cartón sube", url: "https://medio.test/a", outlet: "Medio" });
+    expect(out.data.items[0]).toMatchObject({ title: "Acero sube", url: "https://medio.test/a", outlet: "Medio" });
     expect(out.provenance.fetchedAt).toBe("2026-10-20T12:00:00.000Z");
   });
 
@@ -220,7 +222,7 @@ describe("createAssistantTools", () => {
   it("rejects a NIT that is not on the watched list", () => {
     const tools = createAssistantTools(makeDeps()) as unknown as Record<string, { inputSchema: { safeParse(v: unknown): { success: boolean } } }>;
     expect(tools.get_secop_contracts.inputSchema.safeParse({ nit: "999999999" }).success).toBe(false);
-    expect(tools.get_secop_contracts.inputSchema.safeParse({ nit: "860026759" }).success).toBe(true);
+    expect(tools.get_secop_contracts.inputSchema.safeParse({ nit: "900000002" }).success).toBe(true);
   });
 
   it("get_macro_series reports a source failure instead of throwing", async () => {
@@ -235,8 +237,8 @@ describe("createAssistantTools", () => {
   });
 
   it("get_competitor_financials filters by NIT", async () => {
-    const out = await run(createAssistantTools(makeDeps()), "get_competitor_financials", { nit: "860026759" });
-    expect(out.data.financials.map((f: { nit: string }) => f.nit)).toEqual(["860026759"]);
+    const out = await run(createAssistantTools(makeDeps()), "get_competitor_financials", { nit: "900000002" });
+    expect(out.data.financials.map((f: { nit: string }) => f.nit)).toEqual(["900000002"]);
   });
 
   it("detect_signals runs the pure core with default thresholds", async () => {

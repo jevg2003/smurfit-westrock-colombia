@@ -2,10 +2,10 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
-import { REGULATION_EXCLUDE_KEYWORDS, REGULATION_KEYWORDS } from "@/content/config/empresa";
 import type { RegulationEntry, RegulationItem } from "@/core/domain/regulation";
 import { loadCuratedNorms } from "@/infrastructure/sources/curated/norms";
 import type { RegulationBlock } from "@/infrastructure/sources/regulation/client-adapter";
+import { useCompany } from "@/stores/companies.store";
 import { getContainer } from "./container";
 import { toSourceView } from "./source-view";
 import { SourceFailure } from "./source-failure";
@@ -24,18 +24,23 @@ export function useCuratedNorms(): RegulationEntry[] {
   return useMemo(() => loadCuratedNorms(), []);
 }
 
-/** The terms that make a Minambiente post or a decree relevant for the signal rule. */
-export const REGULATION_TERMS = { include: REGULATION_KEYWORDS, exclude: REGULATION_EXCLUDE_KEYWORDS } as const;
+/** The terms that make a Minambiente post or a decree relevant for the signal rule: the ones of the company profile. */
+export function useRegulationTerms() {
+  const { regulationKeywords, regulationExcludeKeywords } = useCompany();
+  return useMemo(() => ({ include: regulationKeywords, exclude: regulationExcludeKeywords }), [regulationKeywords, regulationExcludeKeywords]);
+}
 
 /** Minambiente posts and Presidencia decrees, read from our own `/api/regulacion` route. */
 export function useRegulation() {
+  const company = useCompany();
+  const terms = useRegulationTerms();
   const query = useQuery<RegulationData>({
-    queryKey: ["regulation"],
+    queryKey: ["regulation", company.id, company.updatedAt],
     retry: false,
     staleTime: 30 * 60 * 1000,
     queryFn: async ({ signal }) => {
       const { regulation, clock } = getContainer();
-      const result = await regulation.fetch({}, { signal, now: clock.now() });
+      const result = await regulation.fetch({ terms }, { signal, now: clock.now() });
       if (result.ok) return { ...result.value.data, off: false };
       if (result.error.kind === "disabled") return { minambiente: OFF_BLOCK, presidencia: OFF_BLOCK, off: true };
       throw new SourceFailure(result.error);

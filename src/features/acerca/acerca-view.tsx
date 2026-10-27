@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { PageIntro } from "@/components/shell/page-intro";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DEFAULT_THRESHOLDS } from "@/content/config/empresa";
+import { DEFAULT_THRESHOLDS } from "@/core/company/defaults";
 
 const linkClass = "underline underline-offset-4 outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50";
 
@@ -27,10 +27,10 @@ export function AcercaView() {
 
       <Section title="Qué es y qué no es">
         <p>
-          Es un monitor del entorno de una empresa de empaques de papel y cartón en Colombia: junta en un solo lugar la TRM, la contratación pública, la macroeconomía, los competidores, las
-          noticias, la regulación y la energía, y las convierte en señales fáciles de revisar.
+          Smart Work Core (SWC) lee el contexto de Colombia para que una empresa decida con datos: junta en un solo lugar la TRM, la contratación pública, la macroeconomía, los
+          competidores, las noticias, la regulación y la energía, y las convierte en señales fáciles de revisar. Cada empresa tiene su propia configuración.
         </p>
-        <p className="font-medium text-foreground">Es un prototipo no oficial, sin relación ni aval de Smurfit Westrock.</p>
+        <p className="font-medium text-foreground">Es una herramienta independiente, sin relación ni aval de las entidades que publican los datos.</p>
         <p>
           No es una fuente oficial, no da asesoría financiera, legal ni de compras, y no reemplaza revisar el dato original. Cada señal enlaza al registro de donde salió para que puedas
           comprobarlo.
@@ -72,7 +72,7 @@ export function AcercaView() {
           <li>Banco Mundial (PIB e inflación): CC BY 4.0.</li>
           <li>XM (energía eléctrica): sin licencia abierta declarada. Se muestra con atribución y enlace.</li>
           <li>Medios colombianos y Minambiente: solo titular, fecha y enlace; los derechos son de cada medio y entidad.</li>
-          <li>Google News: términos de uso personal y no comercial. Es un riesgo conocido y aceptado para este prototipo.</li>
+          <li>Google News: términos de uso personal y no comercial. Es un riesgo conocido y aceptado.</li>
         </ul>
       </Section>
 

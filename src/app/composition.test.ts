@@ -5,7 +5,9 @@ import exportsSample from "@/infrastructure/sources/datos-gov-co/exportaciones/f
 import supersociedades from "@/infrastructure/sources/datos-gov-co/supersociedades/fixtures/supersociedades.sample.json";
 import gdp from "@/infrastructure/sources/world-bank/fixtures/gdp-growth.col.json";
 import xmPrice from "@/infrastructure/sources/xm/fixtures/prec-bols-naci.json";
-import { COMPANY, COMPETITORS } from "@/content/config/empresa";
+import { buildProfileTermGroups } from "@/core/company/context";
+import { watchedNits } from "@/core/company/profile";
+import { TEST_COMPANY } from "@/core/company/test-fixtures";
 import { createContainer } from "./composition";
 
 describe("createContainer", () => {
@@ -13,7 +15,7 @@ describe("createContainer", () => {
     const fetchImpl = vi.fn().mockResolvedValue(new Response(JSON.stringify(sample), { status: 200 }));
     const container = createContainer({ fetcher: createFetcher({ fetchImpl, retryDelayMs: 0 }) });
 
-    const nits = [COMPANY.nit, ...COMPETITORS.map((competitor) => competitor.nit)];
+    const nits = watchedNits(TEST_COMPANY);
     const result = await container.secop.fetch({ nits }, { now: container.clock.now() });
     expect(result.ok).toBe(true);
 
@@ -54,7 +56,7 @@ describe("createContainer", () => {
   it("wires the Supersociedades adapter", async () => {
     const fetchImpl = vi.fn().mockResolvedValue(new Response(JSON.stringify(supersociedades), { status: 200 }));
     const container = createContainer({ fetcher: createFetcher({ fetchImpl, retryDelayMs: 0 }) });
-    const result = await container.supersociedades.fetch({ nits: [COMPANY.nit] }, { now: container.clock.now() });
+    const result = await container.supersociedades.fetch({ nits: [TEST_COMPANY.nit!] }, { now: container.clock.now() });
     expect(result.ok).toBe(true);
   });
 
@@ -73,7 +75,7 @@ describe("createContainer", () => {
     };
     const fetchImpl = vi.fn().mockResolvedValue(new Response(JSON.stringify(body), { status: 200 }));
     const container = createContainer({ fetcher: createFetcher({ fetchImpl, retryDelayMs: 0 }) });
-    const result = await container.news.fetch({}, { now: container.clock.now() });
+    const result = await container.news.fetch({ termGroups: buildProfileTermGroups(TEST_COMPANY) }, { now: container.clock.now() });
     expect(result.ok).toBe(true);
   });
 });

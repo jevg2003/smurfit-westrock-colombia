@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { Thresholds } from "@/content/config/empresa";
+import type { Thresholds } from "@/core/company/defaults";
 
 export type ThresholdKey = keyof Thresholds;
 export type ThresholdFields = Record<ThresholdKey, string>;

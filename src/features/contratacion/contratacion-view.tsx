@@ -16,7 +16,6 @@ import { StaleNotice } from "@/components/states/stale-notice";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
-import { COMPANY } from "@/content/config/empresa";
 import type { PublicContract } from "@/core/domain/contract";
 import { bogotaDateKey } from "@/core/time/bogota";
 import { getContainer } from "@/features/entorno/container";
@@ -26,6 +25,7 @@ import { formatDiaBogota } from "@/lib/date";
 import { downloadCsv } from "@/lib/download";
 import { formatCop } from "@/lib/money";
 import { safeHttpUrl } from "@/lib/safe-url";
+import { useCompany } from "@/stores/companies.store";
 import { usePreferencesStore } from "@/stores/preferences.store";
 import { contractsToCsv } from "./contracts-csv";
 import { contractExpiry, type ExpiryLevel } from "@/core/rules/contract-expiry";
@@ -39,6 +39,7 @@ const BADGE: Record<ExpiryLevel, "destructive-light" | "warning-light" | "succes
 
 /** Public contracts (SECOP II) of the company NIT, with the expiry window of each. */
 export function ContratacionView() {
+  const company = useCompany();
   const { view, data } = useSecop();
   const thresholds = usePreferencesStore((state) => state.thresholds);
   const expiry = useMemo(
@@ -48,8 +49,8 @@ export function ContratacionView() {
   const now = getContainer().clock.now();
 
   const rows = useMemo(
-    () => (data?.contracts ?? []).filter((contract) => contract.supplierNit === COMPANY.nit),
-    [data],
+    () => (data?.contracts ?? []).filter((contract) => contract.supplierNit === company.nit),
+    [data, company.nit],
   );
   useRegisterPageContext(contractsContext("/contratacion", "Contratación", rows));
 
@@ -163,9 +164,9 @@ export function ContratacionView() {
         <Skeleton role="status" aria-label="Consultando SECOP II en datos.gov.co" className="h-96 rounded-xl" />
       ) : view.status === "ready" ? (
         <DataTableCard
-          title={`Contratos de ${COMPANY.name}`}
+          title={`Contratos de ${company.name}`}
           icon={<LandmarkIcon aria-hidden="true" />}
-          description={`NIT ${COMPANY.nit}. Vigilar desde ${thresholds.contractExpiryWatchDays} días, alerta desde ${thresholds.contractExpiryAlertDays} días antes del fin.`}
+          description={`NIT ${company.nit ?? "sin registrar"}. Vigilar desde ${thresholds.contractExpiryWatchDays} días, alerta desde ${thresholds.contractExpiryAlertDays} días antes del fin.`}
           rows={rows}
           columns={columns}
           getRowId={(row) => row.id}
@@ -187,7 +188,7 @@ export function ContratacionView() {
               <EmptyHeader>
                 <EmptyTitle>No hay contratos en los últimos 12 meses para este NIT</EmptyTitle>
                 <EmptyDescription>
-                  SECOP II no devolvió contratos firmados por el NIT {COMPANY.nit} desde hace un año.
+                  SECOP II no devolvió contratos firmados por el NIT {company.nit ?? "de la empresa"} desde hace un año.
                 </EmptyDescription>
               </EmptyHeader>
             </Empty>

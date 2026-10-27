@@ -45,7 +45,7 @@ describe("useNews relevance", () => {
           items: [
             item("noise", "Vietnam asume el papel de anfitrión de la APEC 2027", "2026-10-20T10:00:00.000Z"),
             item("ops", "Paro camionero en el Valle", "2026-10-19T10:00:00.000Z"),
-            item("co", "Smurfit Westrock presenta resultados", "2026-10-10T10:00:00.000Z"),
+            item("co", "Empresa Ejemplo presenta resultados", "2026-10-10T10:00:00.000Z"),
           ],
           feeds: [],
         },
@@ -71,10 +71,10 @@ describe("useNews geographic relevance", () => {
       value: {
         data: {
           items: [
-            item("malaga", "Smurfit Westrock obtiene luz verde ambiental para su nave en Málaga", "2026-10-20T10:00:00.000Z", "boletinbien.com"),
-            item("futsal", "Victoria del Smurfit Westrock en la Tercera División de fútbol sala", "2026-10-19T10:00:00.000Z", "Huelva Buenas Noticias"),
-            item("chile", "Smurfit Westrock ganará mayor músculo en Chile y la región", "2026-10-18T10:00:00.000Z", "El Tiempo"),
-            item("cauca", "Smurfit Westrock Colombia refuerza la prevención de incendios en el Cauca", "2026-10-17T10:00:00.000Z", "Radio 1040 AM"),
+            item("malaga", "Empresa Ejemplo obtiene luz verde ambiental para su nave en Málaga", "2026-10-20T10:00:00.000Z", "boletinbien.com"),
+            item("futsal", "Victoria del Empresa Ejemplo en la Tercera División de fútbol sala", "2026-10-19T10:00:00.000Z", "Huelva Buenas Noticias"),
+            item("chile", "Empresa Ejemplo ganará mayor músculo en Chile y la región", "2026-10-18T10:00:00.000Z", "El Tiempo"),
+            item("antioquia", "Empresa Ejemplo refuerza la prevención de incendios en Antioquia", "2026-10-17T10:00:00.000Z", "Radio 1040 AM"),
           ],
           feeds: [],
         },
@@ -87,8 +87,8 @@ describe("useNews geographic relevance", () => {
   it("drops foreign and sports headlines, keeps Colombian-outlet coverage and titles that name Colombia", async () => {
     renderWithQuery(<Probe />);
 
-    // "chile" has no Colombian word in the title but comes from a Colombian outlet; "cauca" names the Cauca itself.
-    expect((await screen.findByTestId("relevant")).textContent).toBe("chile,cauca");
+    // "chile" has no Colombian word in the title but comes from a Colombian outlet; "cauca" names Antioquia itself.
+    expect((await screen.findByTestId("relevant")).textContent).toBe("chile,antioquia");
   });
 });
 

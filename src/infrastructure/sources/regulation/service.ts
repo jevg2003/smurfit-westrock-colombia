@@ -1,4 +1,3 @@
-import { REGULATION_EXCLUDE_KEYWORDS, REGULATION_KEYWORDS } from "@/content/config/empresa";
 import { FetchFailure, type Fetcher } from "@/infrastructure/http/fetcher";
 import type { SourceFlags } from "@/infrastructure/flags";
 import { MINAMBIENTE_FEED } from "../rss/feeds";
@@ -17,6 +16,8 @@ export interface LoadRegulationOptions {
   flags: SourceFlags;
   /** One source; absent means both. */
   source?: RegulationSourceId;
+  /** Keywords that make a decree relevant, from the company profile the request handler validated. */
+  terms: { include: readonly string[]; exclude: readonly string[] };
 }
 
 const disabled: RegulationSourceBlock = { status: "disabled", items: [], message: "Fuente desactivada." };
@@ -36,7 +37,7 @@ async function loadMinambiente(fetcher: Fetcher, now: Date): Promise<RegulationS
   return { status: "ok", items, httpStatus: result.httpStatus };
 }
 
-async function loadDecrees(fetcher: Fetcher, now: Date): Promise<RegulationSourceBlock> {
+async function loadDecrees(fetcher: Fetcher, now: Date, terms: LoadRegulationOptions["terms"]): Promise<RegulationSourceBlock> {
   let response: Response;
   try {
     response = await fetcher(buildDecreesUrl(now), { headers: { accept: "application/json" } });
@@ -53,7 +54,7 @@ async function loadDecrees(fetcher: Fetcher, now: Date): Promise<RegulationSourc
   } catch {
     return { status: "error", items: [], httpStatus: response.status, message: "La respuesta de Presidencia no es JSON válido." };
   }
-  const parsed = parseDecrees(body, { include: REGULATION_KEYWORDS, exclude: REGULATION_EXCLUDE_KEYWORDS }, DECREES_LIMIT);
+  const parsed = parseDecrees(body, terms, DECREES_LIMIT);
   if (!parsed.ok) return { status: "error", items: [], httpStatus: response.status, message: parsed.message };
   return { status: "ok", items: parsed.items, httpStatus: response.status };
 }
@@ -62,11 +63,11 @@ async function loadDecrees(fetcher: Fetcher, now: Date): Promise<RegulationSourc
  * Minambiente posts (closed feed) and Presidencia decrees (fixed dataset query), each isolated:
  * one failing source never fails the other. The client chooses no URL and no query.
  */
-export async function loadRegulation({ fetcher, now, flags, source }: LoadRegulationOptions): Promise<RegulationResponse> {
+export async function loadRegulation({ fetcher, now, flags, source, terms }: LoadRegulationOptions): Promise<RegulationResponse> {
   const wants = (id: RegulationSourceId) => !source || source === id;
   const [minambiente, presidencia] = await Promise.all([
     wants("minambiente") ? (flags.minambiente ? loadMinambiente(fetcher, now) : disabled) : disabled,
-    wants("presidencia") ? (flags.presidencia ? loadDecrees(fetcher, now) : disabled) : disabled,
+    wants("presidencia") ? (flags.presidencia ? loadDecrees(fetcher, now, terms) : disabled) : disabled,
   ]);
   return { minambiente, presidencia, fetchedAt: now.toISOString() };
 }

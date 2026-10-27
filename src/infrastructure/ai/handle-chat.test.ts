@@ -1,6 +1,7 @@
 import { simulateReadableStream } from "ai";
 import { MockLanguageModelV4 } from "ai/test";
 import { describe, expect, it, vi } from "vitest";
+import { TEST_COMPANY_CONTEXT } from "@/core/company/test-fixtures";
 import { handleChat, MAX_MESSAGES, type ChatDeps } from "./handle-chat";
 import { MAX_PAGE_CONTEXT_BYTES } from "./page-context";
 
@@ -28,8 +29,11 @@ function textModel(text = "Hola") {
 
 const userMessage = (text: string, id = "m1") => ({ id, role: "user", parts: [{ type: "text", text }] });
 
-const post = (body: unknown) =>
-  new Request("http://localhost/api/chat", { method: "POST", body: typeof body === "string" ? body : JSON.stringify(body) });
+/** Requests carry the active company, as the browser sends it. Pass `company: undefined` to leave it out. */
+const post = (body: unknown) => {
+  const withCompany = typeof body === "object" && body !== null && !("company" in body) ? { company: TEST_COMPANY_CONTEXT, ...body } : body;
+  return new Request("http://localhost/api/chat", { method: "POST", body: typeof withCompany === "string" ? withCompany : JSON.stringify(withCompany) });
+};
 
 function makeDeps(model = textModel()): ChatDeps & { model: MockLanguageModelV4 } {
   return {
@@ -152,6 +156,28 @@ describe("handleChat tools", () => {
     expect(body).toContain("tool-output-available");
     expect(call).toBe(2);
     expect(JSON.stringify(model.doStreamCalls[1].prompt)).toContain("UNTRUSTED_DATA");
+  });
+
+  describe("company context", () => {
+    it("answers 400 without a company or with a malformed one", async () => {
+      expect((await handleChat(post({ messages: [userMessage("hola")], mode: "page", company: undefined }), makeDeps())).status).toBe(400);
+      expect((await handleChat(post({ messages: [userMessage("hola")], mode: "page", company: { name: "" } }), makeDeps())).status).toBe(400);
+      const tooMany = { ...TEST_COMPANY_CONTEXT, competitors: Array.from({ length: 30 }, (_, index) => ({ name: `C${index}` })) };
+      expect((await handleChat(post({ messages: [userMessage("hola")], mode: "page", company: tooMany }), makeDeps())).status).toBe(400);
+    });
+
+    it("hands the company to the tools and puts it in the prompt as untrusted data", async () => {
+      let seen: unknown;
+      const deps = makeDeps();
+      deps.tools = (options) => {
+        seen = options.company;
+        return {};
+      };
+      await (await handleChat(post({ messages: [userMessage("hola")], mode: "page" }), deps)).text();
+      expect(seen).toMatchObject({ name: TEST_COMPANY_CONTEXT.name, nit: TEST_COMPANY_CONTEXT.nit });
+      expect(lastPrompt(deps.model)).toContain("company_profile");
+      expect(lastPrompt(deps.model)).toContain("Smart Work Core");
+    });
   });
 
   describe("thresholds and web search options", () => {

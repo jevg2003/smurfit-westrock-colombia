@@ -1,7 +1,8 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import { createFetcher } from "@/infrastructure/http/fetcher";
-import { DEFAULT_SEARCH_GROUPS as NEWS_TERM_GROUPS } from "./service";
+import { buildProfileTermGroups } from "@/core/company/context";
+import { TEST_COMPANY } from "@/core/company/test-fixtures";
 import { NEWS_FEEDS } from "./feeds";
 import { buildGoogleNewsQueries, buildGoogleNewsUrl } from "./google-news";
 import { loadNews } from "./service";
@@ -10,6 +11,7 @@ const fixture = (name: string) => readFileSync(new URL(`./fixtures/${name}`, imp
 const NOW = new Date("2026-10-21T01:00:00.000Z");
 const FLAGS = { newsRss: true, googleNews: true, minambiente: true, presidencia: true, xm: true };
 
+const NEWS_TERM_GROUPS = buildProfileTermGroups(TEST_COMPANY);
 const GOOGLE_URLS = buildGoogleNewsQueries(NEWS_TERM_GROUPS).map(buildGoogleNewsUrl);
 
 const BODY_BY_HOST: Record<string, string> = {
@@ -38,7 +40,7 @@ function fakeFetch(failures: Record<string, "500" | "network" | "garbage"> = {})
 }
 
 const run = (fetchImpl: typeof fetch, options: Partial<Parameters<typeof loadNews>[0]> = {}) =>
-  loadNews({ fetcher: createFetcher({ fetchImpl, retryDelayMs: 0 }), now: NOW, flags: FLAGS, limit: 100, ...options });
+  loadNews({ fetcher: createFetcher({ fetchImpl, retryDelayMs: 0 }), now: NOW, flags: FLAGS, limit: 100, termGroups: NEWS_TERM_GROUPS, ...options });
 
 describe("loadNews", () => {
   it("fetches only the closed list of feeds and merges them newest first", async () => {
@@ -136,11 +138,11 @@ describe("loadNews", () => {
     const body = rss([
       ["Titular sin relación uno", "https://example.test/1", "Tue, 20 Oct 2026 12:00:00 GMT"],
       ["Titular sin relación dos", "https://example.test/2", "Tue, 20 Oct 2026 11:00:00 GMT"],
-      ["Smurfit Westrock inaugura una línea en Yumbo", "https://example.test/3", "Mon, 05 Oct 2026 11:00:00 GMT"],
+      ["Empresa Ejemplo inaugura una línea en Itagüí", "https://example.test/3", "Mon, 05 Oct 2026 11:00:00 GMT"],
     ]);
     const fetchImpl = vi.fn(async () => new Response(body, { status: 200 })) as unknown as typeof fetch;
     const result = await run(fetchImpl, { feedId: "valora", limit: 1 });
-    expect(result.items.map((i) => i.title)).toEqual(["Smurfit Westrock inaugura una línea en Yumbo"]);
+    expect(result.items.map((i) => i.title)).toEqual(["Empresa Ejemplo inaugura una línea en Itagüí"]);
   });
 
   it("applies the limit", async () => {
@@ -153,20 +155,20 @@ describe("loadNews", () => {
       `<?xml version="1.0"?><rss version="2.0"><channel>${titles
         .map((title, i) => `<item><title>${title} - Heraldo</title><link>https://example.test/${i}</link><pubDate>Mon, 19 Oct 2026 1${i}:00:00 GMT</pubDate><source url="https://heraldo.test">Heraldo</source></item>`)
         .join("")}</channel></rss>`;
-    const body = rss(["CD Iberfurgo Villalba, patrocinado por Smurfit Westrock", "Smurfit Westrock cierra planta en Málaga", "Smurfit Westrock amplía su planta en Yumbo"]);
+    const body = rss(["CD Iberfurgo Villalba, patrocinado por Empresa Ejemplo", "Empresa Ejemplo cierra planta en Málaga", "Empresa Ejemplo amplía su planta en Itagüí"]);
     const fetchImpl = vi.fn(async (input: RequestInfo | URL) =>
       new Response(new URL(String(input)).host === "news.google.com" ? body : "nope", { status: new URL(String(input)).host === "news.google.com" ? 200 : 404 }),
     ) as unknown as typeof fetch;
     const result = await run(fetchImpl, { feedId: "google-news", googleItemsPerGroup: 1 });
-    expect(result.items.map((i) => i.title)).toEqual(["Smurfit Westrock amplía su planta en Yumbo"]);
+    expect(result.items.map((i) => i.title)).toEqual(["Empresa Ejemplo amplía su planta en Itagüí"]);
   });
 
   it("keeps a Google News headline from a Colombian outlet without a context word, but not one from abroad", async () => {
     const item = (title: string, outlet: string, i: number) =>
       `<item><title>${title} - ${outlet}</title><link>https://example.test/${i}</link><pubDate>Mon, 19 Oct 2026 1${i}:00:00 GMT</pubDate><source url="https://example.test">${outlet}</source></item>`;
-    const body = `<?xml version="1.0"?><rss version="2.0"><channel>${item("Smurfit Westrock compra negocio en Chile", "El Tiempo", 1)}${item("Smurfit Westrock compra negocio en Chile", "Heraldo", 2)}${item("Fútbol: Smurfit Westrock patrocina", "El Tiempo", 3)}</channel></rss>`;
+    const body = `<?xml version="1.0"?><rss version="2.0"><channel>${item("Empresa Ejemplo compra negocio en Chile", "El Tiempo", 1)}${item("Empresa Ejemplo compra negocio en Chile", "Heraldo", 2)}${item("Fútbol: Empresa Ejemplo patrocina", "El Tiempo", 3)}</channel></rss>`;
     const fetchImpl = vi.fn(async (input: RequestInfo | URL) => (new URL(String(input)).host === "news.google.com" ? new Response(body, { status: 200 }) : new Response("nope", { status: 404 }))) as unknown as typeof fetch;
     const result = await run(fetchImpl, { feedId: "google-news" });
-    expect(result.items.map((i) => `${i.title}|${i.outlet}`)).toEqual(["Smurfit Westrock compra negocio en Chile|El Tiempo"]);
+    expect(result.items.map((i) => `${i.title}|${i.outlet}`)).toEqual(["Empresa Ejemplo compra negocio en Chile|El Tiempo"]);
   });
 });

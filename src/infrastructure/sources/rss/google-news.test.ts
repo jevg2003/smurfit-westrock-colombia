@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { NEWS_TERM_GROUPS } from "@/content/config/empresa";
+import { buildProfileTermGroups } from "@/core/company/context";
+import { TEST_COMPANY } from "@/core/company/test-fixtures";
 import {
   GOOGLE_NEWS_MAX_QUERIES,
   GOOGLE_NEWS_MAX_QUERY_LENGTH,
@@ -12,21 +13,23 @@ import {
 
 const fixture = readFileSync(new URL("./fixtures/google-news.sample.xml", import.meta.url), "utf8");
 
+const NEWS_TERM_GROUPS = buildProfileTermGroups(TEST_COMPANY);
+
 describe("buildGoogleNewsQueries", () => {
   it("builds one query per group from quoted exact phrases, OR-joined, limited to the last 30 days", () => {
     const queries = buildGoogleNewsQueries(NEWS_TERM_GROUPS);
     expect(queries).toHaveLength(NEWS_TERM_GROUPS.length);
     expect(queries.length).toBeLessThanOrEqual(GOOGLE_NEWS_MAX_QUERIES);
     expect(queries[0]).toBe(
-      '("Cartón de Colombia" OR "Smurfit Westrock" OR "Smurfit Kappa" OR "Cartones América" OR "Carvajal Empaques" OR "Papeles y Cartones") when:30d',
+      '("Empresa Ejemplo" OR "Competidora Uno" OR "Competidora Dos" OR "Competidora Tres") when:30d',
     );
-    expect(queries[1]).toContain('"cartón corrugado" OR "empaques de cartón" OR "papel kraft"');
+    expect(queries[1]).toContain('"piezas metálicas" OR "industria metalmecánica"');
     for (const query of queries) expect(query).toMatch(/\) when:30d$/);
   });
 
   it("quotes single words too, so a generic word is never searched on its own", () => {
-    const [query] = buildGoogleNewsQueries([{ id: "a", label: "A", terms: ["celulosa", "Yumbo"] }]);
-    expect(query).toBe('("celulosa" OR "Yumbo") when:30d');
+    const [query] = buildGoogleNewsQueries([{ id: "a", label: "A", terms: ["celulosa", "Itagüí"] }]);
+    expect(query).toBe('("celulosa" OR "Itagüí") when:30d');
   });
 
   it("keeps each query within the length budget, dropping the terms that do not fit", () => {
@@ -66,11 +69,11 @@ describe("buildGoogleNewsSearches", () => {
 
 describe("buildGoogleNewsUrl", () => {
   it("builds the Spanish-Colombia search URL with the query URL-encoded", () => {
-    const url = buildGoogleNewsUrl('("Smurfit Westrock" OR "Yumbo") when:30d');
+    const url = buildGoogleNewsUrl('("Empresa Ejemplo" OR "Itagüí") when:30d');
     const parsed = new URL(url);
     expect(parsed.host).toBe("news.google.com");
     expect(parsed.pathname).toBe("/rss/search");
-    expect(parsed.searchParams.get("q")).toBe('("Smurfit Westrock" OR "Yumbo") when:30d');
+    expect(parsed.searchParams.get("q")).toBe('("Empresa Ejemplo" OR "Itagüí") when:30d');
     expect(parsed.searchParams.get("hl")).toBe("es-419");
     expect(parsed.searchParams.get("gl")).toBe("CO");
     expect(parsed.searchParams.get("ceid")).toBe("CO:es-419");
@@ -84,7 +87,7 @@ describe("parseGoogleNews (real recorded feed)", () => {
     expect(items).toHaveLength(8);
     const first = items[0];
     expect(first.outlet).toBe("El Tiempo");
-    expect(first.title).toBe("Smurfit Westrock nombra a Andrés Muñoz como CEO para Colombia, Ecuador y Perú tras 35 años en la organización");
+    expect(first.title).toBe("Empresa Ejemplo nombra a Andrés Muñoz como CEO para Colombia, Ecuador y Perú tras 35 años en la organización");
     expect(first.url).toMatch(/^https:\/\/news\.google\.com\/rss\/articles\//);
   });
 

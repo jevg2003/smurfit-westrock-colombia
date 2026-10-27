@@ -18,8 +18,8 @@ import { ContratacionView } from "./contratacion-view";
 const CONTRACT: PublicContract = {
   id: "CO1.PCCNTR.9151243",
   entity: "Industria Licorera del Cauca",
-  supplierNit: "890300406",
-  supplierName: "Cartón de Colombia",
+  supplierNit: "900000001",
+  supplierName: "Empresa Ejemplo",
   value: 807534110,
   signedAt: "2026-01-27T00:00:00.000-05:00",
   endsAt: "2026-12-31T00:00:00.000-05:00",

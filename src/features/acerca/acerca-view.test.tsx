@@ -6,9 +6,10 @@ import { AcercaView } from "./acerca-view";
 afterEach(cleanup);
 
 describe("AcercaView", () => {
-  it("states that it is an unofficial prototype without endorsement", () => {
+  it("states that it is an independent tool without endorsement", () => {
     render(<AcercaView />);
-    expect(screen.getByText(/sin relación ni aval de Smurfit Westrock/i)).toBeInTheDocument();
+    expect(screen.getByText(/Smart Work Core \(SWC\) lee el contexto de Colombia/)).toBeInTheDocument();
+    expect(screen.getByText(/sin relación ni aval de las entidades que publican los datos/i)).toBeInTheDocument();
   });
 
   it("covers the sections users need to trust the tool", () => {

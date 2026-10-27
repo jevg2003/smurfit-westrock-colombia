@@ -7,8 +7,8 @@ const cachedFetch: typeof fetch = (input, init) => fetch(input, { ...init, next:
 
 /**
  * Closed proxy for the Minambiente feed (CORS limited to its own domain) and the Presidencia decrees
- * dataset. The client may only choose `source`; it can never pass a URL or a query.
+ * dataset. The client may only choose `source` and send the keywords of its company; it can never pass a URL or a query.
  */
-export async function GET(request: Request) {
+export async function POST(request: Request) {
   return handleRegulationRequest(request, { fetchImpl: cachedFetch });
 }

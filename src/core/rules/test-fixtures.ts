@@ -5,8 +5,8 @@ export function makeContract(overrides: Partial<PublicContract> = {}): PublicCon
   return {
     id: "CO1.PCCNTR.1",
     entity: "INDUSTRIA LICORERA DEL CAUCA",
-    supplierNit: "890300406",
-    supplierName: "CARTON DE COLOMBIA S.A.",
+    supplierNit: "900000001",
+    supplierName: "EMPRESA EJEMPLO S.A.",
     value: 807534110,
     signedAt: "2026-01-27T00:00:00.000-05:00",
     endsAt: "2026-12-31T00:00:00.000-05:00",

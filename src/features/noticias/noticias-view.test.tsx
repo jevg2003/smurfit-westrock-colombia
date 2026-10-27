@@ -35,7 +35,7 @@ const item = (id: string, title: string, outlet: string, publishedAt: string, vi
 });
 
 const ITEMS: NewsItem[] = [
-  item("a", "Smurfit Westrock invierte en Yumbo", "Portafolio", "2026-10-19T15:00:00.000Z"),
+  item("a", "Empresa Ejemplo invierte en Itagüí", "Portafolio", "2026-10-19T15:00:00.000Z"),
   item("b", "El precio del gas natural sube en el Valle", "El Tiempo", "2026-10-21T15:00:00.000Z"),
   item("c", "Nuevas reglas de economía circular para envases", "Valora Analitik", "2026-10-17T15:00:00.000Z", "google-news"),
   item("d", "Un titular sin nada que ver", "La República", "2026-10-16T15:00:00.000Z"),
@@ -56,15 +56,15 @@ describe("NoticiasView", () => {
   it("lists headlines that mention the configured terms, with a safe external link, outlet, date and matched terms", async () => {
     renderWithQuery(<NoticiasView />);
 
-    const link = await screen.findByRole("link", { name: /Smurfit Westrock invierte en Yumbo/ });
+    const link = await screen.findByRole("link", { name: /Empresa Ejemplo invierte en Itagüí/ });
     expect(link).toHaveAttribute("href", "https://example.test/a");
     expect(link).toHaveAttribute("target", "_blank");
     expect(link).toHaveAttribute("rel", "noopener noreferrer");
     const row = link.closest("[data-slot=item]") as HTMLElement;
     expect(within(row).getByText(/Portafolio/)).toBeInTheDocument();
     expect(within(row).getByText(/19\/10\/2026/)).toBeInTheDocument();
-    expect(within(row).getByText("Smurfit Westrock")).toBeInTheDocument();
-    expect(within(row).getByText("Yumbo")).toBeInTheDocument();
+    expect(within(row).getByText("Empresa Ejemplo")).toBeInTheDocument();
+    expect(within(row).getByText("Itagüí")).toBeInTheDocument();
     expect(screen.queryByText("Un titular sin nada que ver")).not.toBeInTheDocument();
   });
 
@@ -74,7 +74,7 @@ describe("NoticiasView", () => {
     const row = (await screen.findByRole("link", { name: /Nuevas reglas de economía circular/ })).closest("[data-slot=item]") as HTMLElement;
     expect(within(row).getByText("vía Google News")).toBeInTheDocument();
     expect(within(row).getByText(/Valora Analitik/)).toBeInTheDocument();
-    const direct = (await screen.findByRole("link", { name: /Smurfit Westrock invierte/ })).closest("[data-slot=item]") as HTMLElement;
+    const direct = (await screen.findByRole("link", { name: /Empresa Ejemplo invierte/ })).closest("[data-slot=item]") as HTMLElement;
     expect(within(direct).queryByText("vía Google News")).not.toBeInTheDocument();
   });
 
@@ -87,9 +87,9 @@ describe("NoticiasView", () => {
   it("orders by relevance (company, regulation, operations) and not only by date", async () => {
     renderWithQuery(<NoticiasView />);
 
-    await screen.findByRole("link", { name: /Smurfit Westrock invierte/ });
+    await screen.findByRole("link", { name: /Empresa Ejemplo invierte/ });
     const titles = screen.getAllByRole("link").map((link) => link.textContent ?? "");
-    const order = [/Smurfit Westrock invierte/, /economía circular/, /gas natural/].map((pattern) => titles.findIndex((title) => pattern.test(title)));
+    const order = [/Empresa Ejemplo invierte/, /economía circular/, /gas natural/].map((pattern) => titles.findIndex((title) => pattern.test(title)));
     expect(order).toEqual([...order].sort((a, b) => a - b));
     expect(order.every((index) => index >= 0)).toBe(true);
   });
@@ -138,7 +138,7 @@ describe("NoticiasView", () => {
 
     expect(await screen.findByText(/No pudimos leer: El Colombiano/)).toBeInTheDocument();
     expect(screen.getByText(/Fuente desactivada: Google News/)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Smurfit Westrock invierte/ })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Empresa Ejemplo invierte/ })).toBeInTheDocument();
   });
 
   it("shows the source, license and date of the data", async () => {

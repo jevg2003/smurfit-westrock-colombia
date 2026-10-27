@@ -1,4 +1,4 @@
-/** Every threshold the signal rules read. Defaults live in `src/content/config/empresa.ts`. */
+/** Every threshold the signal rules read. Defaults live in `src/core/company/defaults.ts`; each company profile holds its own values. */
 export interface RuleThresholds {
   trmDailyMovePct: number;
   trmDailyAlertPct: number;

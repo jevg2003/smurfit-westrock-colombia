@@ -1,13 +1,13 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { DEFAULT_THRESHOLDS } from "@/content/config/empresa";
+import { DEFAULT_THRESHOLDS } from "@/core/company/defaults";
 import { computeTrmDailyMoves } from "@/core/rules/trm-daily-move";
 import { usePreferencesStore } from "@/stores/preferences.store";
 import { fetchTrm } from "./api";
 import type { PuntoTrm, TrmRegistro } from "./types";
 
-/** Default threshold, from the company config. The active value comes from preferences. */
+/** Default threshold. The active value comes from preferences (which start from the company profile). */
 export const UMBRAL_ATIPICO_PCT = DEFAULT_THRESHOLDS.trmDailyMovePct;
 
 export function procesar(registros: TrmRegistro[], umbralPct: number = UMBRAL_ATIPICO_PCT): PuntoTrm[] {

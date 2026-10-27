@@ -8,46 +8,36 @@ function makeLogger(): Logger {
 }
 
 describe("hydrateStores", () => {
-  it("rehydrates, migrates and then flags the stores as hydrated", async () => {
+  it("rehydrates every store and then flags them as hydrated", async () => {
     const order: string[] = [];
     const hydration = createHydrationStore();
     await hydrateStores({
       rehydrate: [async () => void order.push("a"), () => void order.push("b")],
-      migrate: () => void order.push("migrate"),
       logger: makeLogger(),
       hydration,
     });
-    expect(order).toEqual(["a", "b", "migrate"]);
+    expect(order).toEqual(["a", "b"]);
     expect(hydration.getState().hasHydrated).toBe(true);
   });
 
-  it("logs a rehydrate failure, skips the migration and still flags hydrated", async () => {
+  it("logs a rehydrate failure and still flags hydrated", async () => {
     const logger = makeLogger();
-    const migrate = vi.fn();
     const hydration = createHydrationStore();
     await hydrateStores({
       rehydrate: [() => Promise.reject(new Error("boom"))],
-      migrate,
       logger,
       hydration,
     });
     expect(logger.error).toHaveBeenCalledWith("store_rehydrate_failed", expect.objectContaining({ message: "boom" }));
-    expect(migrate).not.toHaveBeenCalled();
     expect(hydration.getState().hasHydrated).toBe(true);
   });
 
-  it("logs a migration failure and still flags hydrated", async () => {
-    const logger = makeLogger();
+  it("can be raised again while another company loads", async () => {
     const hydration = createHydrationStore();
-    await hydrateStores({
-      rehydrate: [],
-      migrate: () => {
-        throw new Error("bad legacy");
-      },
-      logger,
-      hydration,
-    });
-    expect(logger.error).toHaveBeenCalledWith("legacy_migration_failed", expect.objectContaining({ message: "bad legacy" }));
+    await hydrateStores({ rehydrate: [], logger: makeLogger(), hydration });
+    hydration.getState().markHydrating();
+    expect(hydration.getState().hasHydrated).toBe(false);
+    await hydrateStores({ rehydrate: [], logger: makeLogger(), hydration });
     expect(hydration.getState().hasHydrated).toBe(true);
   });
 
@@ -55,7 +45,6 @@ describe("hydrateStores", () => {
     const hydration = createHydrationStore();
     await hydrateStores({
       rehydrate: [],
-      migrate: () => {},
       logger: makeLogger(),
       hydration,
       isCancelled: () => true,

@@ -45,7 +45,7 @@ const phrasesOf = (words: readonly string[] | undefined) => (words ?? []).map(no
 
 /**
  * Terms of each group found in `text`, ignoring case and accents and only on whole words
- * (so "papel" does not match "papeleo"). One entry per matching term, in group order.
+ * (so "gas" does not match "gasolina"). One entry per matching term, in group order.
  * A group with `excludeAny` words is skipped when the text has one of them, and a term with
  * `requireAny` words only counts when the text has one of those too.
  */

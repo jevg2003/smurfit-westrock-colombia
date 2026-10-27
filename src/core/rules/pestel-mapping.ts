@@ -54,7 +54,7 @@ export function pestelForRule(ruleId: string): Pestel {
 export type NewsTermGroupKey = "company" | "sector" | "regulation" | "operations";
 
 const SUSTAINABILITY_TERM = /reciclaj|aprovechamiento|sostenib|ambient|emision|carbono|circular|agua|residuo/i;
-const SOCIAL_OPERATIONS_TERM = /paro|cauca|yumbo|orden p[uú]blico|bloqueo|huelga|seguridad/i;
+const SOCIAL_OPERATIONS_TERM = /paro|orden p[uú]blico|bloqueo|huelga|seguridad/i;
 
 /**
  * PESTEL tag of a news item, from the term group it matched and the term itself:

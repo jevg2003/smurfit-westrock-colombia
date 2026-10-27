@@ -25,13 +25,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
-import { COMPETITORS } from "@/content/config/empresa";
+import { withNitCompetitors } from "@/core/company/profile";
 import type { Signal } from "@/core/domain/signal";
 import { DIMENSION_LABELS } from "@/core/labels";
 import { contractSubject, isFollowed, signalSubject } from "@/core/rules/watch-subject";
 import { bogotaDateKey } from "@/core/time/bogota";
 import { buildTimeline, type TimelineEvent } from "@/core/usecases/build-timeline";
 import { useNews } from "@/features/entorno/use-news";
+import { useCompany } from "@/stores/companies.store";
 import { useRegulation } from "@/features/entorno/use-regulation";
 import { useSignals } from "@/features/entorno/use-signals";
 import { SOURCES } from "@/features/entorno/sources";
@@ -84,6 +85,7 @@ export function TimelineView() {
   const [visible, setVisible] = useState(PAGE_SIZE);
   const [open, setOpen] = useState<Signal | null>(null);
   const range = dates;
+  const company = useCompany();
 
   const events = useMemo(
     () =>
@@ -94,9 +96,9 @@ export function TimelineView() {
         news: news.items.filter((item) => item.matches.length > 0),
         regulations: [],
         regulationItems: regulation.items,
-        competitorNits: COMPETITORS.map((competitor) => competitor.nit),
+        competitorNits: withNitCompetitors(company).map((competitor) => competitor.nit),
       }),
-    [data.signals, data.contracts, news.items, regulation.items],
+    [company, data.signals, data.contracts, news.items, regulation.items],
   );
 
   const onlyFollowed = useWatchlistStore((state) => state.onlyFollowed);

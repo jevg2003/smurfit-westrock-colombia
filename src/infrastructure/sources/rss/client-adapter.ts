@@ -2,6 +2,7 @@ import type { NewsItem } from "@/core/domain/news";
 import type { Provenance } from "@/core/domain/provenance";
 import type { Result, SourceError } from "@/core/domain/result";
 import type { SourceAdapter } from "@/core/ports/source-adapter";
+import type { TermGroup } from "@/core/text/match";
 import { FetchFailure, createFetcher, type Fetcher } from "@/infrastructure/http/fetcher";
 import { safeHttpUrl } from "@/lib/safe-url";
 import { newsResponseSchema } from "./schema";
@@ -12,6 +13,8 @@ const LICENSE = "Solo titular, medio, fecha y enlace (derechos del medio)";
 
 export interface NewsQuery {
   limit?: number;
+  /** Term groups of the active company: the server builds its Google News searches from them. */
+  termGroups: readonly TermGroup[];
 }
 
 export interface NewsData {
@@ -34,23 +37,23 @@ export function createNewsAdapter({ fetcher = createFetcher() }: NewsAdapterOpti
   return {
     sourceId: "news-rss",
     async fetch(query, { signal }): Promise<Result<{ data: NewsData; provenance: Provenance }>> {
-      const url = query.limit ? `${NEWS_API_PATH}?limit=${query.limit}` : NEWS_API_PATH;
+      const body = JSON.stringify({ ...(query.limit ? { limit: query.limit } : {}), termGroups: query.termGroups });
       let response: Response;
       try {
-        response = await fetcher(url, { signal, headers: { accept: "application/json" } });
+        response = await fetcher(NEWS_API_PATH, { method: "POST", body, signal, headers: { accept: "application/json", "content-type": "application/json" } });
       } catch (error) {
         const reason = error instanceof FetchFailure ? error.reason : "network";
         return failure("network", reason === "timeout" ? "Las noticias no respondieron a tiempo." : "No se pudo conectar con las noticias.");
       }
       if (!response.ok) return failure("network", `Las noticias respondieron con el estado ${response.status}.`, response.status);
 
-      let body: unknown;
+      let payload: unknown;
       try {
-        body = await response.json();
+        payload = await response.json();
       } catch {
         return failure("schema", "La respuesta de las noticias no es JSON válido.");
       }
-      const parsed = newsResponseSchema.safeParse(body);
+      const parsed = newsResponseSchema.safeParse(payload);
       if (!parsed.success) return failure("schema", "La respuesta de las noticias cambió de forma.");
 
       const { items, feeds, fetchedAt } = parsed.data;

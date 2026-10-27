@@ -1,139 +1,114 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_NEWS_CONTEXT, DEFAULT_NEWS_TERMS, LEGACY_NEWS_TERM_GROUPS, NEWS_TERM_GROUPS } from "@/content/config/empresa";
+import { NEWS_GROUP_IDS, searchTermsOf, type CompanyProfile } from "@/core/company/profile";
+import { TEST_COMPANY } from "@/core/company/test-fixtures";
 import { buildNewsTermGroups, createPreferencesStore } from "./preferences.store";
 import { createMemoryStorage } from "./test-utils";
 
+const KEY = "swc:_:preferences:v1";
+
+const setup = (profile: CompanyProfile | null = TEST_COMPANY, storage = createMemoryStorage()) => ({
+  storage,
+  create: () => createPreferencesStore({ storage, getProfile: () => profile ?? undefined }),
+});
+
 describe("preferences news term groups", () => {
-  it("starts with the configured groups", () => {
-    const state = createPreferencesStore({ storage: createMemoryStorage() }).getState();
-    expect(Object.keys(state.newsTermGroups)).toEqual(NEWS_TERM_GROUPS.map((group) => group.id));
+  it("starts with the groups of the company profile", () => {
+    const state = setup().create().getState();
+    expect(Object.keys(state.newsTermGroups)).toEqual([...NEWS_GROUP_IDS]);
+    expect(state.newsTermGroups.company).toEqual(TEST_COMPANY.newsGroups.company.terms);
+    expect(state.newsTerms).toEqual(searchTermsOf(TEST_COMPANY));
+  });
+
+  it("starts with empty groups when there is no company", () => {
+    const state = setup(null).create().getState();
+    expect(state.newsTerms).toEqual([]);
+    expect(state.newsTermGroups.sector).toEqual([]);
   });
 
   it("edits one group and keeps the flat list in sync, without duplicates", () => {
-    const store = createPreferencesStore({ storage: createMemoryStorage() });
-    store.getState().setNewsTermGroup("sector", [" cartón corrugado ", "kraft", "kraft", ""]);
+    const store = setup().create();
+    store.getState().setNewsTermGroup("sector", [" acero ", "hierro", "hierro", ""]);
 
-    expect(store.getState().newsTermGroups.sector).toEqual(["cartón corrugado", "kraft"]);
-    expect(store.getState().newsTerms).toContain("kraft");
-    expect(store.getState().newsTerms).not.toContain("celulosa");
+    expect(store.getState().newsTermGroups.sector).toEqual(["acero", "hierro"]);
+    expect(store.getState().newsTerms).toContain("hierro");
+    expect(store.getState().newsTerms).not.toContain("piezas metálicas");
   });
 
   it("restores the groups on reset and persists edits", async () => {
-    const storage = createMemoryStorage();
-    const store = createPreferencesStore({ storage });
-    store.getState().setNewsTermGroup("operations", ["gas natural"]);
+    const { create } = setup();
+    create().getState().setNewsTermGroup("operations", ["gas natural"]);
 
-    const fresh = createPreferencesStore({ storage });
+    const fresh = create();
     await fresh.persist.rehydrate();
     expect(fresh.getState().newsTermGroups.operations).toEqual(["gas natural"]);
 
     fresh.getState().reset();
-    expect(fresh.getState().newsTermGroups.operations).toEqual([...NEWS_TERM_GROUPS[3].terms]);
+    expect(fresh.getState().newsTermGroups.operations).toEqual(TEST_COMPANY.newsGroups.operations.terms);
   });
 
-  it("gives the energy spot thresholds their defaults when old persisted data lacks them", async () => {
-    const storage = createMemoryStorage({
-      "swc:preferences:v1": JSON.stringify({ state: { thresholds: { trmDailyMovePct: 1.5 } }, version: 1 }),
-    });
-    const store = createPreferencesStore({ storage });
+  it("gives the energy spot thresholds their defaults when saved data lacks them", async () => {
+    const { create } = setup(TEST_COMPANY, createMemoryStorage({ [KEY]: JSON.stringify({ state: { thresholds: { trmDailyMovePct: 1.5 } }, version: 1 }) }));
+    const store = create();
     await store.persist.rehydrate();
     expect(store.getState().thresholds).toMatchObject({ trmDailyMovePct: 1.5, energySpotWeeklyMovePct: 15, energySpotWeeklyAlertPct: 30 });
   });
 
-  it("keeps the default groups when old persisted data has none", async () => {
-    const storage = createMemoryStorage({
-      "swc:preferences:v1": JSON.stringify({ state: { thresholds: { trmDailyMovePct: 1.5 }, newsTerms: ["a"] }, version: 1 }),
-    });
-    const store = createPreferencesStore({ storage });
+  it("keeps the profile groups when saved data has none", async () => {
+    const { create } = setup(TEST_COMPANY, createMemoryStorage({ [KEY]: JSON.stringify({ state: { thresholds: { trmDailyMovePct: 1.5 }, newsTerms: ["a"] }, version: 1 }) }));
+    const store = create();
     await store.persist.rehydrate();
     expect(store.getState().newsTermGroups.company.length).toBeGreaterThan(0);
     expect(store.getState().thresholds.trmDailyMovePct).toBe(1.5);
   });
-});
 
-describe("preferences news term defaults migration", () => {
-  const persisted = (state: object) =>
-    createMemoryStorage({ "swc:preferences:v1": JSON.stringify({ state, version: 1 }) });
-
-  it("replaces groups that still hold the old defaults with the new defaults", async () => {
-    const store = createPreferencesStore({
-      storage: persisted({
-        newsTermGroups: Object.fromEntries(Object.entries(LEGACY_NEWS_TERM_GROUPS).map(([id, terms]) => [id, [...terms]])),
-      }),
-    });
+  it("does not keep the values of another company when its key is empty", async () => {
+    const { create } = setup();
+    const store = create();
+    store.getState().setNewsTermGroup("sector", ["solo mia"]);
+    store.persist.setOptions({ name: "swc:otra:preferences:v1" });
     await store.persist.rehydrate();
-    const groups = store.getState().newsTermGroups;
-    for (const group of NEWS_TERM_GROUPS) expect(groups[group.id]).toEqual([...group.terms]);
-    expect(groups.sector).not.toContain("papel");
-    expect(store.getState().newsTerms).toEqual([...DEFAULT_NEWS_TERMS]);
-  });
-
-  it("keeps customised groups and still upgrades the untouched ones", async () => {
-    const store = createPreferencesStore({
-      storage: persisted({
-        newsTermGroups: {
-          company: [...LEGACY_NEWS_TERM_GROUPS.company],
-          sector: ["papel", "mi término"],
-          regulation: [...LEGACY_NEWS_TERM_GROUPS.regulation],
-          operations: [...LEGACY_NEWS_TERM_GROUPS.operations],
-        },
-      }),
-    });
-    await store.persist.rehydrate();
-    const groups = store.getState().newsTermGroups;
-    expect(groups.sector).toEqual(["papel", "mi término"]);
-    expect(groups.company).toEqual([...NEWS_TERM_GROUPS[0].terms]);
-  });
-
-  it("does not touch groups saved by the current version", async () => {
-    const storage = createMemoryStorage();
-    const first = createPreferencesStore({ storage });
-    first.getState().setNewsTermGroup("sector", ["papel"]);
-    const second = createPreferencesStore({ storage });
-    await second.persist.rehydrate();
-    expect(second.getState().newsTermGroups.sector).toEqual(["papel"]);
+    expect(store.getState().newsTermGroups.sector).toEqual(TEST_COMPANY.newsGroups.sector.terms);
   });
 });
 
 describe("preferences news context rules", () => {
-  const persisted = (state: object, version: number) => createMemoryStorage({ "swc:preferences:v1": JSON.stringify({ state, version }) });
-
-  it("starts with the default context and exclusion words", () => {
-    const { newsContext } = createPreferencesStore({ storage: createMemoryStorage() }).getState();
-    expect(newsContext.company.requireAny).toContain("Colombia");
-    expect(newsContext.sector.requireAny).toContain("Colombia");
-    for (const group of NEWS_TERM_GROUPS) expect(newsContext[group.id].excludeAny).toEqual(DEFAULT_NEWS_CONTEXT[group.id].excludeAny);
+  it("starts with the context and exclusion words of the profile", () => {
+    const { newsContext } = setup().create().getState();
+    expect(newsContext.company.requireAny).toEqual(TEST_COMPANY.colombiaContextWords);
+    expect(newsContext.sector.requireAny).toEqual(TEST_COMPANY.colombiaContextWords);
+    for (const id of NEWS_GROUP_IDS) expect(newsContext[id].excludeAny).toEqual(TEST_COMPANY.excludeWords);
   });
 
-  it("gives data saved before the context rules existed the default rules, keeping its terms", async () => {
-    const store = createPreferencesStore({ storage: persisted({ newsTermGroups: { sector: ["kraft"] } }, 2) });
+  it("gives data saved before the context rules existed the profile rules, keeping its terms", async () => {
+    const { create } = setup(TEST_COMPANY, createMemoryStorage({ [KEY]: JSON.stringify({ state: { newsTermGroups: { sector: ["acero"] } }, version: 1 }) }));
+    const store = create();
     await store.persist.rehydrate();
-    expect(store.getState().newsContext.company.requireAny).toContain("Yumbo");
-    expect(store.getState().newsTermGroups.sector).toEqual(["kraft"]);
+    expect(store.getState().newsContext.sector.requireAny).toContain("Colombia");
+    expect(store.getState().newsTermGroups.sector).toEqual(["acero"]);
   });
 
   it("edits one group's words, cleaned and without duplicates, and persists them", async () => {
-    const storage = createMemoryStorage();
-    createPreferencesStore({ storage }).getState().setNewsContext("company", { requireAny: [" Colombia ", "Colombia", ""], excludeAny: ["fútbol"] });
-    const fresh = createPreferencesStore({ storage });
+    const { create } = setup();
+    create().getState().setNewsContext("company", { requireAny: [" Colombia ", "Colombia", ""], excludeAny: ["fútbol"] });
+    const fresh = create();
     await fresh.persist.rehydrate();
     expect(fresh.getState().newsContext.company).toEqual({ requireAny: ["Colombia"], excludeAny: ["fútbol"] });
     expect(fresh.getState().newsContext.sector.excludeAny.length).toBeGreaterThan(0);
   });
 
   it("builds the matcher groups from the saved terms and words", () => {
-    const store = createPreferencesStore({ storage: createMemoryStorage() });
-    store.getState().setNewsContext("company", { requireAny: ["Yumbo"], excludeAny: ["fútbol"] });
-    const [company] = buildNewsTermGroups(store.getState());
+    const store = setup().create();
+    store.getState().setNewsContext("company", { requireAny: ["Medellín"], excludeAny: ["fútbol"] });
+    const [company] = buildNewsTermGroups(store.getState(), TEST_COMPANY);
     expect(company.excludeAny).toEqual(["fútbol"]);
-    expect(company.terms).toContainEqual({ term: "Smurfit Westrock", requireAny: ["Yumbo"] });
-    expect(company.terms).toContain("Cartones América");
+    expect(company.terms).toContainEqual({ term: "Empresa Ejemplo", requireAny: ["Medellín"] });
+    expect(company.terms).toContain("Competidora Uno");
   });
 
-  it("restores the default words on reset", () => {
-    const store = createPreferencesStore({ storage: createMemoryStorage() });
-    store.getState().setNewsContext("company", { requireAny: [], excludeAny: [] });
+  it("restores the profile words on reset", () => {
+    const store = setup().create();
+    store.getState().setNewsContext("sector", { requireAny: [], excludeAny: [] });
     store.getState().reset();
-    expect(store.getState().newsContext.company.requireAny).toContain("Colombia");
+    expect(store.getState().newsContext.sector.requireAny).toContain("Colombia");
   });
 });

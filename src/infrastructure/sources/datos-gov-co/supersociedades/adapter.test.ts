@@ -1,10 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
-import { COMPANY, COMPETITORS } from "@/content/config/empresa";
+import { watchedNits } from "@/core/company/profile";
+import { TEST_COMPANY } from "@/core/company/test-fixtures";
 import { createFetcher } from "@/infrastructure/http/fetcher";
 import sample from "./fixtures/supersociedades.sample.json";
 import { SUPERSOCIEDADES_DATASET_URL, buildSupersociedadesUrl, createSupersociedadesAdapter, parseAmount } from "./adapter";
 
-const NITS = [COMPANY.nit, ...COMPETITORS.map((competitor) => competitor.nit)];
+const NITS = watchedNits(TEST_COMPANY);
 const NOW = new Date("2026-10-20T15:00:00.000Z");
 
 function jsonResponse(body: unknown, status = 200) {
@@ -36,7 +37,7 @@ describe("buildSupersociedadesUrl", () => {
   it("filters by NIT with IN, orders by cutoff year and never uses LIKE", () => {
     const url = decodeURIComponent(buildSupersociedadesUrl(NITS));
     expect(url.startsWith(`${SUPERSOCIEDADES_DATASET_URL}?`)).toBe(true);
-    expect(url).toContain("$where=nit in(890300406,860026759,890319047,890925108)");
+    expect(url).toContain("$where=nit in(900000001,900000002,900000003,900000004)");
     expect(url).toContain("$order=a_o_de_corte DESC");
     expect(url.toLowerCase()).not.toContain("like");
   });
@@ -50,10 +51,10 @@ describe("createSupersociedadesAdapter", () => {
     if (!result.ok) return;
 
     expect(result.value.data).toHaveLength(sample.length);
-    const own = result.value.data.find((row) => row.nit === "890300406" && row.cutoffYear === 2025);
+    const own = result.value.data.find((row) => row.nit === "900000001" && row.cutoffYear === 2025);
     expect(own).toMatchObject({
-      name: "CARTON DE COLOMBIA S.A.",
-      city: "YUMBO",
+      name: "EMPRESA EJEMPLO S.A.",
+      city: "ITAGÜÍ",
       ciiu: "1701",
       revenue: 1.91,
       netIncome: 0.18,

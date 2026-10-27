@@ -1,7 +1,6 @@
 import type { UIMessage } from "ai";
 import { describe, expect, it } from "vitest";
 import {
-  CHAT_STORAGE_KEY,
   DEFAULT_CHAT_TITLE,
   MAX_CONVERSATIONS,
   MAX_MESSAGES_PER_CONVERSATION,
@@ -9,6 +8,8 @@ import {
   selectResumeList,
 } from "./chat.store";
 import { createMemoryStorage } from "./test-utils";
+
+const CHAT_STORAGE_KEY = "swc:_:chats:v1";
 
 const msg = (id: string, role: UIMessage["role"], text: string): UIMessage => ({ id, role, parts: [{ type: "text", text }] });
 
@@ -93,12 +94,12 @@ describe("chat store", () => {
     expect(store.getState().conversations[0].feedback).toEqual({});
   });
 
-  it("persists under swc:chats:v1 and rehydrates", async () => {
+  it("persists under swc:_:chats:v1 and rehydrates", async () => {
     const { store, storage } = makeStore();
     const id = store.getState().newConversation("page");
     store.getState().setMessages(id, [msg("1", "user", "hola")]);
     expect(storage.getItem(CHAT_STORAGE_KEY)).toContain("hola");
-    expect(CHAT_STORAGE_KEY).toBe("swc:chats:v1");
+    expect(CHAT_STORAGE_KEY).toBe("swc:_:chats:v1");
 
     const fresh = createChatStore({ storage });
     await fresh.persist.rehydrate();

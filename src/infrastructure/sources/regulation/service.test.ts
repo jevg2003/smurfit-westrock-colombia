@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
+import { TEST_COMPANY } from "@/core/company/test-fixtures";
 import { createFetcher } from "@/infrastructure/http/fetcher";
 import { handleRegulationRequest } from "./handler";
 import { loadRegulation } from "./service";
@@ -7,6 +8,7 @@ import { loadRegulation } from "./service";
 const minambiente = readFileSync(new URL("../rss/fixtures/minambiente.sample.xml", import.meta.url), "utf8");
 const decrees = readFileSync(new URL("./fixtures/decretos.sample.json", import.meta.url), "utf8");
 const NOW = new Date("2026-10-20T15:00:00.000Z");
+const TERMS = { include: TEST_COMPANY.regulationKeywords, exclude: TEST_COMPANY.regulationExcludeKeywords };
 const FLAGS = { newsRss: true, googleNews: true, minambiente: true, presidencia: true, xm: true };
 
 function fakeFetch(failures: { minambiente?: boolean; presidencia?: boolean } = {}) {
@@ -22,7 +24,7 @@ function fakeFetch(failures: { minambiente?: boolean; presidencia?: boolean } = 
 }
 
 const run = (fetchImpl: typeof fetch, options: Partial<Parameters<typeof loadRegulation>[0]> = {}) =>
-  loadRegulation({ fetcher: createFetcher({ fetchImpl, retryDelayMs: 0 }), now: NOW, flags: FLAGS, ...options });
+  loadRegulation({ fetcher: createFetcher({ fetchImpl, retryDelayMs: 0 }), now: NOW, flags: FLAGS, terms: TERMS, ...options });
 
 describe("loadRegulation", () => {
   it("returns Minambiente posts (title, date and link only) and keyword-filtered decrees", async () => {
@@ -62,21 +64,33 @@ describe("loadRegulation", () => {
   });
 });
 
-describe("GET /api/regulacion handler", () => {
+describe("POST /api/regulacion handler", () => {
   const { fetchImpl } = fakeFetch();
-  const call = (query: string) =>
-    handleRegulationRequest(new Request(`http://localhost/api/regulacion${query}`), { fetchImpl, now: () => NOW, flags: () => FLAGS });
+  const post = (body: unknown) => new Request("http://localhost/api/regulacion", { method: "POST", body: typeof body === "string" ? body : JSON.stringify(body) });
+  const call = (fields: Record<string, unknown> = {}) =>
+    handleRegulationRequest(post({ keywords: TERMS, ...fields }), { fetchImpl, now: () => NOW, flags: () => FLAGS });
 
   it("rejects unknown sources and any client-provided URL with 400", async () => {
-    for (const query of ["?source=unknown", "?url=http://169.254.169.254", "?source=minambiente&feed=http://evil.test"]) {
-      expect((await call(query)).status).toBe(400);
+    for (const fields of [{ source: "unknown" }, { url: "http://169.254.169.254" }, { source: "minambiente", feed: "http://evil.test" }, { keywords: undefined }]) {
+      expect((await call(fields)).status).toBe(400);
     }
   });
 
-  it("answers with cache headers", async () => {
-    const response = await call("");
+  it("rejects a body that is not JSON or is too large", async () => {
+    const options = { fetchImpl, now: () => NOW, flags: () => FLAGS };
+    expect((await handleRegulationRequest(post("{nope"), options)).status).toBe(400);
+    expect((await handleRegulationRequest(post(" ".repeat(20 * 1024)), options)).status).toBe(413);
+  });
+
+  it("answers without caching", async () => {
+    const response = await call();
     expect(response.status).toBe(200);
-    expect(response.headers.get("cache-control")).toBe("public, s-maxage=1800, stale-while-revalidate=3600");
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
     expect((await response.json()).minambiente.items.length).toBe(12);
+  });
+
+  it("filters decrees with the keywords the client sent", async () => {
+    const none = await (await call({ keywords: { include: ["palabra-que-no-existe"], exclude: [] }, source: "presidencia" })).json();
+    expect(none.presidencia.items).toEqual([]);
   });
 });

@@ -13,7 +13,7 @@ function endingIn(days: number, overrides: Partial<PublicContract> = {}) {
 }
 
 const run = (contracts: PublicContract[], clockIso = NOW, t = thresholds) =>
-  detectExpiringContracts({ contracts, companyNit: "890300406", clock: fixedClock(clockIso), thresholds: t });
+  detectExpiringContracts({ contracts, companyNit: "900000001", clock: fixedClock(clockIso), thresholds: t });
 
 describe("secop.expiring-contract.v1", () => {
   it("raises a watch signal at exactly 90 days", () => {
@@ -38,7 +38,7 @@ describe("secop.expiring-contract.v1", () => {
 
   it("ignores contracts without an end date, other suppliers and finished ones", () => {
     expect(run([makeContract({ endsAt: undefined })])).toEqual([]);
-    expect(run([endingIn(10, { supplierNit: "860026759" })])).toEqual([]);
+    expect(run([endingIn(10, { supplierNit: "900000002" })])).toEqual([]);
     expect(run([endingIn(10, { status: "Terminado" })])).toEqual([]);
   });
 

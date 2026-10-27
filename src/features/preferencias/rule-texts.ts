@@ -1,4 +1,5 @@
-import { COMPANY, COMPETITORS, type Thresholds } from "@/content/config/empresa";
+import type { Thresholds } from "@/core/company/defaults";
+import { withNitCompetitors, type CompanyProfile } from "@/core/company/profile";
 import type { PublicContract } from "@/core/domain/contract";
 import { ENERGY_SPOT_WEEKLY_MOVE_RULE_ID } from "@/core/rules/energy-spot-weekly-move";
 import { detectCompetitorNewContracts } from "@/core/rules/secop-competitor-new-contract";
@@ -25,18 +26,21 @@ const PROBE: Omit<PublicContract, "supplierNit" | "supplierName"> = {
  * The rule wording with the active thresholds. It is read from the rules themselves (the text of the
  * signal they build for a throwaway probe contract), so this screen can never drift from them.
  */
-export function activeRuleTexts(thresholds: Thresholds): RuleText[] {
+export function activeRuleTexts(thresholds: Thresholds, company: Pick<CompanyProfile, "name" | "nit" | "competitors">): RuleText[] {
   const clock = { now: () => new Date("2026-01-01T17:00:00.000Z") };
+  // A company without NIT still gets the wording of the rules, from a placeholder NIT.
+  const ownNit = company.nit ?? "0";
   const expiring = detectExpiringContracts({
-    contracts: [{ ...PROBE, supplierNit: COMPANY.nit, supplierName: COMPANY.name }],
-    companyNit: COMPANY.nit,
+    contracts: [{ ...PROBE, supplierNit: ownNit, supplierName: company.name }],
+    companyNit: ownNit,
     clock,
     thresholds: { watchDays: thresholds.contractExpiryWatchDays, alertDays: thresholds.contractExpiryAlertDays },
   });
-  const competitor = COMPETITORS[0];
+  const competitors = withNitCompetitors(company);
+  const competitor = competitors[0] ?? { nit: "1", name: "Competidor" };
   const newContract = detectCompetitorNewContracts({
     contracts: [{ ...PROBE, supplierNit: competitor.nit, supplierName: competitor.name }],
-    competitors: COMPETITORS,
+    competitors: competitors.length > 0 ? competitors : [competitor],
     clock,
     windowDays: thresholds.competitorContractWindowDays,
   });

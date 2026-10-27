@@ -10,7 +10,8 @@ import {
   type UIMessage,
 } from "ai";
 import { z } from "zod";
-import { DEFAULT_THRESHOLDS } from "@/content/config/empresa";
+import { companyContextSchema, type CompanyContext } from "@/core/company/context";
+import { DEFAULT_THRESHOLDS } from "@/core/company/defaults";
 import { fitsPageContextBudget, pageContextSchema, type PageContext } from "./page-context";
 import { buildSystemPrompt } from "./system-prompt";
 
@@ -49,10 +50,13 @@ const requestSchema = z.object({
   thresholds: thresholdsSchema.default(DEFAULT_WINDOWS),
   /** Web search is on unless the user turns it off in the composer. */
   webSearch: z.boolean().default(true),
+  /** The active company (the profile lives in the browser). Untrusted: it only shapes searches and the prompt. */
+  company: companyContextSchema,
 });
 
 export interface ChatToolOptions {
   thresholds: { watchDays: number; alertDays: number };
+  company: CompanyContext;
   webSearch: boolean;
 }
 
@@ -152,7 +156,7 @@ export async function handleChat(request: Request, deps: ChatDeps): Promise<Resp
 
   const parsed = requestSchema.safeParse(body);
   if (!parsed.success) return json(400, "La solicitud no es válida.");
-  const { messages, mode, pageContext: rawContext, thresholds, webSearch } = parsed.data;
+  const { messages, mode, pageContext: rawContext, thresholds, webSearch, company } = parsed.data;
 
   let pageContext: PageContext | undefined;
   if (rawContext !== undefined && mode === "sheet") {
@@ -169,11 +173,11 @@ export async function handleChat(request: Request, deps: ChatDeps): Promise<Resp
   const attempt = (candidate: ChatModel, willFallBack: boolean) => {
     const webTools = webSearch ? (candidate.webSearchTools ?? {}) : {};
     const hasWeb = Object.keys(webTools).length > 0;
-    const tools: ToolSet = { ...deps.tools({ thresholds, webSearch }), ...webTools };
+    const tools: ToolSet = { ...deps.tools({ thresholds, webSearch, company }), ...webTools };
     return convertToModelMessages(recent as unknown as UIMessage[], { tools }).then((modelMessages) =>
       openStream({
         model: candidate.model,
-        instructions: buildSystemPrompt({ mode, pageContext, webSearch: hasWeb, webSearchUnavailable: webSearch && !hasWeb }),
+        instructions: buildSystemPrompt({ mode, company, pageContext, webSearch: hasWeb, webSearchUnavailable: webSearch && !hasWeb }),
         messages: modelMessages,
         tools,
         stopWhen: stepCountIs(MAX_STEPS),

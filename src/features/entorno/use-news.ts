@@ -2,11 +2,13 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
-import { COLOMBIAN_OUTLETS } from "@/content/config/empresa";
+import { buildProfileTermGroups } from "@/core/company/context";
+import { COLOMBIAN_OUTLETS } from "@/core/company/defaults";
 import type { NewsItem } from "@/core/domain/news";
 import type { TermGroup } from "@/core/text/match";
 import { filterRelevantNews, matchNewsItems, sortByRelevance } from "@/core/usecases/match-news";
 import type { FeedHealth } from "@/infrastructure/sources/rss/service";
+import { useCompany } from "@/stores/companies.store";
 import { buildNewsTermGroups, usePreferencesStore } from "@/stores/preferences.store";
 import { getContainer } from "./container";
 import { SourceFailure } from "./source-failure";
@@ -24,18 +26,22 @@ export interface NewsData {
 export function useNewsTermGroups(): TermGroup[] {
   const newsTermGroups = usePreferencesStore((state) => state.newsTermGroups);
   const newsContext = usePreferencesStore((state) => state.newsContext);
-  return useMemo(() => buildNewsTermGroups({ newsTermGroups, newsContext }), [newsTermGroups, newsContext]);
+  const company = useCompany();
+  return useMemo(() => buildNewsTermGroups({ newsTermGroups, newsContext }, company), [newsTermGroups, newsContext, company]);
 }
 
 /** Colombian media and Google News headlines, read from our own `/api/news` route. */
 export function useNews() {
+  const company = useCompany();
+  // The server searches Google News with the terms of the company profile; the user's later edits only change the matching.
+  const searchGroups = useMemo(() => buildProfileTermGroups(company), [company]);
   const query = useQuery<NewsData>({
-    queryKey: ["news"],
+    queryKey: ["news", company.id, company.updatedAt],
     retry: false,
     staleTime: 30 * 60 * 1000,
     queryFn: async ({ signal }) => {
       const { news, clock } = getContainer();
-      const result = await news.fetch({}, { signal, now: clock.now() });
+      const result = await news.fetch({ termGroups: searchGroups }, { signal, now: clock.now() });
       if (result.ok) return { items: result.value.data.items, feeds: result.value.data.feeds, off: false };
       if (result.error.kind === "disabled") return { items: [], feeds: [], off: true };
       if (result.error.kind === "empty") return { items: [], feeds: [], off: false };

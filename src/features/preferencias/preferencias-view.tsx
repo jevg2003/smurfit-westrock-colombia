@@ -2,7 +2,7 @@
 
 import { revalidateLogic, useForm } from "@tanstack/react-form";
 import { RotateCcwIcon } from "lucide-react";
-import { useId, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { PageIntro } from "@/components/shell/page-intro";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +10,9 @@ import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel, FieldLegen
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import { hasContextTerms, NEWS_TERM_GROUPS, type Thresholds } from "@/content/config/empresa";
+import type { Thresholds } from "@/core/company/defaults";
+import { deriveNewsGroupDefinitions, hasContextTerms, type NewsTermGroup } from "@/core/company/profile";
+import { useCompany } from "@/stores/companies.store";
 import { useHydrationStore } from "@/stores/hydration.store";
 import { type NewsTermGroupId, usePreferencesStore } from "@/stores/preferences.store";
 import { activeRuleTexts } from "./rule-texts";
@@ -247,6 +249,7 @@ function ThresholdsCard() {
 }
 
 function RulesCard() {
+  const company = useCompany();
   const thresholds = usePreferencesStore((state) => state.thresholds);
   return (
     <Card className="min-w-0 gap-0 py-0">
@@ -256,7 +259,7 @@ function RulesCard() {
       </CardHeader>
       <CardContent className="py-4">
         <ul className="flex flex-col gap-3">
-          {activeRuleTexts(thresholds).map((rule) => (
+          {activeRuleTexts(thresholds, company).map((rule) => (
             <li key={rule.id} className="flex min-w-0 flex-col gap-0.5">
               <span className="text-sm font-medium">{rule.title}</span>
               <span className="text-sm break-words">{rule.text}</span>
@@ -269,14 +272,20 @@ function RulesCard() {
   );
 }
 
-const TERM_GROUP_IDS = NEWS_TERM_GROUPS.map((group) => group.id);
-const GROUPS_WITH_CONTEXT = NEWS_TERM_GROUPS.filter(hasContextTerms);
 const contextKey = (id: NewsTermGroupId) => `${id}Context`;
 const excludeKey = (id: NewsTermGroupId) => `${id}Exclude`;
-const WORD_KEYS = [...GROUPS_WITH_CONTEXT.map((group) => contextKey(group.id)), ...NEWS_TERM_GROUPS.map((group) => excludeKey(group.id))];
-const termsFormSchema = termsSchema(TERM_GROUP_IDS).extend(wordsSchema(WORD_KEYS).shape);
 
 function TermsCard() {
+  const company = useCompany();
+  const definitions = useMemo(() => deriveNewsGroupDefinitions(company), [company]);
+  const groupsWithContext = useMemo(() => definitions.filter(hasContextTerms), [definitions]);
+  const termsFormSchema = useMemo(
+    () =>
+      termsSchema(definitions.map((group) => group.id)).extend(
+        wordsSchema([...groupsWithContext.map((group) => contextKey(group.id)), ...definitions.map((group) => excludeKey(group.id))]).shape,
+      ),
+    [definitions, groupsWithContext],
+  );
   const groups = usePreferencesStore((state) => state.newsTermGroups);
   const setGroup = usePreferencesStore((state) => state.setNewsTermGroup);
   const context = usePreferencesStore((state) => state.newsContext);
@@ -285,16 +294,16 @@ function TermsCard() {
   const baseId = useId();
 
   const defaultValues: Record<string, string> = {
-    ...Object.fromEntries(NEWS_TERM_GROUPS.map((group) => [group.id, groups[group.id].join("\n")])),
-    ...Object.fromEntries(GROUPS_WITH_CONTEXT.map((group) => [contextKey(group.id), context[group.id].requireAny.join("\n")])),
-    ...Object.fromEntries(NEWS_TERM_GROUPS.map((group) => [excludeKey(group.id), context[group.id].excludeAny.join("\n")])),
+    ...Object.fromEntries(definitions.map((group) => [group.id, groups[group.id].join("\n")])),
+    ...Object.fromEntries(groupsWithContext.map((group) => [contextKey(group.id), context[group.id].requireAny.join("\n")])),
+    ...Object.fromEntries(definitions.map((group) => [excludeKey(group.id), context[group.id].excludeAny.join("\n")])),
   };
   const form = useForm({
     defaultValues,
     validationLogic: revalidateLogic(),
     validators: { onDynamic: termsFormSchema },
     onSubmit: ({ value }) => {
-      for (const group of NEWS_TERM_GROUPS) {
+      for (const group of definitions) {
         const parsed = parseTerms(value[group.id]);
         if (parsed.ok) setGroup(group.id, parsed.value);
         const requireAny = parseWords(value[contextKey(group.id)] ?? context[group.id].requireAny.join("\n"));
@@ -321,7 +330,7 @@ function TermsCard() {
         </CardHeader>
         <CardContent className="py-4">
           <FieldGroup className="gap-4">
-            {NEWS_TERM_GROUPS.map((group) => (
+            {definitions.map((group) => (
               <FieldSet key={group.id} className="gap-3">
                 <FieldLegend variant="label">{group.label}</FieldLegend>
                 <WordsField form={form} name={group.id} label={group.label} baseId={baseId} rows={4} onEdit={() => setMessage(null)} />
@@ -364,7 +373,7 @@ function TermsCard() {
   );
 }
 
-const contextHelp = (group: (typeof NEWS_TERM_GROUPS)[number]) =>
+const contextHelp = (group: NewsTermGroup) =>
   group.contextTerms === "all"
     ? "Los términos de este grupo solo cuentan si el titular trae una de estas palabras, o si viene de un medio colombiano."
     : `${group.contextTerms.join(" y ")} solo cuenta si el titular trae una de estas palabras, o si viene de un medio colombiano.`;

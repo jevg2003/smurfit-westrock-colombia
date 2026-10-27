@@ -2,19 +2,19 @@ import { describe, expect, it } from "vitest";
 import { matchTermGroups, normalizeText, type TermGroup } from "./match";
 
 const GROUPS: TermGroup[] = [
-  { id: "company", label: "Empresa", terms: ["Cartón de Colombia", "Smurfit Westrock"] },
+  { id: "company", label: "Empresa", terms: ["Empresa Ejemplo", "Empresa Ejemplo Global"] },
   { id: "sector", label: "Sector", terms: ["papel", "bag-in-box"] },
 ];
 
 describe("normalizeText", () => {
   it("lowercases, removes accents and turns punctuation into spaces", () => {
-    expect(normalizeText("  CARTÓN, de-Colombia! ")).toBe("carton de colombia");
+    expect(normalizeText("  ACERÍA, de-Colombia! ")).toBe("aceria de colombia");
   });
 });
 
 describe("matchTermGroups", () => {
   it("matches ignoring case and accents", () => {
-    expect(matchTermGroups("CARTON DE COLOMBIA invierte", GROUPS)).toEqual([{ groupId: "company", term: "Cartón de Colombia" }]);
+    expect(matchTermGroups("EMPRESA EJEMPLO invierte", GROUPS)).toEqual([{ groupId: "company", term: "Empresa Ejemplo" }]);
   });
 
   it("respects word boundaries", () => {
@@ -28,7 +28,7 @@ describe("matchTermGroups", () => {
 
   it("returns every group that matches, one entry per term, and ignores empty terms", () => {
     const groups = [...GROUPS, { id: "x", label: "X", terms: ["", "  "] }];
-    const found = matchTermGroups("Smurfit Westrock vende papel", groups);
+    const found = matchTermGroups("Empresa Ejemplo vende papel", groups);
     expect(found.map((m) => m.groupId)).toEqual(["company", "sector"]);
   });
 });
@@ -38,29 +38,29 @@ describe("context rules", () => {
     {
       id: "company",
       label: "Empresa",
-      terms: [{ term: "Smurfit Westrock", requireAny: ["Colombia", "Yumbo", "Medellín"] }, "Cartones América"],
+      terms: [{ term: "Empresa Ejemplo", requireAny: ["Colombia", "Itagüí", "Medellín"] }, "Competidora Uno"],
       excludeAny: ["fútbol", "CD", "Liga"],
     },
   ];
 
   it("keeps plain string terms working next to context terms", () => {
-    expect(matchTermGroups("Cartones América invierte", groups)).toEqual([{ groupId: "company", term: "Cartones América" }]);
+    expect(matchTermGroups("Competidora Uno invierte", groups)).toEqual([{ groupId: "company", term: "Competidora Uno" }]);
   });
 
   it("matches a context term only when the title has one of its context words", () => {
-    expect(matchTermGroups("Smurfit Westrock cierra planta en Málaga", groups)).toEqual([]);
-    expect(matchTermGroups("Smurfit Westrock amplía planta en Yumbo", groups)).toEqual([{ groupId: "company", term: "Smurfit Westrock" }]);
-    expect(matchTermGroups("Smurfit Westrock en MEDELLIN", groups)).toHaveLength(1);
+    expect(matchTermGroups("Empresa Ejemplo cierra planta en Málaga", groups)).toEqual([]);
+    expect(matchTermGroups("Empresa Ejemplo amplía planta en Itagüí", groups)).toEqual([{ groupId: "company", term: "Empresa Ejemplo" }]);
+    expect(matchTermGroups("Empresa Ejemplo en MEDELLIN", groups)).toHaveLength(1);
   });
 
   it("respects word boundaries in context words", () => {
-    expect(matchTermGroups("Smurfit Westrock y la colombiana Alpina", groups)).toEqual([]);
+    expect(matchTermGroups("Empresa Ejemplo y la colombiana Alpina", groups)).toEqual([]);
   });
 
   it("drops the whole group when the title has an excluded word", () => {
-    expect(matchTermGroups("CD Iberfurgo Smurfit Westrock Colombia fútbol", groups)).toEqual([]);
-    expect(matchTermGroups("Cartones América gana la Liga", groups)).toEqual([]);
-    expect(matchTermGroups("Cartones América y el cdt", groups)).toHaveLength(1);
+    expect(matchTermGroups("CD Iberfurgo Empresa Ejemplo fútbol", groups)).toEqual([]);
+    expect(matchTermGroups("Competidora Uno gana la Liga", groups)).toEqual([]);
+    expect(matchTermGroups("Competidora Uno y el cdt", groups)).toHaveLength(1);
   });
 
   it("ignores empty context and exclusion words", () => {
@@ -69,7 +69,7 @@ describe("context rules", () => {
   });
 
   it("waives the context words, but never the exclusions, when the context is assumed", () => {
-    expect(matchTermGroups("Smurfit Westrock cierra planta en Málaga", groups, { contextAssumed: true })).toHaveLength(1);
-    expect(matchTermGroups("Fútbol: Smurfit Westrock", groups, { contextAssumed: true })).toEqual([]);
+    expect(matchTermGroups("Empresa Ejemplo cierra planta en Málaga", groups, { contextAssumed: true })).toHaveLength(1);
+    expect(matchTermGroups("Fútbol: Empresa Ejemplo", groups, { contextAssumed: true })).toEqual([]);
   });
 });

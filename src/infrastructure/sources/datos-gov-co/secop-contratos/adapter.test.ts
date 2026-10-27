@@ -1,10 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
-import { COMPANY, COMPETITORS } from "@/content/config/empresa";
+import { watchedNits } from "@/core/company/profile";
+import { TEST_COMPANY } from "@/core/company/test-fixtures";
 import { createFetcher } from "@/infrastructure/http/fetcher";
 import sample from "./fixtures/secop-contratos.sample.json";
 import { SECOP_DATASET_URL, buildSecopUrl, createSecopContractsAdapter } from "./adapter";
 
-const NITS = [COMPANY.nit, ...COMPETITORS.map((competitor) => competitor.nit)];
+const NITS = watchedNits(TEST_COMPANY);
 const NOW = new Date("2026-10-20T15:00:00.000Z");
 
 function jsonResponse(body: unknown, status = 200) {
@@ -19,7 +20,7 @@ describe("buildSecopUrl", () => {
   it("filters by supplier NIT and signing date, never with LIKE", () => {
     const url = decodeURIComponent(buildSecopUrl({ nits: NITS }, NOW));
     expect(url.startsWith(`${SECOP_DATASET_URL}?`)).toBe(true);
-    expect(url).toContain("$where=documento_proveedor in('890300406','860026759','890319047','890925108')");
+    expect(url).toContain("$where=documento_proveedor in('900000001','900000002','900000003','900000004')");
     expect(url).toContain("fecha_de_firma>'2025-10-20T00:00:00.000'");
     expect(url).toContain("$order=fecha_de_firma DESC");
     expect(url).toMatch(/\$limit=\d+/);
@@ -38,7 +39,7 @@ describe("createSecopContractsAdapter", () => {
     const own = result.value.data.find((contract) => contract.id === "CO1.PCCNTR.9151243");
     expect(own).toMatchObject({
       entity: "INDUSTRIA LICORERA DEL CAUCA",
-      supplierNit: "890300406",
+      supplierNit: "900000001",
       value: 807534110,
       signedAt: "2026-01-27T00:00:00.000-05:00",
       endsAt: "2026-12-31T00:00:00.000-05:00",

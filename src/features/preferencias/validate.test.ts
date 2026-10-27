@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_THRESHOLDS } from "@/content/config/empresa";
+import { DEFAULT_THRESHOLDS } from "@/core/company/defaults";
 import { parseTerms, parseWords, termsSchema, wordsSchema, thresholdsSchema, validateThresholds, type ThresholdFields } from "./validate";
 
 const fields = (overrides: Partial<ThresholdFields> = {}): ThresholdFields => ({
@@ -55,7 +55,7 @@ describe("validateThresholds", () => {
 
 describe("parseTerms", () => {
   it("splits lines, trims and removes duplicates", () => {
-    expect(parseTerms(" gas natural \n\nYumbo\ngas natural")).toEqual({ ok: true, value: ["gas natural", "Yumbo"] });
+    expect(parseTerms(" gas natural \n\nItagüí\ngas natural")).toEqual({ ok: true, value: ["gas natural", "Itagüí"] });
   });
 
   it("rejects terms that are too long", () => {
@@ -107,7 +107,7 @@ describe("termsSchema", () => {
 
 describe("parseWords", () => {
   it("takes one word or phrase per line, dropping blanks and repeats", () => {
-    expect(parseWords(" Colombia \n\nYumbo\nColombia")).toEqual({ ok: true, value: ["Colombia", "Yumbo"] });
+    expect(parseWords(" Colombia \n\nItagüí\nColombia")).toEqual({ ok: true, value: ["Colombia", "Itagüí"] });
   });
 
   it("refuses words that are too long or too many", () => {

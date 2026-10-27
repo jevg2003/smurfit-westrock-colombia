@@ -14,9 +14,9 @@ describe("SeguimientoView", () => {
   it("lists every configured competitor as followed and every indicator", () => {
     render(<SeguimientoView />);
 
-    expect(screen.getByRole("button", { name: "Dejar de seguir a Cartones América" })).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByRole("button", { name: "Dejar de seguir a Carvajal Empaques" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Dejar de seguir a Papeles y Cartones" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Dejar de seguir a Competidora Uno" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Dejar de seguir a Competidora Dos" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Dejar de seguir a Competidora Tres" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Dejar de seguir TRM (dólar)" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByRole("button", { name: "Seguir PIB real" })).toHaveAttribute("aria-pressed", "false");
     expect(screen.getByRole("button", { name: "Seguir Inflación anual (IPC)" })).toBeInTheDocument();
@@ -27,12 +27,12 @@ describe("SeguimientoView", () => {
     const user = userEvent.setup();
     render(<SeguimientoView />);
 
-    await user.click(screen.getByRole("button", { name: "Dejar de seguir a Cartones América" }));
-    expect(useWatchlistStore.getState().competitorNits).not.toContain("860026759");
-    expect(screen.getByRole("button", { name: "Seguir a Cartones América" })).toHaveAttribute("aria-pressed", "false");
+    await user.click(screen.getByRole("button", { name: "Dejar de seguir a Competidora Uno" }));
+    expect(useWatchlistStore.getState().competitorNits).not.toContain("900000002");
+    expect(screen.getByRole("button", { name: "Seguir a Competidora Uno" })).toHaveAttribute("aria-pressed", "false");
 
-    await user.click(screen.getByRole("button", { name: "Seguir a Cartones América" }));
-    expect(useWatchlistStore.getState().competitorNits).toContain("860026759");
+    await user.click(screen.getByRole("button", { name: "Seguir a Competidora Uno" }));
+    expect(useWatchlistStore.getState().competitorNits).toContain("900000002");
   });
 
   it("toggles indicators", async () => {

@@ -1,10 +1,10 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { REGULATION_EXCLUDE_KEYWORDS, REGULATION_KEYWORDS } from "@/content/config/empresa";
+import { DEFAULT_REGULATION_EXCLUDE_KEYWORDS, DEFAULT_REGULATION_KEYWORDS } from "@/core/company/defaults";
 import { buildDecreesUrl, parseDecrees } from "./decrees";
 
 const fixture: unknown = JSON.parse(readFileSync(new URL("./fixtures/decretos.sample.json", import.meta.url), "utf8"));
-const TERMS = { include: REGULATION_KEYWORDS, exclude: REGULATION_EXCLUDE_KEYWORDS };
+const TERMS = { include: DEFAULT_REGULATION_KEYWORDS, exclude: DEFAULT_REGULATION_EXCLUDE_KEYWORDS };
 
 describe("buildDecreesUrl", () => {
   const url = decodeURIComponent(buildDecreesUrl(new Date("2026-10-20T15:00:00.000Z")));

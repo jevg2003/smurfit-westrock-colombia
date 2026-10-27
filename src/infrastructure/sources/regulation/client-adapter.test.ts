@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 import { createFetcher } from "@/infrastructure/http/fetcher";
 import { createRegulationAdapter } from "./client-adapter";
 
+const TERMS = { include: ["residuos"], exclude: ["nombramiento"] };
+
 const NOW = new Date("2026-10-20T15:00:00.000Z");
 const body = {
   minambiente: {
@@ -29,7 +31,7 @@ const adapterFor = (response: Response | Error) => {
 describe("regulation client adapter", () => {
   it("calls only the same-origin /api/regulacion route and maps items with their provenance", async () => {
     const { adapter, fetchImpl } = adapterFor(new Response(JSON.stringify(body), { status: 200 }));
-    const result = await adapter.fetch({}, { now: NOW });
+    const result = await adapter.fetch({ terms: TERMS }, { now: NOW });
     expect(vi.mocked(fetchImpl).mock.calls[0][0]).toBe("/api/regulacion");
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -43,19 +45,19 @@ describe("regulation client adapter", () => {
   it("keeps a source that failed on the server as an error block, not as a failure of the whole call", async () => {
     const partial = { ...body, minambiente: { status: "error", items: [], httpStatus: 503, message: "La fuente respondió con el estado 503." } };
     const { adapter } = adapterFor(new Response(JSON.stringify(partial), { status: 200 }));
-    const result = await adapter.fetch({}, { now: NOW });
+    const result = await adapter.fetch({ terms: TERMS }, { now: NOW });
     expect(result.ok && result.value.data.minambiente).toMatchObject({ status: "error", message: "La fuente respondió con el estado 503." });
   });
 
   it("reports the source as disabled when both are switched off", async () => {
     const off = { ...body, minambiente: { status: "disabled", items: [] }, presidencia: { status: "disabled", items: [] } };
     const { adapter } = adapterFor(new Response(JSON.stringify(off), { status: 200 }));
-    expect(await adapter.fetch({}, { now: NOW })).toMatchObject({ ok: false, error: { kind: "disabled" } });
+    expect(await adapter.fetch({ terms: TERMS }, { now: NOW })).toMatchObject({ ok: false, error: { kind: "disabled" } });
   });
 
   it("reports schema, HTTP and network errors", async () => {
-    expect(await adapterFor(new Response(JSON.stringify({ nope: 1 }), { status: 200 })).adapter.fetch({}, { now: NOW })).toMatchObject({ ok: false, error: { kind: "schema" } });
-    expect(await adapterFor(new Response("x", { status: 400 })).adapter.fetch({}, { now: NOW })).toMatchObject({ ok: false, error: { kind: "network", status: 400 } });
-    expect(await adapterFor(new Error("offline")).adapter.fetch({}, { now: NOW })).toMatchObject({ ok: false, error: { kind: "network" } });
+    expect(await adapterFor(new Response(JSON.stringify({ nope: 1 }), { status: 200 })).adapter.fetch({ terms: TERMS }, { now: NOW })).toMatchObject({ ok: false, error: { kind: "schema" } });
+    expect(await adapterFor(new Response("x", { status: 400 })).adapter.fetch({ terms: TERMS }, { now: NOW })).toMatchObject({ ok: false, error: { kind: "network", status: 400 } });
+    expect(await adapterFor(new Error("offline")).adapter.fetch({ terms: TERMS }, { now: NOW })).toMatchObject({ ok: false, error: { kind: "network" } });
   });
 });

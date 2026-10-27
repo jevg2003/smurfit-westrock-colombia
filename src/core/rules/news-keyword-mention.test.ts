@@ -5,7 +5,7 @@ import { fixedClock } from "./test-fixtures";
 
 const NOW = "2026-10-20T15:00:00.000Z";
 const GROUPS = [
-  { id: "company", label: "Empresa y competidores", terms: ["Smurfit Westrock", "Cartones América"] },
+  { id: "company", label: "Empresa y competidores", terms: ["Empresa Ejemplo", "Competidora Uno"] },
   { id: "sector", label: "Sector", terms: ["papel"] },
   { id: "regulation", label: "Regulación y sostenibilidad", terms: ["REP envases", "reciclaje"] },
 ];
@@ -35,7 +35,7 @@ const run = (news: NewsItem[]) => detectNewsKeywordMentions({ news, groups: GROU
 
 describe("news.keyword-mention.v1", () => {
   it("signals a company mention as info in the market dimension and shows group and term", () => {
-    const [signal] = run([makeNews("a", "Smurfit Westrock abre planta", "2026-10-19T10:00:00.000Z")]);
+    const [signal] = run([makeNews("a", "Empresa Ejemplo abre planta", "2026-10-19T10:00:00.000Z")]);
     expect(signal).toMatchObject({
       ruleId: NEWS_KEYWORD_MENTION_RULE_ID,
       dimension: "market",
@@ -44,7 +44,7 @@ describe("news.keyword-mention.v1", () => {
       evidence: [{ kind: "news", ref: "a" }],
     });
     expect(signal.ruleText).toContain("Empresa y competidores");
-    expect(signal.ruleText).toContain("Smurfit Westrock");
+    expect(signal.ruleText).toContain("Empresa Ejemplo");
     expect(signal.ruleText).toContain("7 días");
   });
 
@@ -58,14 +58,14 @@ describe("news.keyword-mention.v1", () => {
   });
 
   it("includes exactly 7 days ago and excludes 8 days or future dates", () => {
-    expect(run([makeNews("a", "Smurfit Westrock", "2026-10-13T15:00:00.000Z")])).toHaveLength(1);
-    expect(run([makeNews("a", "Smurfit Westrock", "2026-10-13T14:59:59.000Z")])).toEqual([]);
-    expect(run([makeNews("a", "Smurfit Westrock", "2026-10-21T15:00:00.000Z")])).toEqual([]);
+    expect(run([makeNews("a", "Empresa Ejemplo", "2026-10-13T15:00:00.000Z")])).toHaveLength(1);
+    expect(run([makeNews("a", "Empresa Ejemplo", "2026-10-13T14:59:59.000Z")])).toEqual([]);
+    expect(run([makeNews("a", "Empresa Ejemplo", "2026-10-21T15:00:00.000Z")])).toEqual([]);
   });
 
   it("emits one signal per matching group and labels Google News items", () => {
     const signals = run([
-      makeNews("g", "Smurfit Westrock y el reciclaje", "2026-10-19T10:00:00.000Z", { via: "google-news" }),
+      makeNews("g", "Empresa Ejemplo y el reciclaje", "2026-10-19T10:00:00.000Z", { via: "google-news" }),
     ]);
     expect(signals.map((s) => s.dimension).sort()).toEqual(["market", "regulation"]);
     expect(signals[0].detail).toContain("vía Google News");
@@ -74,12 +74,12 @@ describe("news.keyword-mention.v1", () => {
 
   it("uses the term group of the preferences (an emptied group never matches)", () => {
     const groups = GROUPS.map((g) => (g.id === "company" ? { ...g, terms: [] } : g));
-    expect(detectNewsKeywordMentions({ news: [makeNews("a", "Smurfit Westrock", "2026-10-19T10:00:00.000Z")], groups, clock: fixedClock(NOW) })).toEqual([]);
+    expect(detectNewsKeywordMentions({ news: [makeNews("a", "Empresa Ejemplo", "2026-10-19T10:00:00.000Z")], groups, clock: fixedClock(NOW) })).toEqual([]);
   });
 
   it("raises nothing for a headline that only shares a generic word with the specific phrases", () => {
     const groups = [
-      { id: "company", label: "Empresa y competidores", terms: ["Smurfit Westrock"] },
+      { id: "company", label: "Empresa y competidores", terms: ["Empresa Ejemplo"] },
       { id: "regulation", label: "Regulación y sostenibilidad", terms: ["economía circular", "aprovechamiento de residuos"] },
     ];
     const news = [
@@ -92,12 +92,12 @@ describe("news.keyword-mention.v1", () => {
 
   it("raises no signal for a company mention without Colombian context or with an excluded word", () => {
     const groups = [
-      { id: "company", label: "Empresa", terms: [{ term: "Smurfit Westrock", requireAny: ["Colombia"] }], excludeAny: ["fútbol"] },
+      { id: "company", label: "Empresa", terms: [{ term: "Empresa Ejemplo", requireAny: ["Colombia"] }], excludeAny: ["fútbol"] },
     ];
     const news = [
-      makeNews("es", "Smurfit Westrock cierra planta en Málaga", "2026-10-19T10:00:00.000Z"),
-      makeNews("ball", "Fútbol: Smurfit Westrock Colombia patrocina", "2026-10-19T10:00:00.000Z"),
-      makeNews("co", "Smurfit Westrock Colombia invierte", "2026-10-19T10:00:00.000Z"),
+      makeNews("es", "Empresa Ejemplo cierra planta en Málaga", "2026-10-19T10:00:00.000Z"),
+      makeNews("ball", "Fútbol: Empresa Ejemplo Colombia patrocina", "2026-10-19T10:00:00.000Z"),
+      makeNews("co", "Empresa Ejemplo Colombia invierte", "2026-10-19T10:00:00.000Z"),
     ];
     const signals = detectNewsKeywordMentions({ news, groups, clock: fixedClock(NOW) });
     expect(signals.map((signal) => signal.evidence[0].ref)).toEqual(["co"]);

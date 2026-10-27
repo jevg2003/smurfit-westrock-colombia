@@ -2,12 +2,16 @@
 import { cleanup, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Provenance } from "@/core/domain/provenance";
-import type { RegulationItem } from "@/core/domain/regulation";
+import type { RegulationEntry, RegulationItem } from "@/core/domain/regulation";
 import type { Result } from "@/core/domain/result";
 import { fakeAdapter, fakeContainer, renderWithQuery, resetStores, secopOk, TEST_NOW } from "@/features/entorno/test-utils";
 import type { RegulationFeedData } from "@/infrastructure/sources/regulation/client-adapter";
 
 const regulationFetch = vi.fn();
+const curated = vi.hoisted(() => ({ norms: [] as RegulationEntry[] }));
+
+// The shipped list of curated norms is empty: each test sets the norms it needs.
+vi.mock("@/infrastructure/sources/curated/norms", () => ({ loadCuratedNorms: () => curated.norms }));
 
 vi.mock("@/features/entorno/container", () => ({
   getContainer: () => fakeContainer(vi.fn().mockResolvedValue(secopOk([])), { regulation: fakeAdapter("minambiente", regulationFetch) }),
@@ -41,6 +45,18 @@ const DECREE: RegulationItem = {
   provenance: prov("presidencia"),
 };
 
+const NORM: RegulationEntry = {
+  id: "ley-ejemplo",
+  name: "Ley de ejemplo",
+  date: "2024-01-01",
+  topic: "Tema de ejemplo",
+  whyItMatters: "Explica por qué importa a la empresa.",
+  url: "https://www.example.test/ley",
+  reviewedAt: "2026-10-20",
+  curated: true,
+  provenance: { sourceId: "curated", url: "https://www.example.test/ley", fetchedAt: "2026-10-20T00:00:00.000Z", license: "Resumen propio", attribution: "Curado manualmente", curated: true },
+};
+
 const ok = (data: RegulationFeedData): Result<{ data: RegulationFeedData; provenance: Provenance }> => ({
   ok: true,
   value: { data, provenance: prov("minambiente") },
@@ -50,23 +66,29 @@ const BOTH = ok({ minambiente: { status: "ok", items: [POST] }, presidencia: { s
 describe("RegulacionView", () => {
   beforeEach(() => {
     resetStores();
+    curated.norms = [NORM];
     regulationFetch.mockResolvedValue(BOTH);
   });
   afterEach(cleanup);
 
-  it("shows the four curated norms with the 'curado manualmente' badge, review date and official link", async () => {
+  it("shows a curated norm with the 'curado manualmente' badge, review date and official link", async () => {
     renderWithQuery(<RegulacionView />);
 
-    const norm = (await screen.findByText("Resolución 1407 de 2018")).closest("[data-slot=item]") as HTMLElement;
+    const norm = (await screen.findByText("Ley de ejemplo")).closest("[data-slot=item]") as HTMLElement;
     expect(within(norm).getByText("Curado manualmente")).toBeInTheDocument();
     expect(within(norm).getByText(/Revisada el 20\/10\/2026/)).toBeInTheDocument();
     const link = within(norm).getByRole("link", { name: /Ver la norma/ });
     expect(link).toHaveAttribute("href", expect.stringMatching(/^https:\/\//));
     expect(link).toHaveAttribute("target", "_blank");
     expect(link).toHaveAttribute("rel", "noopener noreferrer");
-    for (const name of ["Resolución 803 de 2024", "Ley 2232 de 2022", "Ley 1581 de 2012"]) {
-      expect(screen.getByText(name)).toBeInTheDocument();
-    }
+  });
+
+  it("hides the curated section when the company has no curated norms", async () => {
+    curated.norms = [];
+    renderWithQuery(<RegulacionView />);
+
+    await screen.findByRole("link", { name: /DECRETO No\. 0970/ });
+    expect(screen.queryByText("Normas curadas")).not.toBeInTheDocument();
   });
 
   it("lists Minambiente posts and decrees with safe links and their sources", async () => {
@@ -90,7 +112,7 @@ describe("RegulacionView", () => {
     expect(await screen.findByText("No pudimos consultar Minambiente")).toBeInTheDocument();
     expect(screen.getByText("La fuente respondió con el estado 503.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /DECRETO No\. 0970/ })).toBeInTheDocument();
-    expect(screen.getByText("Resolución 1407 de 2018")).toBeInTheDocument();
+    expect(screen.getByText("Ley de ejemplo")).toBeInTheDocument();
   });
 
   it("shows 'fuente desactivada' for a switched-off source", async () => {
@@ -112,7 +134,7 @@ describe("RegulacionView", () => {
     regulationFetch.mockReturnValue(new Promise(() => {}));
     const { unmount } = renderWithQuery(<RegulacionView />);
     expect(screen.getAllByRole("status", { name: "Consultando Minambiente y Presidencia" })).toHaveLength(2);
-    expect(screen.getByText("Resolución 1407 de 2018")).toBeInTheDocument();
+    expect(screen.getByText("Ley de ejemplo")).toBeInTheDocument();
     unmount();
 
     regulationFetch.mockResolvedValue({ ok: false, error: { sourceId: "minambiente", kind: "network", message: "No se pudo conectar con la regulación." } });

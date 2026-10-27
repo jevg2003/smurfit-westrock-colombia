@@ -1,18 +1,19 @@
 "use client";
 
 import { useEffect, useMemo } from "react";
-import { COMPANY, COMPETITORS } from "@/content/config/empresa";
+import { withNitCompetitors } from "@/core/company/profile";
 import type { Alert } from "@/core/domain/alert";
 import type { Signal } from "@/core/domain/signal";
 import { DEFAULT_SIGNAL_RULES } from "@/core/rules/default-rules";
 import { detectSignals } from "@/core/usecases/detect-signals";
 import { useAlertsStore } from "@/stores/alerts.store";
+import { useCompany } from "@/stores/companies.store";
 import { useHydrationStore } from "@/stores/hydration.store";
 import { usePreferencesStore } from "@/stores/preferences.store";
 import { getContainer } from "./container";
 import { useEnergy } from "./use-energy";
 import { useNews } from "./use-news";
-import { REGULATION_TERMS, useRegulation } from "./use-regulation";
+import { useRegulation, useRegulationTerms } from "./use-regulation";
 import { useSecop } from "./use-secop";
 import { useTrmRecords } from "./use-trm-records";
 
@@ -27,6 +28,7 @@ export interface SignalRow {
  * signals. Every signal that fires gets an alert (state `new`) once the stores are hydrated.
  */
 export function useSignals() {
+  const company = useCompany();
   const thresholds = usePreferencesStore((state) => state.thresholds);
   const hasHydrated = useHydrationStore((state) => state.hasHydrated);
   const createFromSignal = useAlertsStore((state) => state.createFromSignal);
@@ -34,6 +36,7 @@ export function useSignals() {
   const secop = useSecop();
   const news = useNews();
   const regulation = useRegulation();
+  const regulationTerms = useRegulationTerms();
   const energy = useEnergy();
 
   const contracts = secop.data?.contracts;
@@ -53,19 +56,19 @@ export function useSignals() {
         contracts: contracts ?? [],
         trmRecords: (trmRecords ?? []).map((record) => ({ validFrom: record.vigenciadesde, value: record.valor })),
         trmFetchedAt: new Date(trmUpdatedAt || clock.now().getTime()).toISOString(),
-        companyNit: COMPANY.nit,
-        competitors: COMPETITORS,
+        ...(company.nit ? { companyNit: company.nit } : {}),
+        competitors: withNitCompetitors(company),
         news: newsItems,
         newsTermGroups: newsGroups,
         regulationItems,
-        regulationTerms: REGULATION_TERMS,
+        regulationTerms,
         energySpot,
       },
       DEFAULT_SIGNAL_RULES,
       clock,
       thresholds,
     );
-  }, [contracts, trmRecords, trmUpdatedAt, thresholds, newsItems, newsGroups, regulationItems, energySpot]);
+  }, [company, contracts, trmRecords, trmUpdatedAt, thresholds, newsItems, newsGroups, regulationItems, regulationTerms, energySpot]);
 
   useEffect(() => {
     if (!hasHydrated) return;

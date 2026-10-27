@@ -11,7 +11,9 @@ import { useAlertsStore } from "@/stores/alerts.store";
 import { useHydrationStore } from "@/stores/hydration.store";
 import { usePreferencesStore } from "@/stores/preferences.store";
 import { useWatchlistStore } from "@/stores/watchlist.store";
-import { COMPETITORS } from "@/content/config/empresa";
+import { TEST_COMPANY } from "@/core/company/test-fixtures";
+import { withNitCompetitors } from "@/core/company/profile";
+import { useCompaniesStore } from "@/stores/companies.store";
 import { createFakeClock } from "@/stores/test-utils";
 import type { TrmRegistro } from "@/features/trm/types";
 
@@ -73,12 +75,13 @@ export const trmRecord = (day: string, value: string): TrmRegistro => ({
   vigenciahasta: `${day}T00:00:00.000`,
 });
 
-/** Resets the stores and marks them hydrated, as the app does after mount. */
+/** Resets the stores, makes the fixture company the active one and marks them hydrated, as the app does after mount. */
 export function resetStores({ hydrated = true }: { hydrated?: boolean } = {}) {
+  useCompaniesStore.setState({ companies: [TEST_COMPANY], activeCompanyId: TEST_COMPANY.id });
   useAlertsStore.setState({ alerts: [] });
   usePreferencesStore.getState().reset();
   useWatchlistStore.setState({
-    competitorNits: COMPETITORS.map((competitor) => competitor.nit),
+    competitorNits: withNitCompetitors(TEST_COMPANY).map((competitor) => competitor.nit),
     indicators: ["trm"],
     onlyFollowed: false,
   });

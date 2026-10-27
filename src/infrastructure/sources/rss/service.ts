@@ -1,6 +1,5 @@
-import { COLOMBIAN_OUTLETS, DEFAULT_NEWS_CONTEXT, NEWS_TERM_GROUPS } from "@/content/config/empresa";
+import { COLOMBIAN_OUTLETS } from "@/core/company/defaults";
 import { matchTermGroups, type TermGroup } from "@/core/text/match";
-import { buildTermGroup } from "@/core/text/term-groups";
 import { isColombianOutlet } from "@/core/usecases/match-news";
 import type { Fetcher } from "@/infrastructure/http/fetcher";
 import type { SourceFlags } from "@/infrastructure/flags";
@@ -8,9 +7,6 @@ import { fetchFeed } from "./fetch-feed";
 import { GOOGLE_NEWS_ID, NEWS_FEEDS, type NewsSourceId } from "./feeds";
 import { GOOGLE_NEWS_MAX_ITEMS_PER_GROUP, buildGoogleNewsSearches, buildGoogleNewsUrl, parseGoogleNews } from "./google-news";
 import { mergeHeadlines, type SourcedHeadline } from "./merge";
-
-/** The default groups with their Colombian context and exclusion words. The server searches with these. */
-export const DEFAULT_SEARCH_GROUPS: readonly TermGroup[] = NEWS_TERM_GROUPS.map((group) => buildTermGroup(group, DEFAULT_NEWS_CONTEXT[group.id]));
 
 /** Whether a headline passes the term groups; a Colombian outlet stands in for the context words. */
 const isRelevant = (item: { title: string; outlet: string }, groups: readonly TermGroup[]) =>
@@ -50,8 +46,11 @@ export interface LoadNewsOptions {
   /** One source of the closed list (a media feed or Google News); absent means all of them. */
   feedId?: NewsSourceId;
   limit: number;
-  /** Term groups for the Google News queries. The client can never change them. */
-  termGroups?: readonly TermGroup[];
+  /**
+   * Term groups for the Google News queries and the relevance order. They come from the company profile the browser
+   * sends, validated by the request handler; they can only shape a search, never choose a URL.
+   */
+  termGroups: readonly TermGroup[];
   /** Newest Google News items kept per term group. */
   googleItemsPerGroup?: number;
 }
@@ -66,7 +65,7 @@ export async function loadNews({
   flags,
   feedId,
   limit,
-  termGroups = DEFAULT_SEARCH_GROUPS,
+  termGroups,
   googleItemsPerGroup = GOOGLE_NEWS_MAX_ITEMS_PER_GROUP,
 }: LoadNewsOptions): Promise<NewsResponse> {
   const selected = NEWS_FEEDS.filter((feed) => !feedId || feed.id === feedId);

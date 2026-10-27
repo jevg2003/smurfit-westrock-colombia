@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { ALERTS_STORAGE_KEY, MAX_ALERTS, createAlertsStore } from "./alerts.store";
+import { MAX_ALERTS, createAlertsStore } from "./alerts.store";
+import { UNSCOPED_COMPANY, scopedKey } from "./company-scope";
 import { createFakeClock, createMemoryStorage, makeSignal } from "./test-utils";
+
+const ALERTS_STORAGE_KEY = scopedKey(UNSCOPED_COMPANY, "alerts");
 
 function setup() {
   const storage = createMemoryStorage();
@@ -126,7 +129,7 @@ describe("alerts store", () => {
   it("persists under a versioned key and rehydrates on demand", async () => {
     const { storage, clock, store } = setup();
     store.getState().createFromSignal(makeSignal("s1"));
-    expect(ALERTS_STORAGE_KEY).toBe("swc:alerts:v1");
+    expect(ALERTS_STORAGE_KEY).toBe("swc:_:alerts:v1");
     expect(JSON.parse(storage.data.get(ALERTS_STORAGE_KEY)!).version).toBe(1);
 
     const fresh = createAlertsStore({ storage, clock });
@@ -136,7 +139,7 @@ describe("alerts store", () => {
   });
 
   it("starts empty when the persisted JSON is corrupt", async () => {
-    const storage = createMemoryStorage({ "swc:alerts:v1": "{not json" });
+    const storage = createMemoryStorage({ [ALERTS_STORAGE_KEY]: "{not json" });
     const store = createAlertsStore({ storage, clock: createFakeClock() });
     await store.persist.rehydrate();
     expect(store.getState().alerts).toEqual([]);

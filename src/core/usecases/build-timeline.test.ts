@@ -60,7 +60,7 @@ describe("buildTimeline", () => {
     signals: [makeBriefingSignal("s1", "2026-10-18T05:00:00.000Z", { dimension: "macro" })],
     contracts: [
       makeContract({ id: "own", signedAt: "2026-01-27T00:00:00.000-05:00" }),
-      makeContract({ id: "comp", supplierNit: "860026759", signedAt: "2026-10-10T00:00:00.000-05:00" }),
+      makeContract({ id: "comp", supplierNit: "900000002", signedAt: "2026-10-10T00:00:00.000-05:00" }),
     ],
     news: [news],
     regulations: [regulation],

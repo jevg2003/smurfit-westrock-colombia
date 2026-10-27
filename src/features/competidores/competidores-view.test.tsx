@@ -39,11 +39,11 @@ const company = (nit: string, name: string, cutoffYear: number, revenue: number,
 });
 
 const FINANCIALS: CompanyFinancials[] = [
-  company("890300406", "CARTON DE COLOMBIA S.A.", 2025, 1.91, 0.18),
-  company("890300406", "CARTON DE COLOMBIA S.A.", 2024, 1.78, 0.13),
-  company("860026759", "CARTONES AMERICA S.A. CAME", 2025, 0.62, 0.08),
-  company("890319047", "CARVAJAL EMPAQUES S.A.", 2025, 0.55, 0.04),
-  company("890925108", "PAPELES Y CARTONES S.A.", 2025, 0.53, 0.02),
+  company("900000001", "EMPRESA EJEMPLO S.A.", 2025, 1.91, 0.18),
+  company("900000001", "EMPRESA EJEMPLO S.A.", 2024, 1.78, 0.13),
+  company("900000002", "COMPETIDORA UNO S.A.", 2025, 0.62, 0.08),
+  company("900000003", "COMPETIDORA DOS S.A.", 2025, 0.55, 0.04),
+  company("900000004", "COMPETIDORA TRES S.A.", 2025, 0.53, 0.02),
 ];
 
 const financialsOk: Result<{ data: CompanyFinancials[]; provenance: Provenance }> = {
@@ -54,15 +54,15 @@ const financialsOk: Result<{ data: CompanyFinancials[]; provenance: Provenance }
 const CONTRACT: PublicContract = {
   id: "CO1.PCCNTR.100",
   entity: "Alcaldía de Cali",
-  supplierNit: "860026759",
-  supplierName: "CARTONES AMERICA S.A. CAME",
+  supplierNit: "900000002",
+  supplierName: "COMPETIDORA UNO S.A.",
   value: 120000000,
   signedAt: "2026-10-01T00:00:00.000-05:00",
   status: "En ejecución",
   processUrl: "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.9",
   provenance: { ...provenance, sourceId: "secop", url: "https://www.datos.gov.co/resource/jbjy-vk9h.json?id_contrato=CO1.PCCNTR.100" },
 };
-const OWN_CONTRACT: PublicContract = { ...CONTRACT, id: "CO1.PCCNTR.200", entity: "Entidad propia", supplierNit: "890300406" };
+const OWN_CONTRACT: PublicContract = { ...CONTRACT, id: "CO1.PCCNTR.200", entity: "Entidad propia", supplierNit: "900000001" };
 
 describe("CompetidoresView", () => {
   beforeEach(() => {
@@ -75,7 +75,7 @@ describe("CompetidoresView", () => {
   it("shows one card per company with revenue, net income, cutoff year and the unit note", async () => {
     renderWithQuery(<CompetidoresView />);
 
-    const card = (await screen.findByRole("heading", { name: "Cartones América" })).closest("[data-slot=card]") as HTMLElement;
+    const card = (await screen.findByRole("heading", { name: "Competidora Uno" })).closest("[data-slot=card]") as HTMLElement;
     expect(within(card).getByText("0,62")).toBeInTheDocument();
     expect(within(card).getByText("0,08")).toBeInTheDocument();
     expect(within(card).getByText(/Corte 2025/)).toBeInTheDocument();
@@ -87,7 +87,7 @@ describe("CompetidoresView", () => {
   it("uses the latest cutoff year of the company and shows the net margin", async () => {
     renderWithQuery(<CompetidoresView />);
 
-    const card = (await screen.findByText("Cartón de Colombia")).closest("[data-slot=card]") as HTMLElement;
+    const card = (await screen.findByText("Empresa Ejemplo")).closest("[data-slot=card]") as HTMLElement;
     expect(within(card).getByText("1,91")).toBeInTheDocument();
     expect(within(card).queryByText("1,78")).not.toBeInTheDocument();
     expect(within(card).getByText(/9,4 %/)).toBeInTheDocument();
@@ -106,7 +106,7 @@ describe("CompetidoresView", () => {
     renderWithQuery(<CompetidoresView />);
 
     expect(await screen.findByText("No pudimos consultar SECOP II")).toBeInTheDocument();
-    expect(await screen.findByText("Cartones América")).toBeInTheDocument();
+    expect(await screen.findByText("Competidora Uno")).toBeInTheDocument();
   });
 
   it("names Supersociedades when it fails and keeps the contracts", async () => {

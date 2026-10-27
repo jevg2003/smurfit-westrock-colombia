@@ -14,10 +14,11 @@ import { ErrorState } from "@/components/states/error-state";
 import { StaleNotice } from "@/components/states/stale-notice";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
-import { COMPANY, COMPETITORS } from "@/content/config/empresa";
+import { namesByNit, withNitCompetitors } from "@/core/company/profile";
 import type { PublicContract } from "@/core/domain/contract";
 import { latestFinancialsByNit } from "@/core/rules/financials";
 import { SOURCES } from "@/features/entorno/sources";
+import { useCompany } from "@/stores/companies.store";
 import { useSecop } from "@/features/entorno/use-secop";
 import { useSupersociedades } from "@/features/entorno/use-supersociedades";
 import { formatDiaBogota } from "@/lib/date";
@@ -25,15 +26,13 @@ import { formatCop } from "@/lib/money";
 import { safeHttpUrl } from "@/lib/safe-url";
 import { CompanyCard } from "./company-card";
 
-const COMPETITOR_NITS = new Set(COMPETITORS.map((competitor) => competitor.nit));
-const NAME_BY_NIT = new Map<string, string>([[COMPANY.nit, COMPANY.name], ...COMPETITORS.map((c) => [c.nit, c.name] as const)]);
-
-const COLUMNS: ColumnDef<DataGridFeatures, PublicContract>[] = [
+/** Columns of the competitor contracts table; `names` maps a watched NIT to the name the company uses for it. */
+const buildColumns = (names: ReadonlyMap<string, string>): ColumnDef<DataGridFeatures, PublicContract>[] => [
   {
     id: "supplier",
-    accessorFn: (row) => NAME_BY_NIT.get(row.supplierNit) ?? row.supplierName,
+    accessorFn: (row) => names.get(row.supplierNit) ?? row.supplierName,
     header: ({ column }) => <DataGridColumnHeader title="Competidor" column={column} />,
-    cell: ({ row }) => <span className="font-medium whitespace-normal">{NAME_BY_NIT.get(row.original.supplierNit) ?? row.original.supplierName}</span>,
+    cell: ({ row }) => <span className="font-medium whitespace-normal">{names.get(row.original.supplierNit) ?? row.original.supplierName}</span>,
     size: 190,
     enableHiding: false,
   },
@@ -102,16 +101,23 @@ const COLUMNS: ColumnDef<DataGridFeatures, PublicContract>[] = [
 
 /** Size and profitability of each competitor next to the company, and the public contracts they won. */
 export function CompetidoresView() {
+  const company = useCompany();
+  const competitors = useMemo(() => withNitCompetitors(company), [company]);
+  const names = useMemo(() => namesByNit(company), [company]);
+  const columns = useMemo(() => buildColumns(names), [names]);
   const finances = useSupersociedades();
   const secop = useSecop();
 
   const latest = useMemo(() => latestFinancialsByNit(finances.data?.financials ?? []), [finances.data]);
   const rows = useMemo(
-    () => (secop.data?.contracts ?? []).filter((contract) => COMPETITOR_NITS.has(contract.supplierNit)),
-    [secop.data],
+    () => (secop.data?.contracts ?? []).filter((contract) => competitors.some((competitor) => competitor.nit === contract.supplierNit)),
+    [secop.data, competitors],
   );
-  const companies = [{ ...COMPANY, isCompany: true }, ...COMPETITORS.map((competitor) => ({ ...competitor, isCompany: false }))];
-  useRegisterPageContext(contractsContext("/competidores", "Competidores", rows, [{ label: "Competidores", value: COMPETITORS.map((c) => c.name).join(", ") }]));
+  const companies = [
+    ...(company.nit ? [{ name: company.name, nit: company.nit, isCompany: true }] : []),
+    ...competitors.map((competitor) => ({ ...competitor, isCompany: false })),
+  ];
+  useRegisterPageContext(contractsContext("/competidores", "Competidores", rows, [{ label: "Competidores", value: competitors.map((c) => c.name).join(", ") }]));
 
   return (
     <div className="flex min-w-0 flex-col gap-4">
@@ -169,7 +175,7 @@ export function CompetidoresView() {
           icon={<UsersIcon aria-hidden="true" />}
           description="Contratos públicos firmados en los últimos 12 meses por los competidores configurados."
           rows={rows}
-          columns={COLUMNS}
+          columns={columns}
           getRowId={(row) => row.id}
           initialSort={[{ id: "signedAt", desc: true }]}
           countLabel="contratos"

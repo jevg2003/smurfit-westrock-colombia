@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_THRESHOLDS } from "@/content/config/empresa";
+import { DEFAULT_THRESHOLDS } from "@/core/company/defaults";
 import { DEFAULT_TRM_DAILY_MOVE_PCT } from "@/core/rules/trm-daily-move";
 import { UMBRAL_ATIPICO_PCT, procesar } from "./use-trm";
 import type { TrmRegistro } from "./types";

@@ -1,23 +1,30 @@
 import { create } from "zustand";
 import { persist, type StateStorage } from "zustand/middleware";
-import type { Result } from "@/core/domain/result";
+import { contextRulesOf } from "@/core/company/context";
+import { DEFAULT_THRESHOLDS, type Thresholds } from "@/core/company/defaults";
 import {
-  DEFAULT_NEWS_CONTEXT,
-  DEFAULT_NEWS_TERMS,
-  DEFAULT_THRESHOLDS,
-  LEGACY_NEWS_TERM_GROUPS,
-  NEWS_TERM_GROUPS,
-  type NewsContextRules,
-  type NewsTermGroup,
-  type Thresholds,
-} from "@/content/config/empresa";
+  NEWS_GROUP_IDS,
+  deriveNewsGroupDefinitions,
+  searchTermsOf,
+  type CompanyProfile,
+  type NewsGroupId,
+} from "@/core/company/profile";
+import type { Result } from "@/core/domain/result";
 import type { TermGroup } from "@/core/text/match";
 import { buildTermGroup } from "@/core/text/term-groups";
 import { browserStorage } from "./browser-storage";
+import { UNSCOPED_COMPANY, scopedKey } from "./company-scope";
+import { selectActiveCompany, useCompaniesStore } from "./companies.store";
 
-export const PREFERENCES_STORAGE_KEY = "swc:preferences:v1";
+export type NewsTermGroupId = NewsGroupId;
 
-export type NewsTermGroupId = NewsTermGroup["id"];
+/** The context rules a user can edit for each group. */
+export interface NewsContextRules {
+  /** A context term counts only if the title also has one of these words. */
+  requireAny: string[];
+  /** The group ignores a title that has any of these words. */
+  excludeAny: string[];
+}
 
 export type BriefingPeriod = "previous-week" | "custom";
 
@@ -26,7 +33,7 @@ export interface PreferencesState {
   /** Flat list of every group, kept in sync by `setNewsTermGroup`. */
   newsTerms: string[];
   newsTermGroups: Record<NewsTermGroupId, string[]>;
-  /** Context words (for the company names that need them) and excluded words of each group. */
+  /** Context words (for the terms that need them) and excluded words of each group. */
   newsContext: Record<NewsTermGroupId, NewsContextRules>;
   briefingPeriod: BriefingPeriod;
   setThreshold(key: keyof Thresholds, value: number): Result<number, { message: string }>;
@@ -39,54 +46,53 @@ export interface PreferencesState {
 
 const cleanTerms = (terms: string[]) => [...new Set(terms.map((term) => term.trim()).filter((term) => term.length > 0))];
 
-const defaultGroups = () =>
-  Object.fromEntries(NEWS_TERM_GROUPS.map((group) => [group.id, [...group.terms]])) as Record<NewsTermGroupId, string[]>;
-
-const defaultContext = () =>
-  Object.fromEntries(NEWS_TERM_GROUPS.map((group) => [group.id, { requireAny: [...DEFAULT_NEWS_CONTEXT[group.id].requireAny], excludeAny: [...DEFAULT_NEWS_CONTEXT[group.id].excludeAny] }])) as Record<
-    NewsTermGroupId,
-    NewsContextRules
-  >;
+const byGroup = <T>(build: (id: NewsTermGroupId) => T) => Object.fromEntries(NEWS_GROUP_IDS.map((id) => [id, build(id)])) as Record<NewsTermGroupId, T>;
 
 /** The groups the matcher uses: the saved terms of each group with its saved context and excluded words. Pure. */
-export function buildNewsTermGroups(state: Pick<PreferencesState, "newsTermGroups" | "newsContext">): TermGroup[] {
-  return NEWS_TERM_GROUPS.map((group) =>
+export function buildNewsTermGroups(
+  state: Pick<PreferencesState, "newsTermGroups" | "newsContext">,
+  profile: Pick<CompanyProfile, "newsGroups">,
+): TermGroup[] {
+  return deriveNewsGroupDefinitions(profile).map((group) =>
     buildTermGroup(
-      { id: group.id, label: group.label, terms: state.newsTermGroups[group.id] ?? group.terms, contextTerms: group.contextTerms },
-      state.newsContext[group.id] ?? DEFAULT_NEWS_CONTEXT[group.id],
+      { ...group, terms: state.newsTermGroups[group.id] ?? group.terms },
+      state.newsContext[group.id] ?? { requireAny: [], excludeAny: [] },
     ),
   );
 }
 
-const sameTerms = (a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((term, index) => term === b[index]);
-
-/**
- * Version 1 -> 2: groups that still hold the old generic defaults get the new phrase defaults.
- * A group the user edited in any way is left alone.
- */
-function upgradeLegacyNewsTerms(saved: Partial<PreferencesState> | undefined): Partial<PreferencesState> | undefined {
-  if (!saved?.newsTermGroups) return saved;
-  const newsTermGroups = { ...saved.newsTermGroups };
-  for (const group of NEWS_TERM_GROUPS) {
-    const current = newsTermGroups[group.id];
-    if (current && sameTerms(current, LEGACY_NEWS_TERM_GROUPS[group.id])) newsTermGroups[group.id] = [...group.terms];
-  }
-  return { ...saved, newsTermGroups, newsTerms: cleanTerms(Object.values(newsTermGroups).flat()) };
+/** What a company starts with, taken from its profile. Without a profile everything is empty. */
+export function preferencesDefaults(profile: CompanyProfile | undefined) {
+  const definitions = profile ? deriveNewsGroupDefinitions(profile) : [];
+  const group = (id: NewsTermGroupId) => definitions.find((definition) => definition.id === id);
+  return {
+    thresholds: { ...(profile?.thresholds ?? DEFAULT_THRESHOLDS) } as Thresholds,
+    newsTerms: profile ? searchTermsOf(profile) : [],
+    newsTermGroups: byGroup((id) => [...(group(id)?.terms ?? [])]),
+    newsContext: byGroup((id): NewsContextRules => {
+      const definition = group(id);
+      if (!profile || !definition) return { requireAny: [], excludeAny: [] };
+      return contextRulesOf(profile, definition);
+    }),
+    briefingPeriod: "previous-week" as BriefingPeriod,
+  };
 }
 
-const defaults = () => ({
-  thresholds: { ...DEFAULT_THRESHOLDS } as Thresholds,
-  newsTerms: [...DEFAULT_NEWS_TERMS],
-  newsTermGroups: defaultGroups(),
-  newsContext: defaultContext(),
-  briefingPeriod: "previous-week" as BriefingPeriod,
-});
+export interface PreferencesStoreOptions {
+  storage?: StateStorage;
+  /** Company whose data the store starts on; `bindStoreToCompany` moves it later. */
+  companyId?: string;
+  /** Where the defaults come from. The app reads the active company. */
+  getProfile?: () => CompanyProfile | undefined;
+}
 
-export function createPreferencesStore({ storage }: { storage?: StateStorage } = {}) {
+const activeProfile = () => selectActiveCompany(useCompaniesStore.getState());
+
+export function createPreferencesStore({ storage, companyId = UNSCOPED_COMPANY, getProfile = activeProfile }: PreferencesStoreOptions = {}) {
   return create<PreferencesState>()(
     persist(
       (set) => ({
-        ...defaults(),
+        ...preferencesDefaults(getProfile()),
         setThreshold: (key, value) => {
           if (!Number.isFinite(value) || value <= 0) {
             return { ok: false, error: { message: "El umbral debe ser un número mayor que cero." } };
@@ -103,24 +109,25 @@ export function createPreferencesStore({ storage }: { storage?: StateStorage } =
         setNewsContext: (id, rules) =>
           set((state) => ({ newsContext: { ...state.newsContext, [id]: { requireAny: cleanTerms(rules.requireAny), excludeAny: cleanTerms(rules.excludeAny) } } })),
         setBriefingPeriod: (briefingPeriod) => set({ briefingPeriod }),
-        reset: () => set(defaults()),
+        reset: () => set(preferencesDefaults(getProfile())),
       }),
       {
-        name: PREFERENCES_STORAGE_KEY,
-        version: 3,
+        name: scopedKey(companyId, "preferences"),
+        version: 1,
         storage: browserStorage(storage),
         skipHydration: true,
-        // Version 3 only adds `newsContext`; data saved without it gets the defaults through `merge` below.
-        migrate: (persisted, version) => (version < 2 ? upgradeLegacyNewsTerms(persisted as Partial<PreferencesState> | undefined) : persisted) as PreferencesState,
-        // Thresholds added in later releases must keep their defaults when old data is loaded.
+        // Starts from the defaults of the active company, so switching company never keeps the previous one's
+        // values; anything added to the profile later keeps its default when older data is loaded.
         merge: (persisted, current) => {
           const saved = (persisted ?? {}) as Partial<PreferencesState>;
+          const defaults = preferencesDefaults(getProfile());
           return {
             ...current,
+            ...defaults,
             ...saved,
-            thresholds: { ...current.thresholds, ...saved.thresholds },
-            newsTermGroups: { ...current.newsTermGroups, ...saved.newsTermGroups },
-            newsContext: { ...current.newsContext, ...saved.newsContext },
+            thresholds: { ...defaults.thresholds, ...saved.thresholds },
+            newsTermGroups: { ...defaults.newsTermGroups, ...saved.newsTermGroups },
+            newsContext: { ...defaults.newsContext, ...saved.newsContext },
           };
         },
         partialize: (state) => ({

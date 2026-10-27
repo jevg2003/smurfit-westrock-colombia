@@ -3,37 +3,65 @@
 import { useEffect } from "react";
 import { consoleLogger } from "@/infrastructure/logging/console-logger";
 import { useAlertsStore } from "./alerts.store";
+import { useChatStore } from "./chat.store";
+import { useCompaniesStore } from "./companies.store";
+import { bindStoreToCompany } from "./company-scope";
 import { useDecisionsStore } from "./decisions.store";
 import { hydrateStores } from "./hydrate-stores";
 import { useHydrationStore } from "./hydration.store";
-import { migrateLegacyAlerts } from "./legacy-migration";
 import { usePreferencesStore } from "./preferences.store";
-import { systemClock } from "./system-clock";
 import { useWatchlistStore } from "./watchlist.store";
 
+/** Loads the data of one company into every store that keeps per-company data. */
+const bindCompany = (companyId: string) => [
+  () => bindStoreToCompany(useAlertsStore, companyId, "alerts"),
+  () => bindStoreToCompany(useChatStore, companyId, "chats"),
+  () => bindStoreToCompany(useDecisionsStore, companyId, "decisions"),
+  () => bindStoreToCompany(usePreferencesStore, companyId, "preferences"),
+  () => bindStoreToCompany(useWatchlistStore, companyId, "watchlist"),
+];
+
 /**
- * Rehydrates the persisted stores after mount (they use `skipHydration`), runs the legacy import
- * and raises `hasHydrated`. Failures are logged and never block the UI.
+ * Rehydrates the companies after mount (the stores use `skipHydration`), points the per-company stores at the
+ * active company and raises `hasHydrated`. When the active company changes, it does the same again for the
+ * new one. Failures are logged and never block the UI.
  */
 export function StoreHydrator() {
   useEffect(() => {
     let cancelled = false;
-    void hydrateStores({
-      rehydrate: [
-        () => useAlertsStore.persist.rehydrate(),
-        () => useWatchlistStore.persist.rehydrate(),
-        () => usePreferencesStore.persist.rehydrate(),
-        () => useDecisionsStore.persist.rehydrate(),
-      ],
-      migrate: () => {
-        migrateLegacyAlerts({ storage: window.localStorage, alerts: useAlertsStore, clock: systemClock });
-      },
-      logger: consoleLogger,
-      hydration: useHydrationStore,
-      isCancelled: () => cancelled,
-    });
+    let bound: string | null = null;
+    let unsubscribe: (() => void) | undefined;
+
+    const bindActive = async () => {
+      const { activeCompanyId } = useCompaniesStore.getState();
+      bound = activeCompanyId;
+      await hydrateStores({
+        rehydrate: activeCompanyId ? bindCompany(activeCompanyId) : [],
+        logger: consoleLogger,
+        hydration: useHydrationStore,
+        isCancelled: () => cancelled,
+      });
+    };
+
+    void (async () => {
+      try {
+        await useCompaniesStore.persist.rehydrate();
+      } catch (error) {
+        consoleLogger.error("store_rehydrate_failed", { message: error instanceof Error ? error.message : String(error) });
+      }
+      if (cancelled) return;
+      await bindActive();
+      if (cancelled) return;
+      unsubscribe = useCompaniesStore.subscribe((state) => {
+        if (state.activeCompanyId === bound) return;
+        useHydrationStore.getState().markHydrating();
+        void bindActive();
+      });
+    })();
+
     return () => {
       cancelled = true;
+      unsubscribe?.();
     };
   }, []);
 

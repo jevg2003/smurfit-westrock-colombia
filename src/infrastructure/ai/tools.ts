@@ -1,6 +1,7 @@
 import { tool, type ToolSet } from "ai";
 import { z } from "zod";
-import { COMPANY, COMPETITORS, DEFAULT_THRESHOLDS } from "@/content/config/empresa";
+import type { CompanyContext } from "@/core/company/context";
+import { DEFAULT_THRESHOLDS } from "@/core/company/defaults";
 import type { CompanyFinancials } from "@/core/domain/company";
 import type { PublicContract } from "@/core/domain/contract";
 import type { Observation } from "@/core/domain/observation";
@@ -41,6 +42,8 @@ export interface AssistantToolDeps {
   curatedNorms(): RegulationEntry[];
   /** The user's contract-expiry windows (Preferencias). "Soon" means within `watchDays`. */
   thresholds: ExpiryThresholds;
+  /** The active company, sent by the browser. Its NIT and its competitors' NITs are the only ones the tools look up. */
+  company: CompanyContext;
 }
 
 export type ExpiryStatus = "alerta" | "vigilar" | "fuera de ventana" | "vencido" | "terminado" | "sin fecha de fin";
@@ -70,9 +73,7 @@ export type ToolOutput =
   | { status: "empty"; message: string }
   | { status: "error"; message: string };
 
-const WATCHED_NITS = [COMPANY.nit, ...COMPETITORS.map((competitor) => competitor.nit)] as [string, ...string[]];
-const nitSchema = z.enum(WATCHED_NITS).describe("NIT of the company or of a watched competitor");
-const NAMES = new Map([COMPANY, ...COMPETITORS].map((company) => [company.nit, company.name]));
+const NO_NIT_MESSAGE = "La empresa no tiene NIT en su perfil: no hay contratos públicos ni cifras financieras para consultar.";
 
 const toProvenance = (p: Provenance): ToolProvenance => ({
   sourceId: p.sourceId,
@@ -111,6 +112,13 @@ const modelOutput = ({ output }: { output: unknown }) => ({
  * screens, so the assistant can never show data the app cannot show.
  */
 export function createAssistantTools(deps: AssistantToolDeps) {
+  const competitors = deps.company.competitors.flatMap((competitor) => (competitor.nit ? [{ nit: competitor.nit, name: competitor.name }] : []));
+  const watchedNits = [...(deps.company.nit ? [deps.company.nit] : []), ...competitors.map((competitor) => competitor.nit)];
+  const names = new Map<string, string>([...(deps.company.nit ? [[deps.company.nit, deps.company.name] as const] : []), ...competitors.map((competitor) => [competitor.nit, competitor.name] as const)]);
+  const nitSchema = z
+    .string()
+    .refine((value) => watchedNits.includes(value), "Debe ser el NIT de la empresa o de un competidor vigilado")
+    .describe("NIT of the company or of a watched competitor");
   const now = () => deps.clock.now();
   const options = () => ({ now: now() });
 
@@ -159,7 +167,8 @@ export function createAssistantTools(deps: AssistantToolDeps) {
       }),
       execute: async ({ nit, onlyExpiringSoon, endsWithinDays, limit }): Promise<ToolOutput> => {
         try {
-          const result = await deps.secop.fetch({ nits: nit ? [nit] : WATCHED_NITS }, options());
+          if (watchedNits.length === 0) return { status: "empty", message: NO_NIT_MESSAGE };
+          const result = await deps.secop.fetch({ nits: nit ? [nit] : watchedNits }, options());
           return fromResult(result, (contracts) => {
             const from = now().getTime();
             const horizon = endsWithinDays === undefined ? undefined : from + endsWithinDays * DAY_MS;
@@ -210,13 +219,14 @@ export function createAssistantTools(deps: AssistantToolDeps) {
       inputSchema: z.object({ nit: nitSchema.optional() }),
       execute: async ({ nit }): Promise<ToolOutput> => {
         try {
-          const result = await deps.supersociedades.fetch({ nits: nit ? [nit] : WATCHED_NITS }, options());
+          if (watchedNits.length === 0) return { status: "empty", message: NO_NIT_MESSAGE };
+          const result = await deps.supersociedades.fetch({ nits: nit ? [nit] : watchedNits }, options());
           return fromResult(result, (rows) => ({
             financials: rows
               .filter((row) => !nit || row.nit === nit)
               .map((row) => ({
                 nit: row.nit,
-                name: NAMES.get(row.nit) ?? row.name,
+                name: names.get(row.nit) ?? row.name,
                 cutoffYear: row.cutoffYear,
                 revenue: row.revenue,
                 netIncome: row.netIncome,
@@ -359,16 +369,19 @@ export function createAssistantTools(deps: AssistantToolDeps) {
       inputSchema: z.object({}),
       execute: async (): Promise<ToolOutput> => {
         try {
-          const [trm, secop] = await Promise.all([deps.fetchTrm(365), deps.secop.fetch({ nits: WATCHED_NITS }, options())]);
-          const contracts = secop.ok ? secop.value.data : [];
+          const [trm, secop] = await Promise.all([
+            deps.fetchTrm(365),
+            watchedNits.length > 0 ? deps.secop.fetch({ nits: watchedNits }, options()) : Promise.resolve(undefined),
+          ]);
+          const contracts = secop?.ok ? secop.value.data : [];
           const signalThresholds = { ...DEFAULT_THRESHOLDS, contractExpiryWatchDays: deps.thresholds.watchDays, contractExpiryAlertDays: deps.thresholds.alertDays };
           const signals = detectSignals(
             {
               contracts,
               trmRecords: trm.map((row) => ({ validFrom: row.vigenciadesde, value: row.valor })),
               trmFetchedAt: now().toISOString(),
-              companyNit: COMPANY.nit,
-              competitors: COMPETITORS,
+              ...(deps.company.nit ? { companyNit: deps.company.nit } : {}),
+              competitors,
             },
             DEFAULT_SIGNAL_RULES,
             deps.clock,
@@ -379,7 +392,7 @@ export function createAssistantTools(deps: AssistantToolDeps) {
             data: {
               thresholds: signalThresholds,
               total: signals.length,
-              sourcesMissing: secop.ok ? [] : ["secop"],
+              sourcesMissing: secop && !secop.ok ? ["secop"] : [],
               signals: signals.slice(0, 20).map((signal) => ({
                 id: signal.id,
                 ruleId: signal.ruleId,

@@ -7,8 +7,8 @@ export const NOW = "2026-10-20T15:00:00.000Z"; // Tuesday 2026-10-20 in Bogota
 export const clock = fixedClock(NOW);
 
 export const COMPETITORS = [
-  { nit: "860026759", name: "Cartones América" },
-  { nit: "890925108", name: "Papeles y Cartones" },
+  { nit: "900000002", name: "Competidora Uno" },
+  { nit: "900000004", name: "Competidora Tres" },
 ];
 
 export const THRESHOLDS = {
@@ -27,8 +27,8 @@ export function makeInputs(overrides: Partial<SignalInputs> = {}): SignalInputs 
       makeContract(), // ends 2026-12-31: 72 days, watch
       makeContract({
         id: "CO1.PCCNTR.COMP",
-        supplierNit: "860026759",
-        supplierName: "CARTONES AMERICA S.A.",
+        supplierNit: "900000002",
+        supplierName: "COMPETIDORA UNO S.A.",
         entity: "FABRICA DE LICORES DEL TOLIMA",
         signedAt: "2026-10-10T00:00:00.000-05:00",
         endsAt: "2027-12-31T00:00:00.000-05:00",
@@ -39,7 +39,7 @@ export function makeInputs(overrides: Partial<SignalInputs> = {}): SignalInputs 
       { validFrom: "2026-10-19T00:00:00.000", value: "3900" }, // -2.5 %: alert
     ],
     trmFetchedAt: NOW,
-    companyNit: "890300406",
+    companyNit: "900000001",
     competitors: COMPETITORS,
     ...overrides,
   };

@@ -68,22 +68,22 @@ describe("RadarView", () => {
 
     beforeEach(() => {
       secopFetch.mockResolvedValue(
-        secopOk([contract("A1", "860026759", "CARTONES AMERICA"), contract("C1", "890319047", "CARVAJAL EMPAQUES")]),
+        secopOk([contract("A1", "900000002", "COMPETIDORA UNO"), contract("C1", "900000003", "CARVAJAL EMPAQUES")]),
       );
     });
 
     it("shows every new alert until the toggle is on, then only the followed ones", async () => {
-      useWatchlistStore.setState({ competitorNits: ["860026759"] });
+      useWatchlistStore.setState({ competitorNits: ["900000002"] });
       const user = userEvent.setup();
       renderWithQuery(<RadarView />);
 
-      expect(await screen.findByText(/Cartones América firmó un contrato con Entidad A1/)).toBeInTheDocument();
-      expect(screen.getByText(/Carvajal Empaques firmó un contrato con Entidad C1/)).toBeInTheDocument();
+      expect(await screen.findByText(/Competidora Uno firmó un contrato con Entidad A1/)).toBeInTheDocument();
+      expect(screen.getByText(/Competidora Dos firmó un contrato con Entidad C1/)).toBeInTheDocument();
 
       await user.click(screen.getByRole("checkbox", { name: "Solo mis seguimientos" }));
 
-      expect(screen.getByText(/Cartones América firmó un contrato con Entidad A1/)).toBeInTheDocument();
-      expect(screen.queryByText(/Carvajal Empaques firmó/)).not.toBeInTheDocument();
+      expect(screen.getByText(/Competidora Uno firmó un contrato con Entidad A1/)).toBeInTheDocument();
+      expect(screen.queryByText(/Competidora Dos firmó/)).not.toBeInTheDocument();
       expect(useWatchlistStore.getState().onlyFollowed).toBe(true);
     });
 

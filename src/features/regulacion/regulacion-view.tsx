@@ -21,7 +21,7 @@ import { safeHttpUrl } from "@/lib/safe-url";
 const linkClass =
   "inline-flex items-start gap-1 underline underline-offset-4 outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50";
 
-/** Norms that affect packaging: hand-picked ones, Minambiente publications and Presidencia decrees. */
+/** Norms that affect the company: hand-picked ones, Minambiente publications and Presidencia decrees. */
 export function RegulacionView() {
   const norms = useCuratedNorms();
   const regulation = useRegulation();
@@ -31,13 +31,13 @@ export function RegulacionView() {
     <div className="flex min-w-0 flex-col gap-4">
       <PageIntro
         title="Regulación"
-        description="Normas que pueden afectar a los empaques y por qué importan, más lo último de Minambiente y los decretos de Presidencia sobre residuos, empaques y sostenibilidad."
+        description="Normas que pueden afectar a la empresa y por qué importan, más lo último de Minambiente y los decretos de Presidencia que coinciden con sus palabras clave."
       />
 
       {view.status === "error" && <ErrorState source="Regulación" message={view.errorMessage ?? "Error desconocido."} kind={view.errorKind} onRetry={view.retry} />}
       {view.isStale && <StaleNotice source="Regulación" updatedAt={view.updatedAt} />}
 
-      <CuratedSection norms={norms} />
+      {norms.length > 0 && <CuratedSection norms={norms} />}
 
       <FeedSection
         title="Minambiente"
@@ -63,7 +63,7 @@ export function RegulacionView() {
       <FeedSection
         title="Decretos de Presidencia"
         sourceName="Presidencia"
-        description="Decretos de los últimos 12 meses que mencionan residuos, empaques, reciclaje, sostenibilidad, energía u otros temas del sector."
+        description="Decretos de los últimos 12 meses que mencionan las palabras clave de regulación de la empresa."
         pending={view.status === "pending"}
         loadingLabel="Consultando Minambiente y Presidencia"
         block={data?.presidencia}

@@ -15,15 +15,17 @@ export const DEFAULT_SIGNAL_RULES: readonly SignalRule[] = [
       fetchedAt: inputs.trmFetchedAt,
     }),
   (inputs, clock, thresholds) =>
-    detectExpiringContracts({
-      contracts: inputs.contracts,
-      companyNit: inputs.companyNit,
-      clock,
-      thresholds: {
-        watchDays: thresholds.contractExpiryWatchDays,
-        alertDays: thresholds.contractExpiryAlertDays,
-      },
-    }),
+    inputs.companyNit
+      ? detectExpiringContracts({
+          contracts: inputs.contracts,
+          companyNit: inputs.companyNit,
+          clock,
+          thresholds: {
+            watchDays: thresholds.contractExpiryWatchDays,
+            alertDays: thresholds.contractExpiryAlertDays,
+          },
+        })
+      : [],
   (inputs, clock, thresholds) =>
     detectCompetitorNewContracts({
       contracts: inputs.contracts,

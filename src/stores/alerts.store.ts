@@ -5,9 +5,9 @@ import type { Result } from "@/core/domain/result";
 import type { Signal } from "@/core/domain/signal";
 import type { Clock } from "@/core/ports/clock";
 import { browserStorage } from "./browser-storage";
+import { UNSCOPED_COMPANY, scopedKey } from "./company-scope";
 import { systemClock } from "./system-clock";
 
-export const ALERTS_STORAGE_KEY = "swc:alerts:v1";
 export const MAX_ALERTS = 500;
 
 /**
@@ -55,9 +55,11 @@ const ALLOWED_TARGETS: Record<Alert["state"], Alert["state"][]> = {
 export interface AlertsStoreOptions {
   storage?: StateStorage;
   clock?: Clock;
+  /** Company whose data the store starts on; `bindStoreToCompany` moves it later. */
+  companyId?: string;
 }
 
-export function createAlertsStore({ storage, clock = systemClock }: AlertsStoreOptions = {}) {
+export function createAlertsStore({ storage, clock = systemClock, companyId = UNSCOPED_COMPANY }: AlertsStoreOptions = {}) {
   return create<AlertsState>()(
     persist(
       (set, get) => {
@@ -103,10 +105,15 @@ export function createAlertsStore({ storage, clock = systemClock }: AlertsStoreO
         };
       },
       {
-        name: ALERTS_STORAGE_KEY,
+        name: scopedKey(companyId, "alerts"),
         version: 1,
         storage: browserStorage(storage),
         skipHydration: true,
+        // The whole state comes from the saved data, so switching company never keeps the previous alerts.
+        merge: (persisted, current) => ({
+          ...current,
+          alerts: Array.isArray((persisted as Partial<AlertsState> | undefined)?.alerts) ? (persisted as AlertsState).alerts : [],
+        }),
         partialize: (state) => ({ alerts: state.alerts }),
       },
     ),

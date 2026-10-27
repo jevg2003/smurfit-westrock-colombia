@@ -18,7 +18,7 @@ const FEED_TIMEOUT_MS = 12_000;
 export async function POST(request: Request) {
   return handleChat(request, {
     resolve: () => resolveModel(process.env),
-    tools: ({ thresholds }) => {
+    tools: ({ thresholds, company }) => {
       const container = createContainer({ fetcher: createFetcher() });
       const feedFetcher = createFetcher({ timeoutMs: FEED_TIMEOUT_MS, retryDelayMs: 0 });
       return createAssistantTools({
@@ -29,10 +29,11 @@ export async function POST(request: Request) {
         exports: container.exports,
         supersociedades: container.supersociedades,
         xm: container.xm,
-        news: (limit) => loadNews({ fetcher: feedFetcher, now: container.clock.now(), flags: readFlags(), limit }),
-        regulation: () => loadRegulation({ fetcher: feedFetcher, now: container.clock.now(), flags: readFlags() }),
+        news: (limit) => loadNews({ fetcher: feedFetcher, now: container.clock.now(), flags: readFlags(), limit, termGroups: company.termGroups }),
+        regulation: () => loadRegulation({ fetcher: feedFetcher, now: container.clock.now(), flags: readFlags(), terms: company.regulation }),
         curatedNorms: loadCuratedNorms,
         thresholds,
+        company,
       });
     },
   });
