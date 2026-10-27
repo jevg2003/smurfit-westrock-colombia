@@ -7,7 +7,6 @@ import type { CSSProperties, ReactNode } from "react";
 import { CompanySwitcher } from "./company-switcher";
 import { BRAND_HREF, CONFIG_ITEM, HOME_HREF, NAV, isNavActive, navTitle } from "./nav";
 import { UndoNoticeHost } from "@/components/events/undo-notice";
-import { BrandIntro } from "@/components/brand/brand-intro";
 import { SwcSymbol } from "@/components/brand/swc-logo";
 import { ThemeTogglerButton } from "@/components/animate-ui/components/buttons/theme-toggler";
 import { Button } from "@/components/ui/button";
@@ -67,7 +66,6 @@ export function AppShell({ children }: Props) {
 
   return (
     <PageContextProvider>
-    <BrandIntro />
     <SidebarProvider
       defaultOpen={false}
       className="h-dvh [--header-height:50px]"

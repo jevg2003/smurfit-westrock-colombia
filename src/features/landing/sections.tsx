@@ -4,12 +4,13 @@ import { cn } from "@/lib/utils";
 import { CompanyFolders } from "./company-folders";
 import { RadarMockup } from "./radar-mockup";
 import { Reveal } from "./reveal";
-import { EnterButton, FOCUS, H2, MECATEO_URL, NOTICE } from "./shared";
+import { FOCUS, H2, MECATEO_URL, NOTICE } from "./shared";
 import { SignalFlow } from "./signal-flow";
-import { SpecialEnterButton } from "./special-enter";
+import { EnterButton, SpecialEnterButton } from "./special-enter";
 import { ThemeSwitch } from "./theme-switch";
 
-export { EnterButton, NOTICE, CTA_LABEL } from "./shared";
+export { NOTICE, CTA_LABEL } from "./shared";
+export { EnterButton } from "./special-enter";
 export { Hero } from "./hero";
 
 export function LandingHeader() {

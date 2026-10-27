@@ -261,7 +261,8 @@ const FolderFloat: React.FC<FolderFloatProps> = ({
     const tick = (now: number) => {
       const s = world.current;
       if (!s.engine) return;
-      const dt = s.last ? Math.min(32, now - s.last) : 16;
+      // matter-js warns above one 60 fps frame; clamp slow frames and tab resumes.
+      const dt = s.last ? Math.min(1000 / 60, now - s.last) : 1000 / 60;
       s.last = now;
       const t = (now - s.t0) / 1000;
       const k = latest.current.drift * 0.00005 * Math.min(1, t / 2);

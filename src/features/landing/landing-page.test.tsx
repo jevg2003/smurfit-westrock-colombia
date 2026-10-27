@@ -3,6 +3,7 @@ import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { LandingPage } from "./landing-page";
 import { ENTER_HREF } from "./shared";
+import { INTRO_ENTER_KEY } from "@/components/brand/intro-policy";
 
 // The special buttons paint with WebGL; jsdom has none, and the component handles that by doing nothing.
 beforeEach(() => {
@@ -25,6 +26,17 @@ describe("LandingPage", () => {
     const cta = screen.getAllByRole("link", { name: "Entrar a Smart Work Core" });
     expect(cta.length).toBeGreaterThan(0);
     for (const link of cta) expect(link).toHaveAttribute("href", ENTER_HREF);
+  });
+
+  it("asks the app to play the logo intro from every call to action", () => {
+    render(<LandingPage />);
+    for (const link of screen.getAllByRole("link", { name: "Entrar a Smart Work Core" })) {
+      sessionStorage.clear();
+      // Stop the real navigation; the click handler still runs first.
+      link.addEventListener("click", (event) => event.preventDefault(), { once: true });
+      link.click();
+      expect(sessionStorage.getItem(INTRO_ENTER_KEY)).toBe("1");
+    }
   });
 
   it("states that the tool is independent and uses public data", () => {

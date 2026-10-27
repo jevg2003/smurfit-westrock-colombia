@@ -1,44 +1,17 @@
-"use client";
+import { IntroCloser } from "./intro-closer";
+import { INTRO_SCRIPT } from "./intro-policy";
 
-import Image from "next/image";
-import { useEffect, useState } from "react";
-
-export const INTRO_DURATION_MS = 3200;
-const SEEN_KEY = "swc:intro-seen";
-
-function shouldPlay() {
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return false;
-  try {
-    if (sessionStorage.getItem(SEEN_KEY)) return false;
-    sessionStorage.setItem(SEEN_KEY, "1");
-  } catch {
-    // Storage blocked: play anyway, it only costs one extra intro.
-  }
-  return true;
-}
-
-// Animated logo splash, shown once per browser session. Decided after mount so
-// server and client render the same markup.
+/**
+ * Logo intro for the app. Server component, mounted once in the root layout: the inline script
+ * decides before first paint whether to play (see intro-policy), and the overlay that follows is
+ * shown by CSS. It always plays to the end while the destination loads and redirects underneath;
+ * it never waits on data and can be skipped at any time.
+ */
 export function BrandIntro() {
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    if (!shouldPlay()) return;
-    setVisible(true);
-    const timer = setTimeout(() => setVisible(false), INTRO_DURATION_MS);
-    return () => clearTimeout(timer);
-  }, []);
-
-  if (!visible) return null;
-
   return (
-    <button
-      type="button"
-      aria-label="Saltar intro"
-      onClick={() => setVisible(false)}
-      className="fixed inset-0 z-50 grid cursor-pointer place-items-center bg-[#1A1F24] animate-out fade-out fill-mode-forwards delay-[2700ms] duration-500"
-    >
-      <Image src="/brand/swc-intro.svg" alt="Smart Work Core" width={420} height={160} unoptimized priority className="h-auto w-[min(70vw,420px)]" />
-    </button>
+    <>
+      <script dangerouslySetInnerHTML={{ __html: INTRO_SCRIPT }} />
+      <IntroCloser />
+    </>
   );
 }

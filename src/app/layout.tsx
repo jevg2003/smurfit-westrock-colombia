@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import type { ReactNode } from "react";
+import { BrandIntro } from "@/components/brand/brand-intro";
 import { Providers } from "./providers";
 import "./globals.css";
 
@@ -22,6 +23,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="es" className={geist.variable} suppressHydrationWarning>
       <body>
+        <BrandIntro />
         <Providers>{children}</Providers>
       </body>
     </html>

@@ -1,0 +1,40 @@
+/* Overlay for the logo intro. Hidden unless the inline script marked <html>. */
+.swc-intro {
+  display: none;
+}
+
+html[data-swc-intro] .swc-intro {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  background: var(--background);
+  color: var(--foreground);
+  --swc-intro-accent: #4d7300;
+  /* The logo is complete at ~2.7s; hold it before fading so it reads as finished. */
+  animation: swc-intro-out 0.5s ease 3.3s forwards;
+}
+
+html.dark[data-swc-intro] .swc-intro {
+  --swc-intro-accent: #a3e40a;
+}
+
+.swc-intro-art {
+  width: min(70vw, 420px);
+  height: auto;
+}
+
+@keyframes swc-intro-out {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-swc-intro] .swc-intro {
+    animation: none;
+  }
+}
