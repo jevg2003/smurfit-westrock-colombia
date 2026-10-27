@@ -146,14 +146,18 @@ export function deriveNewsGroupDefinitions(profile: Pick<CompanyProfile, "newsGr
   }));
 }
 
-const uniqueTerms = (terms: readonly string[]) => {
+/** Terms trimmed, without empty or repeated ones (ignoring case); the first spelling stays. */
+export const uniqueTerms = (terms: readonly string[]) => {
   const seen = new Set<string>();
-  return terms.filter((term) => {
-    const key = term.trim().toLowerCase();
-    if (!key || seen.has(key)) return false;
+  const result: string[] = [];
+  for (const term of terms) {
+    const trimmed = term.trim();
+    const key = trimmed.toLowerCase();
+    if (!key || seen.has(key)) continue;
     seen.add(key);
-    return true;
-  });
+    result.push(trimmed);
+  }
+  return result;
 };
 
 /** Every term the news search uses, once. */
