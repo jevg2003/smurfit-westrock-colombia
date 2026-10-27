@@ -42,7 +42,7 @@ const nitSchema = z.string().trim().regex(/^\d{5,12}$/, "El NIT lleva solo dígi
 export const competitorSchema = z.object({ name: text(120), nit: nitSchema.optional() });
 export type Competitor = z.infer<typeof competitorSchema>;
 
-const newsGroupSchema = z.object({
+export const newsGroupSchema = z.object({
   terms: wordList(40),
   contextTerms: z.union([wordList(40), z.literal("all")]),
 });
@@ -72,6 +72,8 @@ export const companyProfileSchema = z.object({
   name: text(120),
   /** Optional: without it, public contracts and competitor financials cannot be looked up. */
   nit: nitSchema.optional(),
+  /** Industry or line of business in a few words (for example "Alimentos y bebidas"). */
+  sector: z.string().trim().max(120).optional(),
   /** What the company does, in a sentence or two. */
   activity: z.string().trim().max(1000),
   city: z.string().trim().max(80).optional(),
@@ -161,6 +163,7 @@ export const searchTermsOf = (profile: Pick<CompanyProfile, "newsGroups">): stri
 export interface NewCompanyInput {
   name: string;
   nit?: string;
+  sector?: string;
   activity?: string;
   city?: string;
   regions?: string[];
@@ -179,6 +182,7 @@ export function createCompanyProfile(input: NewCompanyInput, { id, now }: { id: 
     id,
     name,
     ...(nit ? { nit } : {}),
+    ...(input.sector?.trim() ? { sector: input.sector.trim() } : {}),
     activity: input.activity?.trim() ?? "",
     ...(input.city?.trim() ? { city: input.city.trim() } : {}),
     regions: input.regions ?? [],
