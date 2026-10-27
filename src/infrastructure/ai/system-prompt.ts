@@ -68,6 +68,7 @@ export function describeCompany(company: CompanyContext) {
   return {
     name: company.name,
     nit: company.nit ?? null,
+    sector: company.sector ?? null,
     activity: company.activity ?? null,
     competitors: company.competitors.map((competitor) => ({ name: competitor.name, nit: competitor.nit ?? null })),
     goals: company.goals ?? null,

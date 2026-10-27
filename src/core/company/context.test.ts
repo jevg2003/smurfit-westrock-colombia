@@ -21,6 +21,14 @@ describe("buildCompanyContext", () => {
     expect(context.regulation.include).toEqual(TEST_COMPANY.regulationKeywords);
   });
 
+  it("sends the sector when the company has one and omits it otherwise", () => {
+    const withSector = buildCompanyContext({ ...TEST_COMPANY, sector: "Metalmecánica" });
+    expect(withSector.sector).toBe("Metalmecánica");
+    expect(companyContextSchema.safeParse(withSector).success).toBe(true);
+    expect("sector" in buildCompanyContext(TEST_COMPANY)).toBe(false);
+    expect(companyContextSchema.safeParse({ ...withSector, sector: "x".repeat(121) }).success).toBe(false);
+  });
+
   it("omits the NIT when the company has none", () => {
     const context = buildCompanyContext({ ...TEST_COMPANY, nit: undefined });
     expect("nit" in context).toBe(false);

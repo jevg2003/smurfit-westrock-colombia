@@ -44,6 +44,7 @@ export const regulationTermsSchema = z.object({
 export const companyContextSchema = z.object({
   name: text(120),
   nit: z.string().trim().regex(/^\d{5,12}$/).optional(),
+  sector: z.string().trim().max(120).optional(),
   activity: z.string().trim().max(1000).optional(),
   competitors: z.array(competitorSchema).max(20),
   termGroups: z.array(termGroupSchema).max(8),
@@ -58,6 +59,7 @@ export function buildCompanyContext(profile: CompanyProfile): CompanyContext {
   return {
     name: profile.name,
     ...(profile.nit ? { nit: profile.nit } : {}),
+    ...(profile.sector ? { sector: profile.sector } : {}),
     ...(profile.activity ? { activity: profile.activity } : {}),
     competitors: profile.competitors,
     termGroups: buildProfileTermGroups(profile).map((group) => ({
