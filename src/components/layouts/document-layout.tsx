@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { ScrollRegion } from "./scroll-region";
 
 export interface DocumentSection {
   id: string;
@@ -35,9 +36,9 @@ export function DocumentLayout({ index, footer, children }: Props) {
         </nav>
       )}
       <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
-        <div className="min-h-0 min-w-0 flex-1 lg:overflow-y-auto print:overflow-visible">
-          <div className="flex max-w-[72ch] flex-col gap-6">{children}</div>
-        </div>
+        <ScrollRegion className="flex-1" contentClassName="max-w-[72ch] gap-6">
+          {children}
+        </ScrollRegion>
         {footer && <div className="max-w-[72ch] shrink-0">{footer}</div>}
       </div>
     </div>

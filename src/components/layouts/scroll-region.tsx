@@ -18,8 +18,9 @@ interface Props extends ComponentProps<"section"> {
  */
 export function ScrollRegion({ as: Tag = "section", className, contentClassName, children, ...props }: Props) {
   return (
-    <Tag className={cn("min-h-0 min-w-0 lg:flex lg:flex-col", className)} {...props}>
-      <ScrollArea className="min-h-0 flex-1">
+    <Tag className={cn("min-h-0 min-w-0 lg:flex lg:flex-col print:block", className)} {...props}>
+      {/* Printing: Base UI sets `overflow: scroll` inline on the viewport, so only `!` can lift it; the page prints whole. */}
+      <ScrollArea className="min-h-0 flex-1 print:h-auto print:overflow-visible" viewportClassName="print:h-auto print:overflow-visible!">
         <div className={cn("flex min-h-full flex-col", contentClassName)}>{children}</div>
       </ScrollArea>
     </Tag>
