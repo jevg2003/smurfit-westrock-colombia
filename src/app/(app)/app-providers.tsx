@@ -3,6 +3,7 @@
 import "@/lib/zod-config";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
+import { Toaster } from "@/components/ui/sonner";
 import { ChatRuntimeProvider } from "@/features/asistente/chat-runtime";
 import { useCompaniesStore } from "@/stores/companies.store";
 import { StoreHydrator } from "@/stores/store-hydrator";
@@ -15,6 +16,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <StoreHydrator />
+      <Toaster />
       {/* A new runtime per company, so no running chat of the previous company survives the switch. */}
       <ChatRuntimeProvider key={activeCompanyId ?? "none"}>{children}</ChatRuntimeProvider>
     </QueryClientProvider>

@@ -1,6 +1,6 @@
 "use client";
 
-import { revalidateLogic, useForm } from "@tanstack/react-form";
+import { revalidateLogic, useForm, useStore } from "@tanstack/react-form";
 import { PlusIcon } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "@/components/reui/badge";
@@ -15,7 +15,7 @@ import { CompetitorDialog, type Competitor } from "./competitor-dialog";
 import { CompetitorList } from "./competitor-list";
 import { ConfirmSection } from "./confirm-section";
 import { StepActions } from "./step-actions";
-import { StepForm } from "./step-form";
+import { FormIssues, StepForm } from "./step-form";
 
 type DialogState = { mode: "add" } | { mode: "edit"; competitor: Competitor } | null;
 
@@ -86,18 +86,34 @@ interface ConfirmFormProps {
   intro?: { title: string; description: string };
   /** Sits inside a section that already pads it (the Empresa tab of Configuración). */
   embedded?: boolean;
+  /** Settings mode: the actions show only while there are changes, and after a save the saved values become the baseline. */
+  dirtyOnly?: boolean;
   onBack?(): void;
-  onSubmit(values: ConfirmValues): void;
+  /** Return false when the save failed, so the changes stay pending. */
+  onSubmit(values: ConfirmValues): void | boolean;
+}
+
+/** Where an issue without a field of its own points at, in the words of the form. */
+function issueLabel(path: readonly PropertyKey[]): string | undefined {
+  const [head, group] = path;
+  if (head === "newsGroups" && typeof group === "string") return NEWS_GROUP_LABELS[group as keyof typeof NEWS_GROUP_LABELS];
+  const labels: Record<string, string> = { regulationKeywords: "Palabras de regulación", priorities: "Prioridades", competitors: "Competidores" };
+  return typeof head === "string" ? labels[head] : undefined;
 }
 
 /** The whole company profile as one editable form: the last onboarding step and the Empresa tab of Configuración. */
-export function ConfirmForm({ defaultValues, busy = false, submitLabel, intro, embedded = false, onBack, onSubmit }: ConfirmFormProps) {
+export function ConfirmForm({ defaultValues, busy = false, submitLabel, intro, embedded = false, dirtyOnly = false, onBack, onSubmit }: ConfirmFormProps) {
   const form = useForm({
     defaultValues,
     validationLogic: revalidateLogic(),
     validators: { onDynamic: confirmFormSchema },
-    onSubmit: ({ value }) => onSubmit(value),
+    onSubmit: ({ value }) => {
+      const saved = onSubmit(value);
+      // The saved values are the new baseline, so the actions go away until the next edit.
+      if (dirtyOnly && saved !== false) form.reset(value);
+    },
   });
+  const unchanged = useStore(form.store, (state) => state.isDefaultValue);
 
   /** The company news group follows the competitors by name, so a rename or removal updates its term too. */
   const swapCompanyTerm = (from: string | undefined, to: string | undefined) => {
@@ -177,12 +193,17 @@ export function ConfirmForm({ defaultValues, busy = false, submitLabel, intro, e
       inset={!embedded}
       contentClassName="gap-6"
       actions={
-        <div className="flex items-center justify-between gap-3">
-          <p className="hidden min-w-0 flex-1 text-xs text-muted-foreground md:block">Puede cambiar todo esto después en Configuración.</p>
-          <div className="shrink-0 max-md:w-full">
-            <StepActions busy={busy} submitLabel={submitLabel} onBack={onBack} />
+        dirtyOnly && unchanged ? null : (
+          <div className="flex flex-col gap-3">
+            <FormIssues form={form} schema={confirmFormSchema} labelOf={issueLabel} />
+            <div className="flex items-center justify-between gap-3">
+              {!dirtyOnly && <p className="hidden min-w-0 flex-1 text-xs text-muted-foreground md:block">Puede cambiar todo esto después en Configuración.</p>}
+              <div className={dirtyOnly ? "ml-auto shrink-0 max-md:w-full" : "shrink-0 max-md:w-full"}>
+                <StepActions busy={busy} submitLabel={submitLabel} onBack={dirtyOnly ? () => form.reset() : onBack} backLabel={dirtyOnly ? "Descartar" : undefined} />
+              </div>
+            </div>
           </div>
-        </div>
+        )
       }
       onSubmit={(event) => {
         event.preventDefault();

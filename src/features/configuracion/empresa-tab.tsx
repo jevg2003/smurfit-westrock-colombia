@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckIcon, RotateCcwIcon } from "lucide-react";
+import { RotateCcwIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
@@ -13,12 +13,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { SettingsContent, SettingsDescription, SettingsHeader, SettingsSection, SettingsTitle } from "@/components/layouts/settings-section";
 import { Skeleton } from "@/components/ui/skeleton";
 import { buildConfirmValues, profileToPatch, profileToSeed, updateProfile, type ConfirmValues } from "@/core/onboarding/confirm";
 import { ConfirmForm } from "@/features/onboarding/confirm-form";
+import { saveWithFeedback } from "@/lib/notify";
 import { useCompaniesStore, useCompany } from "@/stores/companies.store";
 import { useHydrationStore } from "@/stores/hydration.store";
 import { useOnboardingDraftStore } from "@/stores/onboarding-draft.store";
@@ -74,14 +74,10 @@ export function EmpresaTab() {
   const hasHydrated = useHydrationStore((state) => state.hasHydrated);
   const company = useCompany();
   const add = useCompaniesStore((state) => state.add);
-  const [saved, setSaved] = useState(false);
 
   if (!hasHydrated) return <Skeleton role="status" aria-label="Cargando la empresa" className="h-96 rounded-xl" />;
 
-  const save = (values: ConfirmValues) => {
-    add(updateProfile(company, values, { now: new Date() }));
-    setSaved(true);
-  };
+  const save = (values: ConfirmValues) => saveWithFeedback(() => add(updateProfile(company, values, { now: new Date() })));
 
   return (
     <div className="flex min-w-0 flex-col gap-4">
@@ -95,14 +91,9 @@ export function EmpresaTab() {
             defaultValues={buildConfirmValues(profileToSeed(company), profileToPatch(company))}
             submitLabel="Guardar cambios"
             embedded
+            dirtyOnly
             onSubmit={save}
           />
-          {saved && (
-            <Alert className="mt-4" role="status">
-              <CheckIcon aria-hidden="true" />
-              <AlertDescription>Cambios guardados.</AlertDescription>
-            </Alert>
-          )}
         </SettingsContent>
       </SettingsSection>
     </div>

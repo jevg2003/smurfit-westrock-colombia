@@ -11,6 +11,9 @@ import { useOnboardingDraftStore } from "@/stores/onboarding-draft.store";
 const push = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 
+const notify = vi.hoisted(() => ({ ok: vi.fn() }));
+vi.mock("sonner", () => ({ toast: { success: notify.ok, error: vi.fn() } }));
+
 import { EmpresaTab } from "./empresa-tab";
 
 const section = () => screen.getByRole("region", { name: "Empresa" });
@@ -29,7 +32,26 @@ describe("EmpresaTab", () => {
     render(<EmpresaTab />);
     expect(within(section()).getByRole("textbox", { name: "Nombre de la empresa" })).toHaveValue(TEST_COMPANY.name);
     expect(within(section()).getByRole("textbox", { name: "NIT" })).toHaveValue(formatNit(TEST_COMPANY.nit!));
-    expect(screen.getByRole("button", { name: "Guardar cambios" })).toBeInTheDocument();
+  });
+
+  it("hides the actions until something changes, and again after saving", async () => {
+    render(<EmpresaTab />);
+    expect(screen.queryByRole("button", { name: "Guardar cambios" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Descartar" })).not.toBeInTheDocument();
+    const city = within(section()).getByRole("textbox", { name: "Ciudad principal" });
+    await userEvent.type(city, " Norte");
+    await userEvent.click(await screen.findByRole("button", { name: "Guardar cambios" }));
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Guardar cambios" })).not.toBeInTheDocument());
+    expect(city).toHaveValue(`${TEST_COMPANY.city} Norte`);
+  });
+
+  it("discards the edits and hides the actions", async () => {
+    render(<EmpresaTab />);
+    const city = within(section()).getByRole("textbox", { name: "Ciudad principal" });
+    await userEvent.type(city, "x");
+    await userEvent.click(await screen.findByRole("button", { name: "Descartar" }));
+    expect(city).toHaveValue(TEST_COMPANY.city);
+    expect(screen.queryByRole("button", { name: "Guardar cambios" })).not.toBeInTheDocument();
   });
 
   it("saves the edits to the same company and confirms", async () => {
@@ -37,12 +59,12 @@ describe("EmpresaTab", () => {
     const name = within(section()).getByRole("textbox", { name: "Nombre de la empresa" });
     await userEvent.clear(name);
     await userEvent.type(name, "Empresa Renovada");
-    await userEvent.click(screen.getByRole("button", { name: "Guardar cambios" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Guardar cambios" }));
 
     await waitFor(() => expect(useCompaniesStore.getState().companies[0].name).toBe("Empresa Renovada"));
     expect(useCompaniesStore.getState().companies).toHaveLength(1);
     expect(useCompaniesStore.getState().companies[0]).toMatchObject({ id: TEST_COMPANY.id, thresholds: TEST_COMPANY.thresholds });
-    expect(await screen.findByText("Cambios guardados.")).toBeInTheDocument();
+    expect(notify.ok).toHaveBeenCalledWith("Cambios guardados", expect.anything());
   });
 
   it("rejects an invalid NIT without touching the company", async () => {
@@ -50,7 +72,7 @@ describe("EmpresaTab", () => {
     const nit = within(section()).getByRole("textbox", { name: "NIT" });
     await userEvent.clear(nit);
     await userEvent.type(nit, "12");
-    await userEvent.click(screen.getByRole("button", { name: "Guardar cambios" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Guardar cambios" }));
     expect(await screen.findByText(/entre 5 y 10 dígitos/)).toBeInTheDocument();
     expect(useCompaniesStore.getState().companies[0].nit).toBe(TEST_COMPANY.nit);
   });
@@ -71,5 +93,27 @@ describe("EmpresaTab", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Reemplazar" }));
     expect(useOnboardingDraftStore.getState().draft?.companyId).toBe(TEST_COMPANY.id);
     expect(push).toHaveBeenCalledWith("/onboarding");
+  });
+});
+
+describe("EmpresaTab save feedback", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+    useCompaniesStore.setState({ companies: [TEST_COMPANY], activeCompanyId: TEST_COMPANY.id });
+    useHydrationStore.setState({ hasHydrated: true });
+  });
+  afterEach(cleanup);
+
+  it("says what blocks the save when a saved term breaks a limit, instead of doing nothing", async () => {
+    const longTerm = "x".repeat(130);
+    const company = { ...TEST_COMPANY, newsGroups: { ...TEST_COMPANY.newsGroups, sector: { terms: [longTerm], contextTerms: "all" as const } } };
+    useCompaniesStore.setState({ companies: [company], activeCompanyId: company.id });
+    render(<EmpresaTab />);
+    const name = within(section()).getByRole("textbox", { name: "Nombre de la empresa" });
+    await userEvent.clear(name);
+    await userEvent.type(name, "Empresa Renovada");
+    await userEvent.click(await screen.findByRole("button", { name: "Guardar cambios" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(/120 caracteres/);
+    expect(useCompaniesStore.getState().companies[0].name).toBe(TEST_COMPANY.name);
   });
 });

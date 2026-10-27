@@ -1,7 +1,11 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+const notify = vi.hoisted(() => ({ ok: vi.fn() }));
+vi.mock("sonner", () => ({ toast: { success: notify.ok, error: vi.fn() } }));
+
 import { deriveNewsGroupDefinitions } from "@/core/company/profile";
 import { TEST_COMPANY } from "@/core/company/test-fixtures";
 import { resetStores } from "@/features/entorno/test-utils";
@@ -27,18 +31,31 @@ describe("PreferenciasView", () => {
     const watch = screen.getByLabelText(/Variación diaria de la TRM para vigilar/);
     await user.clear(watch);
     await user.type(watch, "0");
-    await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
+    await user.click(await screen.findByRole("button", { name: "Guardar cambios" }));
 
     expect(screen.getByText("El valor debe ser mayor que cero.")).toBeInTheDocument();
     expect(usePreferencesStore.getState().thresholds.trmDailyMovePct).toBe(TEST_COMPANY.thresholds.trmDailyMovePct);
 
     await user.clear(watch);
     await user.type(watch, "1,5");
-    await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
+    await user.click(await screen.findByRole("button", { name: "Guardar cambios" }));
 
     expect(usePreferencesStore.getState().thresholds.trmDailyMovePct).toBe(1.5);
     expect(screen.getByText(/Variación diaria de la TRM de 1.5% o más/)).toBeInTheDocument();
-    expect(screen.getByRole("status")).toHaveTextContent("Preferencias guardadas");
+    expect(notify.ok).toHaveBeenCalledWith("Cambios guardados", expect.anything());
+    expect(screen.queryByRole("button", { name: "Guardar cambios" })).not.toBeInTheDocument();
+  });
+
+  it("shows the save and discard actions only while there are changes", async () => {
+    const user = userEvent.setup();
+    render(<PreferenciasView />);
+    expect(screen.queryByRole("button", { name: "Guardar cambios" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Guardar términos" })).not.toBeInTheDocument();
+    const watch = screen.getByLabelText(/Variación diaria de la TRM para vigilar/);
+    await user.type(watch, "5");
+    await user.click((await screen.findAllByRole("button", { name: "Descartar" }))[0]);
+    expect(watch).toHaveValue("1");
+    expect(screen.queryByRole("button", { name: "Guardar cambios" })).not.toBeInTheDocument();
   });
 
   it("shows every threshold problem at once, under its field, and saves nothing", async () => {
@@ -48,7 +65,7 @@ describe("PreferenciasView", () => {
     await user.clear(screen.getByLabelText(/Variación diaria de la TRM para vigilar/));
     await user.clear(screen.getByLabelText(/Días antes del fin para vigilar/));
     await user.type(screen.getByLabelText(/Días antes del fin para vigilar/), "800");
-    await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
+    await user.click(await screen.findByRole("button", { name: "Guardar cambios" }));
 
     expect(await screen.findByText("Escriba un número.")).toBeInTheDocument();
     expect(screen.getByText("El valor no puede pasar de 730.")).toBeInTheDocument();
@@ -87,7 +104,7 @@ describe("PreferenciasView", () => {
       await user.click(group.getByRole("button", { name: `Quitar ${term}` }));
     }
     await user.type(group.getByLabelText("Sector"), "hierro{Enter}acero{Enter}");
-    await user.click(screen.getByRole("button", { name: "Guardar términos" }));
+    await user.click(await screen.findByRole("button", { name: "Guardar términos" }));
 
     expect(usePreferencesStore.getState().newsTermGroups.sector).toEqual(["hierro", "acero"]);
   });
@@ -105,7 +122,7 @@ describe("PreferenciasView", () => {
     for (const word of sector.excludeAny) await user.click(excludeList.getByRole("button", { name: `Quitar ${word}` }));
     await user.type(companyGroup.getByLabelText("Palabras de contexto (Empresa y competidores)"), "Itagüí{Enter}");
     await user.type(sectorGroup.getByLabelText("Palabras a excluir (Sector)"), "fútbol{Enter}");
-    await user.click(screen.getByRole("button", { name: "Guardar términos" }));
+    await user.click(await screen.findByRole("button", { name: "Guardar términos" }));
 
     expect(usePreferencesStore.getState().newsContext.company.requireAny).toEqual(["Itagüí"]);
     expect(usePreferencesStore.getState().newsContext.sector.excludeAny).toEqual(["fútbol"]);

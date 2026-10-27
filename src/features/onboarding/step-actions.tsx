@@ -5,16 +5,18 @@ interface StepActionsProps {
   /** Label of the primary action. */
   submitLabel?: string;
   onBack?: () => void;
+  /** Label of the left action. */
+  backLabel?: string;
   onSkip?: () => void;
 }
 
 /** Back on the left; skip and continue on the right. The row has the same shape on every step. */
-export function StepActions({ busy, submitLabel = "Continuar", onBack, onSkip }: StepActionsProps) {
+export function StepActions({ busy, submitLabel = "Continuar", onBack, backLabel = "Atrás", onSkip }: StepActionsProps) {
   return (
     <div className="flex items-center justify-between gap-2">
       {onBack ? (
         <Button type="button" variant="outline" disabled={busy} onClick={onBack}>
-          Atrás
+          {backLabel}
         </Button>
       ) : (
         <span aria-hidden="true" />

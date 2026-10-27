@@ -1,8 +1,10 @@
 "use client";
 
-import { revalidateLogic, useForm } from "@tanstack/react-form";
+import { revalidateLogic, useForm, useStore } from "@tanstack/react-form";
 import { RotateCcwIcon } from "lucide-react";
 import { useMemo, useState } from "react";
+import { FormIssues } from "@/features/onboarding/step-form";
+import { saveWithFeedback } from "@/lib/notify";
 import { Button } from "@/components/ui/button";
 import { SettingsContent, SettingsDescription, SettingsFooter, SettingsHeader, SettingsSection, SettingsTitle } from "@/components/layouts/settings-section";
 import { ChipListField, NumberField } from "@/components/reui/form-fields";
@@ -141,7 +143,6 @@ function ResetButton({ onReset }: { onReset: () => void }) {
 function ThresholdsCard() {
   const saved = usePreferencesStore((state) => state.thresholds);
   const setThreshold = usePreferencesStore((state) => state.setThreshold);
-  const [message, setMessage] = useState<string | null>(null);
 
   const form = useForm({
     defaultValues: toValues(saved),
@@ -149,10 +150,14 @@ function ThresholdsCard() {
     validators: { onDynamic: thresholdsSchema },
     onSubmit: ({ value }) => {
       // The schema accepted the form, so every threshold is a number here.
-      for (const key of THRESHOLD_KEYS) setThreshold(key, value[key] as number);
-      setMessage("Preferencias guardadas. Las reglas ya usan estos valores.");
+      const done = saveWithFeedback(() => {
+        for (const key of THRESHOLD_KEYS) setThreshold(key, value[key] as number);
+      });
+      // The saved values become the baseline, so the actions go away until the next edit.
+      if (done) form.reset(value);
     },
   });
+  const unchanged = useStore(form.store, (state) => state.isDefaultValue);
 
   return (
     <SettingsSection>
@@ -176,23 +181,24 @@ function ThresholdsCard() {
               <FieldGroup className="gap-3">
                 {group.fields.map((spec) => (
                   <form.Field key={spec.key} name={spec.key}>
-                    {(field) => <NumberField field={field} label={spec.label} hint={spec.help} unit={spec.unit} onValueChange={() => setMessage(null)} />}
+                    {(field) => <NumberField field={field} label={spec.label} hint={spec.help} unit={spec.unit} />}
                   </form.Field>
                 ))}
               </FieldGroup>
             </FieldSet>
           ))}
         </SettingsContent>
-        <SettingsFooter>
-          <Button type="submit" size="sm">
-            Guardar cambios
-          </Button>
-          {message && (
-            <p role="status" className="text-xs text-muted-foreground">
-              {message}
-            </p>
-          )}
-        </SettingsFooter>
+        {!unchanged && (
+          <SettingsFooter>
+            <FormIssues form={form} schema={thresholdsSchema} />
+            <Button type="submit" size="sm">
+              Guardar cambios
+            </Button>
+            <Button type="button" variant="ghost" size="sm" onClick={() => form.reset()}>
+              Descartar
+            </Button>
+          </SettingsFooter>
+        )}
       </form>
     </SettingsSection>
   );
@@ -240,7 +246,6 @@ function TermsCard() {
   const setGroup = usePreferencesStore((state) => state.setNewsTermGroup);
   const context = usePreferencesStore((state) => state.newsContext);
   const setContext = usePreferencesStore((state) => state.setNewsContext);
-  const [message, setMessage] = useState<string | null>(null);
   const defaultValues: Record<string, string[]> = {
     ...Object.fromEntries(definitions.map((group) => [group.id, [...groups[group.id]]])),
     ...Object.fromEntries(groupsWithContext.map((group) => [contextKey(group.id), [...context[group.id].requireAny]])),
@@ -251,14 +256,18 @@ function TermsCard() {
     validationLogic: revalidateLogic(),
     validators: { onDynamic: termsFormSchema },
     onSubmit: ({ value }) => {
-      for (const group of definitions) {
-        setGroup(group.id, uniqueTerms(value[group.id]));
-        const requireAny = value[contextKey(group.id)] ?? context[group.id].requireAny;
-        setContext(group.id, { requireAny: uniqueTerms(requireAny), excludeAny: uniqueTerms(value[excludeKey(group.id)]) });
-      }
-      setMessage("Términos guardados. Se usan en las noticias y en los avisos.");
+      const done = saveWithFeedback(() => {
+        for (const group of definitions) {
+          setGroup(group.id, uniqueTerms(value[group.id]));
+          const requireAny = value[contextKey(group.id)] ?? context[group.id].requireAny;
+          setContext(group.id, { requireAny: uniqueTerms(requireAny), excludeAny: uniqueTerms(value[excludeKey(group.id)]) });
+        }
+      });
+      // Repeated terms were merged on save, so the baseline is the merged lists.
+      if (done) form.reset(Object.fromEntries(Object.entries(value).map(([key, terms]) => [key, uniqueTerms(terms)])));
     },
   });
+  const unchanged = useStore(form.store, (state) => state.isDefaultValue);
 
   return (
     <SettingsSection>
@@ -301,16 +310,17 @@ function TermsCard() {
             ))}
           </FieldGroup>
         </SettingsContent>
-        <SettingsFooter>
-          <Button type="submit" size="sm">
-            Guardar términos
-          </Button>
-          {message && (
-            <p role="status" className="text-xs text-muted-foreground">
-              {message}
-            </p>
-          )}
-        </SettingsFooter>
+        {!unchanged && (
+          <SettingsFooter>
+            <FormIssues form={form} schema={termsFormSchema} />
+            <Button type="submit" size="sm">
+              Guardar términos
+            </Button>
+            <Button type="button" variant="ghost" size="sm" onClick={() => form.reset()}>
+              Descartar
+            </Button>
+          </SettingsFooter>
+        )}
       </form>
     </SettingsSection>
   );
