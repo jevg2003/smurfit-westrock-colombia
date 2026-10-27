@@ -29,6 +29,9 @@ The current proposal exists only as AI-generated JPGs and an MP4 the owner finds
 - [x] T4 — Animated intro: standalone animated SVG + React `BrandIntro` component. Route: inline.
 - [x] T5 — Integrate: `public/` assets, `layout.tsx` icons/manifest, `app-shell.tsx` logo. Route: inline (2 mechanical edits).
 
+- [x] T6 — Replace ring/tile symbol with the wordmark's C + core dot, transparent. Adaptive favicon SVG (prefers-color-scheme), ink-C ICO fallback, ink tile only for PWA/Apple icons, `SwcSymbol`/`SwcWordmark` React components (currentColor) used in the sidebar. Route: inline (owner feedback 2026-10-27: tile looked wrong in the sidebar).
+- [ ] T7 — Landing redesign aligned with current docs/ODD, new branding, restrained motion, footer links to https://mecateo.co. Research-backed proposal first (`docs/propuesta-landing.md`). Route: delegated writer (multi-file, research + design).
+
 ## Acceptance criteria
 
 - All logo files are pure vector paths (no `<image>`, no `<text>`), valid SVG, render correctly at 16px and large.
