@@ -142,7 +142,7 @@ function SheetBody() {
             <p className="max-w-prose text-sm text-muted-foreground">
               Pregúntame por lo que ves en esta pantalla. También puedo consultar la TRM, los contratos, los competidores y los avisos.
             </p>
-            <Composer onSubmit={start} placeholder="Pregunta sobre esta pantalla" />
+            <Composer onSubmit={start} placeholder="Pregunte sobre esta pantalla" />
           </div>
         )}
       </div>

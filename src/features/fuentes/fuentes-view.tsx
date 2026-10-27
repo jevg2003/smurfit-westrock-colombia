@@ -1,10 +1,9 @@
 "use client";
 
 import { Badge } from "@/components/reui/badge";
-import { PageIntro } from "@/components/shell/page-intro";
-import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
+import { RegionEmpty } from "@/components/states/region-empty";
 import { summarizeHealth } from "./health-summary";
-import { FuenteCard } from "./fuente-card";
+import { FuenteEvent } from "./fuente-event";
 import { useFuentes } from "./use-fuentes";
 
 /** Health of every data source: last success, last error, license and a per-source retry. */
@@ -16,16 +15,10 @@ export function FuentesView() {
 
   return (
     <div className="flex min-w-0 flex-col gap-4">
-      <PageIntro description="Estado de cada fuente de datos: de dónde viene, con qué licencia, cuándo funcionó por última vez y qué falló. Cada fuente se puede reintentar por separado."
-      />
+      <p className="text-sm text-muted-foreground">De dónde viene cada dato, con qué licencia y cuándo se leyó por última vez. Cada fuente se reintenta por separado.</p>
 
       {total === 0 ? (
-        <Empty>
-          <EmptyHeader>
-            <EmptyTitle>No hay fuentes configuradas</EmptyTitle>
-            <EmptyDescription>Cuando se agreguen fuentes aparecerán aquí con su estado.</EmptyDescription>
-          </EmptyHeader>
-        </Empty>
+        <RegionEmpty title="No hay fuentes configuradas" description="Cuando se agreguen fuentes aparecerán aquí con su estado." />
       ) : (
         <>
           <p aria-live="polite" className="flex items-center gap-2 text-sm font-medium" data-testid="health-summary">
@@ -43,14 +36,14 @@ export function FuentesView() {
 
           {groups.map((group) => (
             <section key={group.id} aria-labelledby={`grupo-${group.id}`} className="flex flex-col gap-2">
-              <h2 id={`grupo-${group.id}`} className="text-sm font-medium">
+              <h2 id={`grupo-${group.id}`} className="text-sm font-semibold">
                 {group.title}
               </h2>
-              <div className="grid gap-3 lg:grid-cols-2">
+              <ul aria-labelledby={`grupo-${group.id}`} className="flex flex-col divide-y">
                 {group.rows.map((row) => (
-                  <FuenteCard key={row.entry.id} row={row} />
+                  <FuenteEvent key={row.entry.id} row={row} />
                 ))}
-              </div>
+              </ul>
             </section>
           ))}
         </>

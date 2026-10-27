@@ -35,7 +35,7 @@ describe("validateThresholds", () => {
       expect(Object.keys(result.errors).sort()).toEqual(
         ["contractExpiryAlertDays", "contractExpiryWatchDays", "trmDailyAlertPct", "trmDailyMovePct"].sort(),
       );
-      expect(result.errors.trmDailyMovePct).toBe("Escribe un número.");
+      expect(result.errors.trmDailyMovePct).toBe("Escriba un número.");
     }
   });
 
@@ -77,8 +77,8 @@ describe("thresholdsSchema (the schema the form validates with)", () => {
       fields({ trmDailyMovePct: "", trmDailyAlertPct: "abc", contractExpiryWatchDays: "0", contractExpiryAlertDays: "1.5", competitorContractWindowDays: "400" }),
     );
     expect(issueMap(result)).toEqual({
-      trmDailyMovePct: "Escribe un número.",
-      trmDailyAlertPct: "Escribe un número.",
+      trmDailyMovePct: "Escriba un número.",
+      trmDailyAlertPct: "Escriba un número.",
       contractExpiryWatchDays: "El valor debe ser mayor que cero.",
       contractExpiryAlertDays: "Usa un número entero de días.",
       competitorContractWindowDays: "El valor no puede pasar de 365.",

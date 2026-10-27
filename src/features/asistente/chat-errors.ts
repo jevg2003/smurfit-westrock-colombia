@@ -8,7 +8,7 @@ export interface ChatFailure {
   reenter?: boolean;
 }
 
-const GENERIC = "No pude responder en este momento. Vuelve a intentarlo.";
+const GENERIC = "No pude responder en este momento. Vuelva a intentarlo.";
 
 function serverMessage(error: Error): string | undefined {
   try {
@@ -26,7 +26,7 @@ export function describeChatFailure(error: Error): ChatFailure {
     return { title: SESSION_EXPIRED_TITLE, message: SESSION_EXPIRED_MESSAGE, reenter: true };
   }
   if (error instanceof TypeError || /failed to fetch|network/i.test(error.message)) {
-    return { title: "Sin conexión", message: "No hay conexión con el servidor. Revisa tu internet y vuelve a intentarlo." };
+    return { title: "Sin conexión", message: "No hay conexión con el servidor. Revise su conexión y vuelva a intentarlo." };
   }
   const fromServer = serverMessage(error);
   if (fromServer) {

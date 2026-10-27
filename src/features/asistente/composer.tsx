@@ -17,7 +17,7 @@ interface Props {
 }
 
 /** Message box: Enter sends, Shift+Enter adds a line. */
-export function Composer({ onSubmit, busy = false, onStop, placeholder = "Escribe tu pregunta" }: Props) {
+export function Composer({ onSubmit, busy = false, onStop, placeholder = "Escriba su pregunta" }: Props) {
   const [value, setValue] = useState("");
   const webSearch = useChatStore((state) => state.webSearch);
   const setWebSearch = useChatStore((state) => state.setWebSearch);

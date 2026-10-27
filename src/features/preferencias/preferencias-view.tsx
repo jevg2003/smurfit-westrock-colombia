@@ -3,9 +3,8 @@
 import { revalidateLogic, useForm } from "@tanstack/react-form";
 import { RotateCcwIcon } from "lucide-react";
 import { useId, useMemo, useState } from "react";
-import { PageIntro } from "@/components/shell/page-intro";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { SettingsContent, SettingsDescription, SettingsFooter, SettingsHeader, SettingsSection, SettingsTitle } from "@/components/layouts/settings-section";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel, FieldLegend, FieldSet } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -69,7 +68,7 @@ const THRESHOLD_FIELDS: { title: string; description: string; fields: FieldSpec[
   },
   {
     title: "Contratos de la empresa",
-    description: "Cuántos días antes del fin de un contrato quieres que te avisemos.",
+    description: "Cuántos días antes del fin de un contrato quiere que le avisemos.",
     fields: [
       {
         key: "contractExpiryWatchDays",
@@ -119,13 +118,14 @@ export function PreferenciasView() {
 
   return (
     <div className="flex min-w-0 flex-col gap-4">
-      <PageIntro description="Ajuste cuándo salta un aviso y qué palabras se buscan en las noticias. Todo se guarda en este navegador."
-        actions={<ResetButton onReset={() => setGeneration((value) => value + 1)} />}
-      />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-muted-foreground">Ajuste cuándo salta un aviso y qué palabras se buscan en las noticias. Todo se guarda en este navegador.</p>
+        <ResetButton onReset={() => setGeneration((value) => value + 1)} />
+      </div>
       {!hasHydrated ? (
-        <Skeleton role="status" aria-label="Cargando tus preferencias" className="h-96 rounded-xl" />
+        <Skeleton role="status" aria-label="Cargando las preferencias" className="h-96 rounded-xl" />
       ) : (
-        <div key={generation} className="grid min-w-0 gap-4 lg:grid-cols-2">
+        <div key={generation} className="flex min-w-0 flex-col gap-6">
           <ThresholdsCard />
           <div className="flex min-w-0 flex-col gap-4">
             <RulesCard />
@@ -174,7 +174,7 @@ function ThresholdsCard() {
   });
 
   return (
-    <Card className="min-w-0 gap-0 py-0">
+    <SettingsSection>
       <form
         noValidate
         onSubmit={(event) => {
@@ -183,11 +183,11 @@ function ThresholdsCard() {
           void form.handleSubmit();
         }}
       >
-        <CardHeader className="border-b px-4 py-3 [.border-b]:pb-3">
-          <CardTitle className="text-sm font-semibold">Umbrales de las reglas</CardTitle>
-          <CardDescription>Los cambios se aplican a los avisos y al texto de cada regla.</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-5 py-4">
+        <SettingsHeader>
+          <SettingsTitle>Umbrales de las reglas</SettingsTitle>
+          <SettingsDescription>Los cambios se aplican a los avisos y al texto de cada regla.</SettingsDescription>
+        </SettingsHeader>
+        <SettingsContent>
           {THRESHOLD_FIELDS.map((group) => (
             <FieldSet key={group.title} className="min-w-0">
               <FieldLegend variant="label">{group.title}</FieldLegend>
@@ -230,8 +230,8 @@ function ThresholdsCard() {
               </FieldGroup>
             </FieldSet>
           ))}
-        </CardContent>
-        <CardFooter className="flex-wrap gap-3 border-t bg-muted/50 px-4 py-3">
+        </SettingsContent>
+        <SettingsFooter>
           <Button type="submit" size="sm">
             Guardar cambios
           </Button>
@@ -240,9 +240,9 @@ function ThresholdsCard() {
               {message}
             </p>
           )}
-        </CardFooter>
+        </SettingsFooter>
       </form>
-    </Card>
+    </SettingsSection>
   );
 }
 
@@ -250,12 +250,12 @@ function RulesCard() {
   const company = useCompany();
   const thresholds = usePreferencesStore((state) => state.thresholds);
   return (
-    <Card className="min-w-0 gap-0 py-0">
-      <CardHeader className="border-b px-4 py-3 [.border-b]:pb-3">
-        <CardTitle className="text-sm font-semibold">Reglas activas</CardTitle>
-        <CardDescription>Así se leen hoy las reglas, con los valores guardados.</CardDescription>
-      </CardHeader>
-      <CardContent className="py-4">
+    <SettingsSection>
+      <SettingsHeader>
+        <SettingsTitle>Reglas activas</SettingsTitle>
+        <SettingsDescription>Así se leen hoy las reglas, con los valores guardados.</SettingsDescription>
+      </SettingsHeader>
+      <SettingsContent>
         <ul className="flex flex-col gap-3">
           {activeRuleTexts(thresholds, company).map((rule) => (
             <li key={rule.id} className="flex min-w-0 flex-col gap-0.5">
@@ -265,8 +265,8 @@ function RulesCard() {
             </li>
           ))}
         </ul>
-      </CardContent>
-    </Card>
+      </SettingsContent>
+    </SettingsSection>
   );
 }
 
@@ -313,7 +313,7 @@ function TermsCard() {
   });
 
   return (
-    <Card className="min-w-0 gap-0 py-0">
+    <SettingsSection>
       <form
         noValidate
         onSubmit={(event) => {
@@ -322,11 +322,11 @@ function TermsCard() {
           void form.handleSubmit();
         }}
       >
-        <CardHeader className="border-b px-4 py-3 [.border-b]:pb-3">
-          <CardTitle className="text-sm font-semibold">Términos para noticias</CardTitle>
-          <CardDescription>Un término o palabra por línea. El contexto y las exclusiones acotan las noticias a Colombia.</CardDescription>
-        </CardHeader>
-        <CardContent className="py-4">
+        <SettingsHeader>
+          <SettingsTitle>Términos para noticias</SettingsTitle>
+          <SettingsDescription>Un término o palabra por línea. El contexto y las exclusiones acotan las noticias a Colombia.</SettingsDescription>
+        </SettingsHeader>
+        <SettingsContent>
           <FieldGroup className="gap-4">
             {definitions.map((group) => (
               <FieldSet key={group.id} className="gap-3">
@@ -355,8 +355,8 @@ function TermsCard() {
               </FieldSet>
             ))}
           </FieldGroup>
-        </CardContent>
-        <CardFooter className="flex-wrap gap-3 border-t bg-muted/50 px-4 py-3">
+        </SettingsContent>
+        <SettingsFooter>
           <Button type="submit" size="sm">
             Guardar términos
           </Button>
@@ -365,9 +365,9 @@ function TermsCard() {
               {message}
             </p>
           )}
-        </CardFooter>
+        </SettingsFooter>
       </form>
-    </Card>
+    </SettingsSection>
   );
 }
 

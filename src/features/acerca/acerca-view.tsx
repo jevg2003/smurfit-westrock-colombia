@@ -1,30 +1,25 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { PageIntro } from "@/components/shell/page-intro";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SettingsContent, SettingsHeader, SettingsSection, SettingsTitle } from "@/components/layouts/settings-section";
 import { DEFAULT_THRESHOLDS } from "@/core/company/defaults";
 
 const linkClass = "underline underline-offset-4 outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50";
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <Card size="sm">
-      <CardHeader>
-        <h2>
-          <CardTitle>{title}</CardTitle>
-        </h2>
-      </CardHeader>
-      <CardContent className="flex max-w-prose flex-col gap-2 text-sm text-muted-foreground">{children}</CardContent>
-    </Card>
+    <SettingsSection>
+      <SettingsHeader>
+        <SettingsTitle>{title}</SettingsTitle>
+      </SettingsHeader>
+      <SettingsContent>{children}</SettingsContent>
+    </SettingsSection>
   );
 }
 
 /** What the tool is, how it computes signals, how the AI is used, data licenses and privacy. */
 export function AcercaView() {
   return (
-    <div className="flex min-w-0 flex-col gap-4">
-      <PageIntro description="Qué es esta herramienta, de dónde salen sus datos y qué puede esperar de ella." />
-
+    <div className="flex min-w-0 flex-col gap-6">
       <Section title="Qué es y qué no es">
         <p>
           Smart Work Core (SWC) lee el contexto de Colombia para que una empresa decida con datos: junta en un solo lugar la TRM, la contratación pública, la macroeconomía, los

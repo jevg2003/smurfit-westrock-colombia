@@ -50,9 +50,9 @@ export function MacroView() {
   const energy = useEnergy();
   const [active, setActive] = useState<IndicatorId>("pib");
 
-  const gdpRows = gdp.data?.observations ?? [];
-  const cpiRows = cpi.data?.observations ?? [];
-  const exportRows = exportsQuery.data?.observations ?? [];
+  const gdpRows = useMemo(() => gdp.data?.observations ?? [], [gdp.data]);
+  const cpiRows = useMemo(() => cpi.data?.observations ?? [], [cpi.data]);
+  const exportRows = useMemo(() => exportsQuery.data?.observations ?? [], [exportsQuery.data]);
   useRegisterPageContext(
     macroContext({
       gdp: gdpRows,

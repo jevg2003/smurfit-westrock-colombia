@@ -40,7 +40,7 @@ export function validateThresholds(fields: ThresholdFields): Validation<Threshol
     const rule = RULES[key];
     const raw = parseNumber(fields[key]);
     if (raw === null) {
-      errors[key] = "Escribe un número.";
+      errors[key] = "Escriba un número.";
     } else if (raw <= 0) {
       errors[key] = "El valor debe ser mayor que cero.";
     } else if (rule.integer && !Number.isInteger(raw)) {

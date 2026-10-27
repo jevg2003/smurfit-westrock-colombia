@@ -44,6 +44,18 @@ describe("EventItem", () => {
     expect(screen.getByText("Sus importaciones cuestan más.")).toBeInTheDocument();
   });
 
+  it("renders without a time when the event has no date and shows extra body content", () => {
+    render(
+      <EventItem title="Fuente sin consulta" now={NOW}>
+        <p>Más datos de la fuente</p>
+      </EventItem>,
+    );
+
+    expect(screen.queryByText(/hace/)).not.toBeInTheDocument();
+    expect(document.querySelector("time")).toBeNull();
+    expect(screen.getByText("Más datos de la fuente")).toBeInTheDocument();
+  });
+
   it("marks a new event with a text label, not only a dot", () => {
     render(<EventItem title="Nuevo aviso" at={AT} now={NOW} state="new" />);
 

@@ -4,9 +4,8 @@ import { CheckIcon, PlusIcon } from "lucide-react";
 import { useRegisterPageContext } from "@/features/asistente/page-context";
 import { followContext } from "@/features/asistente/screen-contexts";
 import { Badge } from "@/components/reui/badge";
-import { PageIntro } from "@/components/shell/page-intro";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { SettingsContent, SettingsDescription, SettingsHeader, SettingsSection, SettingsTitle } from "@/components/layouts/settings-section";
 import { Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemTitle } from "@/components/ui/item";
 import { Skeleton } from "@/components/ui/skeleton";
 import { withNitCompetitors } from "@/core/company/profile";
@@ -40,7 +39,7 @@ function FollowRow({ title, description, followed, followLabel, unfollowLabel, o
         <ItemTitle>
           {title}
           {followed && (
-            <Badge variant="success-light" size="sm">
+            <Badge variant="success-light">
               Siguiendo
             </Badge>
           )}
@@ -75,18 +74,18 @@ export function SeguimientoSettings() {
 
   return (
     <div className="flex min-w-0 flex-col gap-4">
-      <PageIntro description="Elija los competidores e indicadores que le importan. En Resumen puede activar «Solo lo que sigo» para ver solo eso." />
+      <p className="text-sm text-muted-foreground">Elija los competidores e indicadores que le importan. En Resumen active «Solo lo que sigo» para ver solo eso.</p>
 
       {!hasHydrated ? (
         <Skeleton role="status" aria-label="Cargando lo que sigue" className="h-72 rounded-xl" />
       ) : (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <Card className="min-w-0">
-            <CardHeader>
-              <CardTitle className="text-sm font-medium">Competidores</CardTitle>
-              <CardDescription>La lista sale del perfil de la empresa (solo los competidores con NIT). Elija a cuáles sigue.</CardDescription>
-            </CardHeader>
-            <CardContent>
+          <SettingsSection>
+            <SettingsHeader>
+              <SettingsTitle>Competidores</SettingsTitle>
+              <SettingsDescription>La lista sale del perfil de la empresa (solo los competidores con NIT). Elija a cuáles sigue.</SettingsDescription>
+            </SettingsHeader>
+            <SettingsContent>
               <ItemGroup className="gap-2">
                 {competitors.map((competitor) => (
                   <FollowRow
@@ -100,17 +99,17 @@ export function SeguimientoSettings() {
                   />
                 ))}
               </ItemGroup>
-            </CardContent>
-          </Card>
+            </SettingsContent>
+          </SettingsSection>
 
-          <Card className="min-w-0">
-            <CardHeader>
-              <CardTitle className="text-sm font-medium">Indicadores</CardTitle>
-              <CardDescription>
+          <SettingsSection>
+            <SettingsHeader>
+              <SettingsTitle>Indicadores</SettingsTitle>
+              <SettingsDescription>
                 Hoy solo la TRM genera avisos. Los demás indicadores se guardan para cuando existan reglas para ellos.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+              </SettingsDescription>
+            </SettingsHeader>
+            <SettingsContent>
               <ItemGroup className="gap-2">
                 {INDICATORS.map((indicator) => (
                   <FollowRow
@@ -124,8 +123,8 @@ export function SeguimientoSettings() {
                   />
                 ))}
               </ItemGroup>
-            </CardContent>
-          </Card>
+            </SettingsContent>
+          </SettingsSection>
         </div>
       )}
     </div>

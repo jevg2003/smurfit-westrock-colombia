@@ -27,8 +27,8 @@ export type EventState = "new" | "reviewed" | "dismissed";
 
 export interface EventItemProps {
   title: string;
-  /** ISO instant. */
-  at: string;
+  /** ISO instant. Omit for an item that has no date yet. */
+  at?: string;
   source?: string;
   topic?: string;
   /** The one severity or state badge of the row. */
@@ -49,6 +49,8 @@ export interface EventItemProps {
   onDismiss?: () => void;
   /** Extra actions, placed after the standard ones. */
   actions?: ReactNode;
+  /** Extra body under the lines of the event, for example a collapsed list of facts. */
+  children?: ReactNode;
   /** Reference instant for the relative time; tests pass a fixed one. */
   now?: Date;
 }
@@ -80,6 +82,7 @@ export function EventItem({
   onReopen,
   onDismiss,
   actions,
+  children,
   now,
 }: EventItemProps) {
   const url = href ? safeHttpUrl(href) : undefined;
@@ -126,9 +129,11 @@ export function EventItem({
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex min-w-0 items-start justify-between gap-3">
           {titleNode}
-          <time dateTime={at} title={formatHoraBogota(at)} className="shrink-0 text-xs whitespace-nowrap text-muted-foreground tabular-nums">
-            {relativeTime(at, now)}
-          </time>
+          {at && (
+            <time dateTime={at} title={formatHoraBogota(at)} className="shrink-0 text-xs whitespace-nowrap text-muted-foreground tabular-nums">
+              {relativeTime(at, now)}
+            </time>
+          )}
         </div>
 
         <div className={cn("flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs", state === "reviewed" ? "text-muted-foreground/80" : "text-muted-foreground")}>
@@ -145,6 +150,7 @@ export function EventItem({
         {detail && <p className="text-xs text-muted-foreground text-pretty">{detail}</p>}
         {why && <p className="text-sm text-foreground/80 text-pretty">{why}</p>}
         {note && <p className="text-xs text-muted-foreground text-pretty">Nota: {note}</p>}
+        {children}
 
         {hasActions && (
           <div className="flex flex-wrap items-center gap-1 pt-1 md:opacity-0 md:group-focus-within/event:opacity-100 md:group-hover/event:opacity-100">

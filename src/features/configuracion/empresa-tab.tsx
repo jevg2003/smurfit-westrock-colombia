@@ -3,7 +3,6 @@
 import { CheckIcon, RotateCcwIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { PageIntro } from "@/components/shell/page-intro";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -16,7 +15,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { SettingsContent, SettingsDescription, SettingsHeader, SettingsSection, SettingsTitle } from "@/components/layouts/settings-section";
 import { Skeleton } from "@/components/ui/skeleton";
 import { buildConfirmValues, profileToPatch, profileToSeed, updateProfile, type ConfirmValues } from "@/core/onboarding/confirm";
 import { ConfirmForm } from "@/features/onboarding/confirm-form";
@@ -43,17 +42,17 @@ function ReanswerCard() {
   };
 
   return (
-    <Card size="sm">
-      <CardHeader>
-        <CardTitle>Volver a responder el onboarding</CardTitle>
-        <CardDescription>La IA vuelve a preguntar con los datos actuales de la empresa. Al terminar, se actualiza esta empresa; no se crea otra.</CardDescription>
-      </CardHeader>
-      <CardContent>
+    <SettingsSection>
+      <SettingsHeader>
+        <SettingsTitle>Volver a responder el onboarding</SettingsTitle>
+        <SettingsDescription>La IA vuelve a preguntar con los datos actuales de la empresa. Al terminar, se actualiza esta empresa; no se crea otra.</SettingsDescription>
+      </SettingsHeader>
+      <SettingsContent>
         <Button variant="outline" onClick={request}>
           <RotateCcwIcon aria-hidden="true" data-icon="inline-start" />
           Volver a responder el onboarding
         </Button>
-      </CardContent>
+      </SettingsContent>
       <AlertDialog open={confirming} onOpenChange={setConfirming}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -66,7 +65,7 @@ function ReanswerCard() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </Card>
+    </SettingsSection>
   );
 }
 
@@ -86,10 +85,10 @@ export function EmpresaTab() {
 
   return (
     <div className="flex min-w-0 flex-col gap-4">
-      <PageIntro description="Los datos con los que se arman las búsquedas, las reglas y las respuestas del asistente." />
+      <p className="text-sm text-muted-foreground">Los datos con los que se arman las búsquedas, las reglas y las respuestas del asistente.</p>
       <ReanswerCard />
-      <Card>
-        <CardContent>
+      <SettingsSection>
+        <SettingsContent>
           {/* Remounts when another company is active, so the fields never show the previous one. */}
           <ConfirmForm
             key={company.id}
@@ -103,8 +102,8 @@ export function EmpresaTab() {
               <AlertDescription>Cambios guardados.</AlertDescription>
             </Alert>
           )}
-        </CardContent>
-      </Card>
+        </SettingsContent>
+      </SettingsSection>
     </div>
   );
 }

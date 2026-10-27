@@ -3,7 +3,6 @@
 import { HistoryIcon, SparklesIcon } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { PageIntro } from "@/components/shell/page-intro";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -69,17 +68,17 @@ export function AssistantPage() {
   );
 
   return (
-    <div className="mx-auto flex min-h-[32rem] w-full max-w-5xl flex-1 flex-col gap-4">
-      <PageIntro
-        title="Asistente"
-        description="Pregunta por la TRM, los contratos, los competidores y los avisos. En esta página no ve tu pantalla."
-        actions={
-          <Button variant="outline" size="sm" className="md:hidden" onClick={() => setHistoryOpen(true)}>
-            <HistoryIcon aria-hidden="true" data-icon="inline-start" />
-            Historial
-          </Button>
-        }
-      />
+    <div className="flex min-h-0 w-full max-w-5xl flex-1 flex-col gap-3">
+      <div className="flex shrink-0 flex-wrap items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <h1 className="text-xl font-semibold tracking-tight">Asistente</h1>
+          <p className="max-w-prose text-sm text-muted-foreground">Pregunte por la TRM, los contratos, los competidores y los avisos. En esta página no ve su pantalla.</p>
+        </div>
+        <Button variant="outline" size="sm" className="md:hidden" onClick={() => setHistoryOpen(true)}>
+          <HistoryIcon aria-hidden="true" data-icon="inline-start" />
+          Historial
+        </Button>
+      </div>
 
       <div className="flex min-h-0 flex-1 gap-6">
         <aside aria-label="Historial de conversaciones" className="hidden w-72 shrink-0 flex-col md:flex">
@@ -104,7 +103,7 @@ export function AssistantPage() {
                     <EmptyMedia variant="icon">
                       <SparklesIcon aria-hidden="true" />
                     </EmptyMedia>
-                    <EmptyTitle>¿En qué te ayudo?</EmptyTitle>
+                    <EmptyTitle>¿En qué le ayudo?</EmptyTitle>
                     <EmptyDescription>Respondo con los datos públicos de la aplicación y cito la fuente de cada cifra.</EmptyDescription>
                   </EmptyHeader>
                 </Empty>
@@ -132,7 +131,7 @@ export function AssistantPage() {
         <SheetContent side="left" className="gap-3 p-4 md:hidden">
           <SheetHeader className="p-0">
             <SheetTitle>Historial</SheetTitle>
-            <SheetDescription>Tus conversaciones anteriores con el asistente.</SheetDescription>
+            <SheetDescription>Sus conversaciones anteriores con el asistente.</SheetDescription>
           </SheetHeader>
           {historyOpen && historyPanel(() => setHistoryOpen(false))}
         </SheetContent>

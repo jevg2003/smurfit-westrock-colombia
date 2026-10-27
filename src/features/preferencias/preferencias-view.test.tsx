@@ -49,7 +49,7 @@ describe("PreferenciasView", () => {
     await user.type(screen.getByLabelText(/Días antes del fin para vigilar/), "45,5");
     await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
 
-    expect(await screen.findByText("Escribe un número.")).toBeInTheDocument();
+    expect(await screen.findByText("Escriba un número.")).toBeInTheDocument();
     expect(screen.getByText("Usa un número entero de días.")).toBeInTheDocument();
     expect(screen.getByLabelText(/Variación diaria de la TRM para vigilar/)).toHaveAttribute("aria-invalid", "true");
     expect(usePreferencesStore.getState().thresholds).toEqual(TEST_COMPANY.thresholds);

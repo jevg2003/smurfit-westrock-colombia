@@ -42,10 +42,10 @@ describe("FuentesView", () => {
     ];
     render(<FuentesView />);
 
-    const secop = screen.getByText("SECOP II").closest("[data-slot=card]") as HTMLElement;
+    const secop = screen.getByText("SECOP II").closest("li") as HTMLElement;
     expect(within(secop).getByText("Con error")).toBeInTheDocument();
-    expect(within(secop).getByText("Límite de consultas")).toBeInTheDocument();
-    expect(within(secop).getByText("SECOP II limitó las consultas.")).toBeInTheDocument();
+    expect(within(secop).getAllByText(/Límite de consultas/).length).toBeGreaterThan(0);
+    expect(within(secop).getAllByText(/SECOP II limitó las consultas\./).length).toBeGreaterThan(0);
     expect(within(secop).getByText("CC BY-SA 4.0")).toBeInTheDocument();
     expect(within(secop).getByText("Navegador")).toBeInTheDocument();
 
@@ -53,11 +53,11 @@ describe("FuentesView", () => {
     expect(retry).toHaveBeenCalledTimes(1);
     expect(other).not.toHaveBeenCalled();
 
-    const google = screen.getByText("Google News").closest("[data-slot=card]") as HTMLElement;
+    const google = screen.getByText("Google News").closest("li") as HTMLElement;
     expect(within(google).getByText("Desactivada", { selector: "dd" })).toBeInTheDocument();
     expect(within(google).getByText("Proxy del servidor")).toBeInTheDocument();
 
-    const trm = screen.getByText("TRM").closest("[data-slot=card]") as HTMLElement;
+    const trm = screen.getByText("TRM").closest("li") as HTMLElement;
     expect(within(trm).getByText("Funcionando")).toBeInTheDocument();
     expect(within(trm).getByText("Ninguno")).toBeInTheDocument();
   });

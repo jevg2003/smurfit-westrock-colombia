@@ -19,7 +19,7 @@ describe("describeChatFailure", () => {
   it("falls back to a generic message without leaking details", () => {
     expect(describeChatFailure(new Error("boom stack trace"))).toEqual({
       title: "No se pudo responder",
-      message: "No pude responder en este momento. Vuelve a intentarlo.",
+      message: "No pude responder en este momento. Vuelva a intentarlo.",
     });
   });
 });

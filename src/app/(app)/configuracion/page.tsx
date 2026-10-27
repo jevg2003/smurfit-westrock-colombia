@@ -1,6 +1,7 @@
 "use client";
 
 import { BuildingIcon, DatabaseIcon, InfoIcon, SlidersHorizontalIcon } from "lucide-react";
+import { DocumentLayout } from "@/components/layouts/document-layout";
 import { PageTabs } from "@/components/shell/page-tabs";
 import { AcercaView } from "@/features/acerca/acerca-view";
 import { EmpresaTab } from "@/features/configuracion/empresa-tab";
@@ -12,10 +13,10 @@ export default function ConfiguracionPage() {
     <PageTabs
       title="Configuración"
       tabs={[
-        { value: "empresa", label: "Empresa", icon: BuildingIcon, content: <EmpresaTab /> },
-        { value: "reglas", label: "Reglas y preferencias", icon: SlidersHorizontalIcon, content: <ReglasTab /> },
-        { value: "fuentes", label: "Fuentes", icon: DatabaseIcon, content: <FuentesView /> },
-        { value: "acerca", label: "Acerca de", icon: InfoIcon, content: <AcercaView /> },
+        { value: "empresa", label: "Empresa", icon: BuildingIcon, content: <DocumentLayout><EmpresaTab /></DocumentLayout> },
+        { value: "reglas", label: "Reglas y preferencias", icon: SlidersHorizontalIcon, content: <DocumentLayout><ReglasTab /></DocumentLayout> },
+        { value: "fuentes", label: "Fuentes", icon: DatabaseIcon, content: <DocumentLayout><FuentesView /></DocumentLayout> },
+        { value: "acerca", label: "Acerca de", icon: InfoIcon, content: <DocumentLayout><AcercaView /></DocumentLayout> },
       ]}
     />
   );
