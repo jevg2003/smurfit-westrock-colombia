@@ -92,9 +92,9 @@ function MockWindow({ preview }: { preview: Preview }) {
               Buscar en {preview.name ?? "su empresa"}
             </div>
           </div>
-          <div className="flex gap-1 overflow-hidden px-3 py-2.5">
+          <div className="flex h-10 shrink-0 items-center gap-1.5 overflow-hidden px-3">
             {FILTERS.map((filter, index) => (
-              <Badge key={filter} variant={index === 0 ? "default" : "outline"} size="sm" radius="full">
+              <Badge key={filter} variant={index === 0 ? "default" : "outline"} size="sm" radius="full" className="h-6 px-2.5 text-[11px] leading-none">
                 {filter}
               </Badge>
             ))}
