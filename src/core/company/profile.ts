@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { COMPETITORS_MAX, REGULATION_KEYWORDS_MAX, activitySchema, citySchema, competitorNameSchema, goalTextSchema, nameSchema, prioritiesSchema, sectorSchema, termList } from "./fields";
+import { nitDigitsSchema, nitOf } from "./nit";
 import {
   DEFAULT_COLOMBIA_CONTEXT_WORDS,
   DEFAULT_EXCLUDE_WORDS,
@@ -33,13 +35,10 @@ export interface NewsTermGroup {
 export const hasContextTerms = (group: Pick<NewsTermGroup, "contextTerms">): boolean => group.contextTerms === "all" || group.contextTerms.length > 0;
 
 const text = (max: number) => z.string().trim().min(1).max(max);
-const wordList = (maxItems: number) => z.array(text(120)).max(maxItems);
+const wordList = termList;
 const positive = z.number().positive().finite();
 
-/** NIT as SECOP stores it: digits only, no dots and no verification digit. */
-const nitSchema = z.string().trim().regex(/^\d{5,12}$/, "El NIT lleva solo dígitos, sin puntos ni dígito de verificación.");
-
-export const competitorSchema = z.object({ name: text(120), nit: nitSchema.optional() });
+export const competitorSchema = z.object({ name: competitorNameSchema, nit: nitDigitsSchema.optional() });
 export type Competitor = z.infer<typeof competitorSchema>;
 
 export const newsGroupSchema = z.object({
@@ -59,26 +58,26 @@ export const thresholdsSchema = z.object({
 
 export const goalsSchema = z.object({
   /** Where the company stands today, in the user's words. */
-  currentSituation: z.string().trim().max(2000),
+  currentSituation: goalTextSchema,
   /** What it wants to achieve. */
-  target: z.string().trim().max(2000),
+  target: goalTextSchema,
   /** Priorities in order of importance. */
-  priorities: z.array(text(200)).max(10),
+  priorities: prioritiesSchema,
 });
 export type CompanyGoals = z.infer<typeof goalsSchema>;
 
 export const companyProfileSchema = z.object({
   id: text(64),
-  name: text(120),
+  name: nameSchema,
   /** Optional: without it, public contracts and competitor financials cannot be looked up. */
-  nit: nitSchema.optional(),
+  nit: nitDigitsSchema.optional(),
   /** Industry or line of business in a few words (for example "Alimentos y bebidas"). */
-  sector: z.string().trim().max(120).optional(),
+  sector: sectorSchema.optional(),
   /** What the company does, in a sentence or two. */
-  activity: z.string().trim().max(1000),
-  city: z.string().trim().max(80).optional(),
+  activity: activitySchema,
+  city: citySchema.optional(),
   regions: wordList(20),
-  competitors: z.array(competitorSchema).max(20),
+  competitors: z.array(competitorSchema).max(COMPETITORS_MAX),
   newsGroups: z.object({
     company: newsGroupSchema,
     sector: newsGroupSchema,
@@ -89,7 +88,7 @@ export const companyProfileSchema = z.object({
   colombiaContextWords: wordList(40),
   /** Words of headlines that are never about the business. */
   excludeWords: wordList(40),
-  regulationKeywords: wordList(60),
+  regulationKeywords: wordList(REGULATION_KEYWORDS_MAX),
   regulationExcludeKeywords: wordList(40),
   thresholds: thresholdsSchema,
   goals: goalsSchema,
@@ -102,12 +101,7 @@ export type CompanyNewsGroup = CompanyProfile["newsGroups"][NewsGroupId];
 
 export const hasNit = (profile: Pick<CompanyProfile, "nit">): boolean => profile.nit !== undefined && profile.nit !== "";
 
-/** Digits of a NIT written in any format ("900.123.456-7" becomes "900123456"), or undefined when there are none. */
-export function nitOf(raw: string): string | undefined {
-  const [body] = raw.trim().split("-");
-  const digits = body.replace(/\D+/g, "");
-  return digits === "" ? undefined : digits;
-}
+export { nitOf };
 
 export type CompetitorWithNit = Competitor & { nit: string };
 

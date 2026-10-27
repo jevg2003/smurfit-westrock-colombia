@@ -39,9 +39,11 @@ describe("confirmFormSchema", () => {
     expect(confirmFormSchema.safeParse(valid).success).toBe(true);
   });
 
-  it("requires a name and digits-only NITs when present", () => {
+  it("requires a name and a valid NIT when present", () => {
     expect(confirmFormSchema.safeParse({ ...valid, name: " " }).success).toBe(false);
-    expect(confirmFormSchema.safeParse({ ...valid, nit: "900.123" }).success).toBe(false);
+    expect(confirmFormSchema.safeParse({ ...valid, nit: "1234" }).success).toBe(false);
+    expect(confirmFormSchema.safeParse({ ...valid, nit: "900123456-7" }).success).toBe(false);
+    expect(confirmFormSchema.safeParse({ ...valid, nit: "900123456-8" }).success).toBe(true);
     expect(confirmFormSchema.safeParse({ ...valid, nit: "" }).success).toBe(true);
     expect(confirmFormSchema.safeParse({ ...valid, competitors: [{ name: "X", nit: "12" }] }).success).toBe(false);
   });
@@ -64,6 +66,13 @@ describe("buildProfile", () => {
     expect(companyProfileSchema.safeParse(profile).success).toBe(true);
     expect(profile).not.toHaveProperty("nit");
     expect(profile).toMatchObject({ id: "acme", sector: "Lácteos", city: "Cali", excludeWords: ["horóscopo"] });
+  });
+
+  it("stores the NITs as digits when the form kept a pasted verification digit", () => {
+    const values = { ...buildConfirmValues({ name: "Acme" }, patch), nit: "900123456-8", competitors: [{ name: "Alpina", nit: "860.025.900" }] };
+    const profile = buildProfile(values, patch, { id: "acme", now });
+    expect(profile.nit).toBe("900123456");
+    expect(profile.competitors).toEqual([{ name: "Alpina", nit: "860025900" }]);
   });
 
   it("keeps the context gating the AI proposed and always lists the company in its group", () => {

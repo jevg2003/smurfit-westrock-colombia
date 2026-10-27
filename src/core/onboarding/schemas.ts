@@ -1,5 +1,7 @@
 import "@/lib/zod-config";
 import { z } from "zod";
+import { ACTIVITY_MAX, CITY_MAX, COMPETITORS_MAX, GOAL_TEXT_MAX, PRIORITIES_MAX, PRIORITY_MAX, SECTOR_MAX, TERMS_PER_GROUP_MAX, TERM_MAX, citySchema, nameSchema } from "@/core/company/fields";
+import { nitDigitsSchema } from "@/core/company/nit";
 import { competitorSchema, newsGroupSchema } from "@/core/company/profile";
 
 /** Blocks in which the AI asks questions. The third block (confirm) is a form with no AI. */
@@ -13,14 +15,11 @@ export const MAX_QUESTIONS_PER_BLOCK: Readonly<Record<AiBlock, number>> = { empr
 const text = (max: number) => z.string().trim().min(1).max(max);
 const freeText = (max: number) => z.string().trim().max(max);
 
-/** NIT digits as the client stores them: no dots and no verification digit. */
-export const nitDigitsSchema = z.string().trim().regex(/^\d{5,12}$/, "El NIT lleva solo dígitos, sin puntos ni dígito de verificación.");
-
 /** The fixed first form: only the name is required. */
 export const seedSchema = z.strictObject({
-  name: text(120),
+  name: nameSchema,
   nit: nitDigitsSchema.optional(),
-  city: freeText(80).optional(),
+  city: citySchema.optional(),
 });
 export type OnboardingSeed = z.infer<typeof seedSchema>;
 
@@ -62,22 +61,22 @@ export const onboardingRequestSchema = z.strictObject({
 });
 export type OnboardingRequest = z.infer<typeof onboardingRequestSchema>;
 
-const words = (maxItems: number) => z.array(text(120)).max(maxItems);
+const words = (maxItems: number) => z.array(text(TERM_MAX)).max(maxItems);
 
 /** Fields the onboarding can fill in a profile. All optional: a patch only carries what the AI learned. */
 export const profilePatchSchema = z
   .strictObject({
-    sector: freeText(120),
-    activity: freeText(1000),
-    city: freeText(80),
+    sector: freeText(SECTOR_MAX),
+    activity: freeText(ACTIVITY_MAX),
+    city: freeText(CITY_MAX),
     regions: words(20),
-    competitors: z.array(competitorSchema).max(20),
+    competitors: z.array(competitorSchema).max(COMPETITORS_MAX),
     newsGroups: z.strictObject({ company: newsGroupSchema, sector: newsGroupSchema, regulation: newsGroupSchema, operations: newsGroupSchema }),
-    colombiaContextWords: words(40),
-    excludeWords: words(40),
+    colombiaContextWords: words(TERMS_PER_GROUP_MAX),
+    excludeWords: words(TERMS_PER_GROUP_MAX),
     regulationKeywords: words(60),
-    regulationExcludeKeywords: words(40),
-    goals: z.strictObject({ currentSituation: freeText(2000), target: freeText(2000), priorities: z.array(text(200)).max(10) }).partial(),
+    regulationExcludeKeywords: words(TERMS_PER_GROUP_MAX),
+    goals: z.strictObject({ currentSituation: freeText(GOAL_TEXT_MAX), target: freeText(GOAL_TEXT_MAX), priorities: z.array(text(PRIORITY_MAX)).max(PRIORITIES_MAX) }).partial(),
   })
   .partial();
 export type ProfilePatch = z.infer<typeof profilePatchSchema>;

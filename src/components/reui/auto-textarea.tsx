@@ -24,7 +24,7 @@ type AutoTextareaProps = Omit<ComponentProps<"textarea">, "value" | "onChange" |
   value: string
   onChange: (value: string) => void
   /** Hard limit of characters. */
-  maxChars: number
+  maxChars?: number
 }
 
 /** Textarea that grows with its content and stops at `maxChars` (ReUI c-textarea-6). */
@@ -44,7 +44,7 @@ export function AutoTextarea({ value, onChange, maxChars, className, rows = 2, .
       value={value}
       rows={rows}
       maxLength={maxChars}
-      onChange={(event) => onChange(event.target.value.slice(0, maxChars))}
+      onChange={(event) => onChange(maxChars === undefined ? event.target.value : event.target.value.slice(0, maxChars))}
       className={cn("resize-none overflow-hidden", className)}
       {...props}
     />
