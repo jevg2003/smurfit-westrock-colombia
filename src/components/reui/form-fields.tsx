@@ -5,6 +5,8 @@ import { PlusIcon, XIcon } from "lucide-react"
 import { useId, useState, type ClipboardEvent, type ComponentProps, type ReactNode } from "react"
 import { NumericFormat } from "react-number-format"
 import type { z } from "zod"
+import { DatePicker } from "@/components/date/date-picker"
+import type { DateDirection } from "@/components/date/presets"
 import { Badge } from "@/components/reui/badge"
 import { AutoTextarea, CharCounter } from "@/components/reui/auto-textarea"
 import { Button } from "@/components/ui/button"
@@ -31,7 +33,7 @@ function schemaOf(field: AnyFieldApi): z.ZodType | undefined {
 }
 
 /** Rules of one field, read from the schema of its form. */
-export const useFieldMeta = (field: AnyFieldApi): FieldMeta => fieldMeta(schemaOf(field), field.name)
+export const useFieldMeta = (field: AnyFieldApi, schema?: z.ZodType): FieldMeta => fieldMeta(schema ?? schemaOf(field), field.name)
 
 interface BaseProps {
   field: AnyFieldApi
@@ -39,6 +41,8 @@ interface BaseProps {
   hint?: string
   /** Keeps the label for assistive technology only (the screen already shows the text). */
   hideLabel?: boolean
+  /** Reads the rules from this schema instead of the form schema, for a field whose rules depend on another value. */
+  schema?: z.ZodType
 }
 
 /** Label with the mark the schema asks for: a star when the field is required, "(opcional)" when it is not. */
@@ -75,10 +79,10 @@ function LabelRow({
 type TextFieldProps = BaseProps &
   Omit<ComponentProps<typeof Input>, "value" | "onChange" | "onBlur" | "id" | "name" | "maxLength" | "required">
 
-export function TextField({ field, label, hint, hideLabel, ...props }: TextFieldProps) {
+export function TextField({ field, label, hint, hideLabel, schema, ...props }: TextFieldProps) {
   const id = useId()
   const invalid = invalidOf(field)
-  const meta = useFieldMeta(field)
+  const meta = useFieldMeta(field, schema)
   return (
     <Field data-invalid={invalid}>
       <LabelRow htmlFor={id} label={label} hideLabel={hideLabel} required={meta.required} />
@@ -103,10 +107,10 @@ export function TextField({ field, label, hint, hideLabel, ...props }: TextField
 type NumberFieldProps = BaseProps & { unit?: string; inputMode?: "decimal" | "numeric"; onValueChange?(): void }
 
 /** A number typed as text (a decimal comma is accepted); the rules (range, integer) are the schema's. */
-export function NumberField({ field, label, hint, hideLabel, unit, inputMode = "decimal", onValueChange }: NumberFieldProps) {
+export function NumberField({ field, label, hint, hideLabel, schema, unit, inputMode = "decimal", onValueChange }: NumberFieldProps) {
   const id = useId()
   const invalid = invalidOf(field)
-  const meta = useFieldMeta(field)
+  const meta = useFieldMeta(field, schema)
   return (
     <Field data-invalid={invalid}>
       <LabelRow htmlFor={id} label={label} hideLabel={hideLabel} required={meta.required} />
@@ -130,6 +134,31 @@ export function NumberField({ field, label, hint, hideLabel, unit, inputMode = "
         />
         {unit && <span className="text-sm text-muted-foreground">{unit}</span>}
       </div>
+      {hint && <FieldDescription id={`${id}-hint`}>{hint}</FieldDescription>}
+      {invalid && <FieldError errors={field.state.meta.errors} />}
+    </Field>
+  )
+}
+
+type DateFieldProps = BaseProps & { direction?: DateDirection; clearable?: boolean }
+
+/** A calendar day (`YYYY-MM-DD`, empty for none) picked from a popover; the required mark comes from the schema. */
+export function DateField({ field, label, hint, hideLabel, schema, direction, clearable }: DateFieldProps) {
+  const id = useId()
+  const invalid = invalidOf(field)
+  const meta = useFieldMeta(field, schema)
+  return (
+    <Field data-invalid={invalid}>
+      <LabelRow htmlFor={id} label={label} hideLabel={hideLabel} required={meta.required} />
+      <DatePicker
+        id={id}
+        label={label}
+        direction={direction}
+        clearable={clearable}
+        invalid={invalid}
+        value={field.state.value || undefined}
+        onChange={(next) => field.handleChange(next ?? "")}
+      />
       {hint && <FieldDescription id={`${id}-hint`}>{hint}</FieldDescription>}
       {invalid && <FieldError errors={field.state.meta.errors} />}
     </Field>
@@ -197,13 +226,20 @@ export function NitField({ field, label, hint, hideLabel, placeholder = "900.123
   )
 }
 
-type AutoTextareaFieldProps = BaseProps & { placeholder?: string; rows?: number }
+type AutoTextareaFieldProps = BaseProps & {
+  placeholder?: string
+  rows?: number
+  /** An error that does not come from the schema (a store refusing the value); shown while the schema is satisfied. */
+  extraError?: string | null
+  /** Called whenever the user edits the text, for example to clear `extraError`. */
+  onEdit?(): void
+}
 
 /** The one free-text field of the app: auto-resize and character counter (ReUI c-textarea-6); the limit is the schema's. */
-export function AutoTextareaField({ field, label, hint, hideLabel, ...props }: AutoTextareaFieldProps) {
+export function AutoTextareaField({ field, label, hint, hideLabel, schema, extraError, onEdit, ...props }: AutoTextareaFieldProps) {
   const id = useId()
-  const invalid = invalidOf(field)
-  const meta = useFieldMeta(field)
+  const invalid = invalidOf(field) || Boolean(extraError)
+  const meta = useFieldMeta(field, schema)
   const maxChars = meta.maxLength
   return (
     <Field data-invalid={invalid}>
@@ -219,11 +255,14 @@ export function AutoTextareaField({ field, label, hint, hideLabel, ...props }: A
         aria-invalid={invalid || undefined}
         aria-describedby={hint ? `${id}-hint` : undefined}
         onBlur={field.handleBlur}
-        onChange={field.handleChange}
+        onChange={(next) => {
+          field.handleChange(next)
+          onEdit?.()
+        }}
         {...props}
       />
       {hint && <FieldDescription id={`${id}-hint`}>{hint}</FieldDescription>}
-      {invalid && <FieldError errors={field.state.meta.errors} />}
+      {!field.state.meta.isValid ? <FieldError errors={field.state.meta.errors} /> : extraError ? <FieldError>{extraError}</FieldError> : null}
     </Field>
   )
 }

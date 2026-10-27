@@ -109,6 +109,22 @@ describe("PestelView", () => {
     await waitFor(() => expect(useDecisionsStore.getState().decisions.find((item) => item.id === created.id)?.status).toBe("decided"));
   });
 
+  it("takes the required mark and the limits of the decision fields from the schema", async () => {
+    const user = userEvent.setup();
+    useDecisionsStore.getState().create({ title: "Decidir algo", question: "?", pestelFactors: ["legal"] });
+    renderWithQuery(<PestelView />);
+
+    await user.click(await screen.findByRole("button", { name: "Abrir: Decidir algo" }));
+    expect(screen.getByLabelText("Título")).toHaveAttribute("maxlength", "120");
+    expect(screen.getByLabelText("Título")).toHaveAttribute("aria-required", "true");
+    expect(screen.getByLabelText("Responsable")).toHaveAttribute("maxlength", "80");
+    expect(screen.getByLabelText("Responsable")).not.toHaveAttribute("aria-required");
+    expect(screen.getByLabelText("Motivo")).not.toHaveAttribute("aria-required");
+    await user.click(screen.getByRole("button", { name: "Decidida" }));
+    expect(screen.getByLabelText("Motivo")).toHaveAttribute("aria-required", "true");
+    expect(screen.getByLabelText("Motivo")).toHaveAttribute("maxlength", "1000");
+  });
+
   it("blocks discarding without a rationale, with the message under the field", async () => {
     const user = userEvent.setup();
     useDecisionsStore.getState().create({ title: "Decidir algo", question: "?", pestelFactors: ["legal"] });
@@ -141,7 +157,7 @@ describe("PestelView", () => {
 
     await user.click(await screen.findByRole("button", { name: "Abrir: Decidir algo" }));
     expect(document.querySelector('input[type="date"]')).toBeNull();
-    await user.click(await screen.findByRole("button", { name: /Revisar el \(opcional\): Elegir fecha/ }));
+    await user.click(await screen.findByRole("button", { name: /Revisar el: Elegir fecha/ }));
     await user.click(await screen.findByRole("button", { name: "Mañana" }));
     await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
 

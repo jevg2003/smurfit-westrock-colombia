@@ -3,12 +3,11 @@
 import { revalidateLogic, useForm, useStore } from "@tanstack/react-form";
 import { PlusIcon, Trash2Icon } from "lucide-react";
 import { useId, useState } from "react";
-import { DatePicker } from "@/components/date/date-picker";
 import { Badge } from "@/components/reui/badge";
+import { AutoTextareaField, DateField, TextField } from "@/components/reui/form-fields";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
 import {
   Sheet,
   SheetContent,
@@ -17,7 +16,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import type { Decision, DecisionOption, DecisionStatus } from "@/core/domain/decision";
 import type { Pestel } from "@/core/domain/dimension";
@@ -26,7 +24,7 @@ import { DECISION_STATUS_LABELS } from "@/core/labels";
 import { PESTEL_ORDER } from "@/core/usecases/build-pestel";
 import { PESTEL_LABELS } from "@/features/entorno/labels";
 import { useDecisionsStore } from "@/stores/decisions.store";
-import { createDecisionSchema, detailsSchema, statusSchema, type DetailsValues, type StatusValues } from "./decision-schemas";
+import { createDecisionSchema, detailsSchema, statusSchema, statusSchemaFor, type DetailsValues, type StatusValues } from "./decision-schemas";
 import { DECISION_TEMPLATES, type DecisionTemplate } from "./decision-templates";
 
 const STATUSES: readonly DecisionStatus[] = ["open", "evaluating", "decided", "discarded"];
@@ -154,38 +152,8 @@ function CreateForm({ onCreated }: { onCreated: (id: string) => void }) {
         </section>
 
         <section className="flex flex-col gap-3">
-          <form.Field name="title">
-            {(field) => {
-              const invalid = !field.state.meta.isValid;
-              return (
-                <Field data-invalid={invalid}>
-                  <FieldLabel htmlFor={`${formId}-title`}>Título</FieldLabel>
-                  <Input
-                    id={`${formId}-title`}
-                    value={field.state.value}
-                    aria-invalid={invalid || undefined}
-                    onBlur={field.handleBlur}
-                    onChange={(event) => field.handleChange(event.target.value)}
-                  />
-                  {invalid && <FieldError errors={field.state.meta.errors} />}
-                </Field>
-              );
-            }}
-          </form.Field>
-          <form.Field name="question">
-            {(field) => (
-              <Field>
-                <FieldLabel htmlFor={`${formId}-question`}>Pregunta</FieldLabel>
-                <Textarea
-                  id={`${formId}-question`}
-                  rows={3}
-                  value={field.state.value}
-                  onBlur={field.handleBlur}
-                  onChange={(event) => field.handleChange(event.target.value)}
-                />
-              </Field>
-            )}
-          </form.Field>
+          <form.Field name="title">{(field) => <TextField field={field} label="Título" />}</form.Field>
+          <form.Field name="question">{(field) => <AutoTextareaField field={field} label="Pregunta" rows={3} />}</form.Field>
           <form.Field name="factors">
             {(field) => (
               <Field>
@@ -297,38 +265,8 @@ function EditForm({ decision, signals, onClose }: { decision: Decision; signals:
           }}
         >
           <section className="flex flex-col gap-3">
-            <details.Field name="title">
-              {(field) => {
-                const invalid = !field.state.meta.isValid;
-                return (
-                  <Field data-invalid={invalid}>
-                    <FieldLabel htmlFor={`${ids}-title`}>Título</FieldLabel>
-                    <Input
-                      id={`${ids}-title`}
-                      value={field.state.value}
-                      aria-invalid={invalid || undefined}
-                      onBlur={field.handleBlur}
-                      onChange={(event) => field.handleChange(event.target.value)}
-                    />
-                    {invalid && <FieldError errors={field.state.meta.errors} />}
-                  </Field>
-                );
-              }}
-            </details.Field>
-            <details.Field name="question">
-              {(field) => (
-                <Field>
-                  <FieldLabel htmlFor={`${ids}-question`}>Pregunta</FieldLabel>
-                  <Textarea
-                    id={`${ids}-question`}
-                    rows={3}
-                    value={field.state.value}
-                    onBlur={field.handleBlur}
-                    onChange={(event) => field.handleChange(event.target.value)}
-                  />
-                </Field>
-              )}
-            </details.Field>
+            <details.Field name="title">{(field) => <TextField field={field} label="Título" />}</details.Field>
+            <details.Field name="question">{(field) => <AutoTextareaField field={field} label="Pregunta" rows={3} />}</details.Field>
             <details.Field name="factors">
               {(field) => (
                 <Field>
@@ -338,41 +276,8 @@ function EditForm({ decision, signals, onClose }: { decision: Decision; signals:
               )}
             </details.Field>
             <div className="grid gap-3 sm:grid-cols-2">
-              <details.Field name="owner">
-                {(field) => (
-                  <Field>
-                    <FieldLabel htmlFor={`${ids}-owner`}>Responsable (opcional)</FieldLabel>
-                    <Input
-                      id={`${ids}-owner`}
-                      value={field.state.value}
-                      onBlur={field.handleBlur}
-                      onChange={(event) => field.handleChange(event.target.value)}
-                    />
-                  </Field>
-                )}
-              </details.Field>
-              <details.Field name="reviewAt">
-                {(field) => {
-                  const invalid = !field.state.meta.isValid;
-                  return (
-                    <Field data-invalid={invalid}>
-                      <FieldLabel htmlFor={`${ids}-review`}>
-                        Revisar el (opcional)
-                      </FieldLabel>
-                      <DatePicker
-                        id={`${ids}-review`}
-                        label="Revisar el (opcional)"
-                        direction="future"
-                        clearable
-                        invalid={invalid}
-                        value={field.state.value || undefined}
-                        onChange={(next) => field.handleChange(next ?? "")}
-                      />
-                      {invalid && <FieldError errors={field.state.meta.errors} />}
-                    </Field>
-                  );
-                }}
-              </details.Field>
+              <details.Field name="owner">{(field) => <TextField field={field} label="Responsable" />}</details.Field>
+              <details.Field name="reviewAt">{(field) => <DateField field={field} label="Revisar el" direction="future" clearable />}</details.Field>
             </div>
           </section>
 
@@ -388,19 +293,9 @@ function EditForm({ decision, signals, onClose }: { decision: Decision; signals:
                     {optionsField.state.value.map((option, index) => (
                       <li key={option.id} className="flex flex-col gap-2 rounded-lg border p-3">
                         <div className="flex items-end gap-2">
-                          <details.Field name={`options[${index}].label`}>
-                            {(field) => (
-                              <Field className="min-w-0 flex-1">
-                                <FieldLabel htmlFor={`${ids}-o-${option.id}`}>Opción {index + 1}</FieldLabel>
-                                <Input
-                                  id={`${ids}-o-${option.id}`}
-                                  value={field.state.value}
-                                  onBlur={field.handleBlur}
-                                  onChange={(event) => field.handleChange(event.target.value)}
-                                />
-                              </Field>
-                            )}
-                          </details.Field>
+                          <div className="min-w-0 flex-1">
+                            <details.Field name={`options[${index}].label`}>{(field) => <TextField field={field} label={`Opción ${index + 1}`} />}</details.Field>
+                          </div>
                           <Button
                             type="button"
                             variant="ghost"
@@ -412,34 +307,8 @@ function EditForm({ decision, signals, onClose }: { decision: Decision; signals:
                           </Button>
                         </div>
                         <div className="grid gap-2 sm:grid-cols-2">
-                          <details.Field name={`options[${index}].pros`}>
-                            {(field) => (
-                              <Field>
-                                <FieldLabel htmlFor={`${ids}-p-${option.id}`}>A favor</FieldLabel>
-                                <Textarea
-                                  id={`${ids}-p-${option.id}`}
-                                  rows={2}
-                                  value={field.state.value}
-                                  onBlur={field.handleBlur}
-                                  onChange={(event) => field.handleChange(event.target.value)}
-                                />
-                              </Field>
-                            )}
-                          </details.Field>
-                          <details.Field name={`options[${index}].cons`}>
-                            {(field) => (
-                              <Field>
-                                <FieldLabel htmlFor={`${ids}-c-${option.id}`}>En contra</FieldLabel>
-                                <Textarea
-                                  id={`${ids}-c-${option.id}`}
-                                  rows={2}
-                                  value={field.state.value}
-                                  onBlur={field.handleBlur}
-                                  onChange={(event) => field.handleChange(event.target.value)}
-                                />
-                              </Field>
-                            )}
-                          </details.Field>
+                          <details.Field name={`options[${index}].pros`}>{(field) => <AutoTextareaField field={field} label="A favor" rows={2} />}</details.Field>
+                          <details.Field name={`options[${index}].cons`}>{(field) => <AutoTextareaField field={field} label="En contra" rows={2} />}</details.Field>
                         </div>
                       </li>
                     ))}
@@ -569,33 +438,17 @@ function EditForm({ decision, signals, onClose }: { decision: Decision; signals:
                 )}
 
                 <statusForm.Field name="rationale">
-                  {(field) => {
-                    const invalid = !field.state.meta.isValid || storeError !== null;
-                    return (
-                      <Field data-invalid={invalid}>
-                        <FieldLabel htmlFor={`${ids}-why`}>
-                          {status === "decided" || status === "discarded" ? "Motivo (obligatorio)" : "Motivo (opcional)"}
-                        </FieldLabel>
-                        <Textarea
-                          id={`${ids}-why`}
-                          rows={3}
-                          value={field.state.value}
-                          aria-invalid={invalid || undefined}
-                          placeholder="Por ejemplo: la deuda en dólares vence en diciembre"
-                          onBlur={field.handleBlur}
-                          onChange={(event) => {
-                            field.handleChange(event.target.value);
-                            setStoreError(null);
-                          }}
-                        />
-                        {!field.state.meta.isValid ? (
-                          <FieldError errors={field.state.meta.errors} />
-                        ) : (
-                          storeError && <FieldError>{storeError}</FieldError>
-                        )}
-                      </Field>
-                    );
-                  }}
+                  {(field) => (
+                    <AutoTextareaField
+                      field={field}
+                      schema={statusSchemaFor(status)}
+                      label="Motivo"
+                      rows={3}
+                      placeholder="Por ejemplo: la deuda en dólares vence en diciembre"
+                      extraError={storeError}
+                      onEdit={() => setStoreError(null)}
+                    />
+                  )}
                 </statusForm.Field>
               </>
             )}

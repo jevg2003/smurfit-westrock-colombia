@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { createDecisionSchema, detailsSchema, statusSchema } from "./decision-schemas";
+import { fieldMeta } from "@/lib/schema-meta";
+import { createDecisionSchema, detailsSchema, statusSchema, statusSchemaFor } from "./decision-schemas";
 
 const messages = (result: { success: boolean; error?: { issues: { message: string }[] } }) =>
   result.error?.issues.map((issue) => issue.message) ?? [];
@@ -26,6 +27,32 @@ describe("statusSchema", () => {
   it("does not need a rationale for open or evaluating", () => {
     expect(statusSchema.safeParse({ status: "evaluating", rationale: "", chosen: undefined }).success).toBe(true);
     expect(statusSchema.safeParse({ status: "decided", rationale: "Lo exige la norma", chosen: undefined }).success).toBe(true);
+  });
+});
+
+describe("limits and required marks come from the schemas", () => {
+  it("limits the title and the question of a new decision", () => {
+    expect(fieldMeta(createDecisionSchema, "title")).toMatchObject({ required: true, maxLength: 120 });
+    expect(fieldMeta(createDecisionSchema, "question")).toMatchObject({ required: false, maxLength: 500 });
+  });
+
+  it("limits the edit form fields, including each option", () => {
+    expect(fieldMeta(detailsSchema, "owner")).toMatchObject({ required: false, maxLength: 80 });
+    expect(fieldMeta(detailsSchema, "options[0].label")).toMatchObject({ required: true, maxLength: 80 });
+    expect(fieldMeta(detailsSchema, "options[1].pros")).toMatchObject({ required: false, maxLength: 300 });
+    expect(fieldMeta(detailsSchema, "options[1].cons")).toMatchObject({ required: false, maxLength: 300 });
+    expect(fieldMeta(detailsSchema, "reviewAt").required).toBe(false);
+  });
+
+  it("makes the rationale required only for decided and discarded", () => {
+    expect(fieldMeta(statusSchemaFor("decided"), "rationale")).toMatchObject({ required: true, maxLength: 1000 });
+    expect(fieldMeta(statusSchemaFor("discarded"), "rationale").required).toBe(true);
+    expect(fieldMeta(statusSchemaFor("evaluating"), "rationale")).toMatchObject({ required: false, maxLength: 1000 });
+  });
+
+  it("rejects text over the limits", () => {
+    expect(createDecisionSchema.safeParse({ title: "x".repeat(121), question: "", factors: [] }).success).toBe(false);
+    expect(statusSchema.safeParse({ status: "decided", rationale: "x".repeat(1001) }).success).toBe(false);
   });
 });
 
