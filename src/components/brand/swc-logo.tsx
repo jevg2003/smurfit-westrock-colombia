@@ -33,7 +33,7 @@ export function SwcWordmark({ title, ...props }: Props) {
         </clipPath>
       </defs>
       <g clipPath={`url(#${clip})`} stroke="currentColor" strokeWidth={STROKE} strokeLinejoin="round">
-        <path d="M76 12 H31 A19 19 0 0 0 31 50 H45 A19 19 0 0 1 45 88 H0" />
+        <path d="M101.15 12 H31 A19 19 0 0 0 31 50 H45 A19 19 0 0 1 45 88 H0" />
         <path d="M97 -20 L111 88 L138 30 L165 88 L179 -20" />
         <path d="M275.11 25.57 A38 38 0 1 0 275.11 74.43" strokeLinecap="round" />
       </g>
