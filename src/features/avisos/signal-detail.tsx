@@ -5,8 +5,7 @@ import { ExternalLinkIcon } from "lucide-react";
 import { useId, useState } from "react";
 import { Badge } from "@/components/reui/badge";
 import { Button } from "@/components/ui/button";
-import { Field, FieldError, FieldLabel } from "@/components/ui/field";
-import { Textarea } from "@/components/ui/textarea";
+import { AutoTextareaField } from "@/components/reui/form-fields";
 import type { Signal } from "@/core/domain/signal";
 import { bogotaDateKey } from "@/core/time/bogota";
 import { EVIDENCE_LABELS, PESTEL_LABELS } from "@/features/entorno/labels";
@@ -35,7 +34,6 @@ interface Props {
 
 /** Why a signal fired, where it comes from, and the review / dismiss actions. Lives in the L2 pane or in a Sheet. */
 export function SignalDetail({ signal, onDone }: Props) {
-  const noteId = useId();
   const formId = useId();
   const alert = useAlertsStore((state) => state.alerts.find((item) => item.signalId === signal.id));
   const [storeError, setStoreError] = useState<string | null>(null);
@@ -148,31 +146,17 @@ export function SignalDetail({ signal, onDone }: Props) {
               }}
             >
               <form.Field name="note">
-                {(field) => {
-                  const invalid = !field.state.meta.isValid || storeError !== null;
-                  return (
-                    <Field data-invalid={invalid}>
-                      <FieldLabel htmlFor={noteId}>Nota (obligatoria para descartar)</FieldLabel>
-                      <Textarea
-                        id={noteId}
-                        value={field.state.value}
-                        rows={3}
-                        aria-invalid={invalid || undefined}
-                        placeholder="Por ejemplo: contrato ya renovado"
-                        onBlur={field.handleBlur}
-                        onChange={(event) => {
-                          field.handleChange(event.target.value);
-                          setStoreError(null);
-                        }}
-                      />
-                      {!field.state.meta.isValid ? (
-                        <FieldError errors={field.state.meta.errors} />
-                      ) : (
-                        storeError && <FieldError>{storeError}</FieldError>
-                      )}
-                    </Field>
-                  );
-                }}
+                {(field) => (
+                  <AutoTextareaField
+                    field={field}
+                    label="Nota"
+                    hint="Obligatoria para descartar."
+                    rows={3}
+                    placeholder="Por ejemplo: contrato ya renovado"
+                    extraError={storeError}
+                    onEdit={() => setStoreError(null)}
+                  />
+                )}
               </form.Field>
             </form>
           ) : (
