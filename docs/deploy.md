@@ -56,7 +56,7 @@ Para pasar a una CSP que bloquea, cambia el nombre de la cabecera a `Content-Sec
 
 - [ ] `/fuentes`: todas las fuentes en verde (o desactivadas a propósito). El asistente aparece como configurado.
 - [ ] Revisión de CSP: abre `/`, `/macro`, `/noticias`, `/asistente` y `/fuentes` con la consola abierta y confirma que no hay avisos de "Content Security Policy". Si no hay, la CSP está lista para pasar a modo que bloquea.
-- [ ] El aviso "Prototipo no oficial, sin relación ni aval de Smurfit Westrock" se ve al pie de cada pantalla.
+- [ ] El aviso "Smart Work Core: herramienta independiente, sin aval de las entidades que publican los datos." se ve al pie de cada pantalla.
 - [ ] `curl -I https://tu-dominio/` muestra las cabeceras de seguridad.
 - [ ] El asistente responde y cita fuentes; con "Buscar en internet" activo, también cita la web.
 - [ ] Ninguna clave aparece en el código del navegador (busca `sk-` en las pestañas Network y Sources).
