@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 
 interface StepActionsProps {
@@ -7,27 +6,29 @@ interface StepActionsProps {
   submitLabel?: string;
   onBack?: () => void;
   onSkip?: () => void;
-  children?: ReactNode;
 }
 
-/** Back, skip and continue of every step, in the same place and order. */
-export function StepActions({ busy, submitLabel = "Continuar", onBack, onSkip, children }: StepActionsProps) {
+/** Back on the left; skip and continue on the right. The row has the same shape on every step. */
+export function StepActions({ busy, submitLabel = "Continuar", onBack, onSkip }: StepActionsProps) {
   return (
-    <div className="flex flex-wrap items-center gap-2 pt-2">
-      {onBack && (
+    <div className="flex items-center justify-between gap-2">
+      {onBack ? (
         <Button type="button" variant="outline" disabled={busy} onClick={onBack}>
           Atrás
         </Button>
+      ) : (
+        <span aria-hidden="true" />
       )}
-      {onSkip && (
-        <Button type="button" variant="ghost" disabled={busy} onClick={onSkip}>
-          Saltar
+      <div className="flex items-center gap-2">
+        {onSkip && (
+          <Button type="button" variant="ghost" disabled={busy} onClick={onSkip}>
+            Saltar
+          </Button>
+        )}
+        <Button type="submit" disabled={busy}>
+          {submitLabel}
         </Button>
-      )}
-      <Button type="submit" disabled={busy} className="ms-auto">
-        {submitLabel}
-      </Button>
-      {children}
+      </div>
     </div>
   );
 }

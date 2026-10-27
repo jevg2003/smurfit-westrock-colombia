@@ -2,6 +2,7 @@
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { formatNit } from "@/core/company/nit";
 import { TEST_COMPANY } from "@/core/company/test-fixtures";
 import { useCompaniesStore } from "@/stores/companies.store";
 import { useHydrationStore } from "@/stores/hydration.store";
@@ -27,7 +28,7 @@ describe("EmpresaTab", () => {
   it("shows the active company profile in the shared form", () => {
     render(<EmpresaTab />);
     expect(within(section()).getByRole("textbox", { name: "Nombre de la empresa" })).toHaveValue(TEST_COMPANY.name);
-    expect(within(section()).getByRole("textbox", { name: "NIT (opcional)" })).toHaveValue(TEST_COMPANY.nit);
+    expect(within(section()).getByRole("textbox", { name: "NIT" })).toHaveValue(formatNit(TEST_COMPANY.nit!));
     expect(screen.getByRole("button", { name: "Guardar cambios" })).toBeInTheDocument();
   });
 
@@ -46,11 +47,11 @@ describe("EmpresaTab", () => {
 
   it("rejects an invalid NIT without touching the company", async () => {
     render(<EmpresaTab />);
-    const nit = within(section()).getByRole("textbox", { name: "NIT (opcional)" });
+    const nit = within(section()).getByRole("textbox", { name: "NIT" });
     await userEvent.clear(nit);
     await userEvent.type(nit, "12");
     await userEvent.click(screen.getByRole("button", { name: "Guardar cambios" }));
-    expect(await screen.findByText(/solo dígitos/)).toBeInTheDocument();
+    expect(await screen.findByText(/entre 5 y 10 dígitos/)).toBeInTheDocument();
     expect(useCompaniesStore.getState().companies[0].nit).toBe(TEST_COMPANY.nit);
   });
 

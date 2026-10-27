@@ -1,14 +1,16 @@
 "use client";
 
 import { revalidateLogic, useForm } from "@tanstack/react-form";
-import { useId } from "react";
+import { useId, useMemo } from "react";
 import { AutoTextareaField } from "@/components/reui/form-fields";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldContent, FieldError, FieldLabel, FieldTitle } from "@/components/ui/field";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { OTHER_CHOICE, OTHER_LABEL, OTHER_MAX_CHARS, answerFormSchema, initialAnswerValues, skippedAnswer, toAnswer } from "@/core/onboarding/answer-form";
+import { OTHER_CHOICE, OTHER_LABEL, answerFormSchema, initialAnswerValues, toAnswer } from "@/core/onboarding/answer-form";
 import type { Answer, Question } from "@/core/onboarding/schemas";
+import { canSkip, skipAnswerFor } from "@/core/onboarding/skip";
 import { StepActions } from "./step-actions";
+import { StepForm } from "./step-form";
 
 interface QuestionFormProps {
   question: Question;
@@ -19,24 +21,27 @@ interface QuestionFormProps {
   onBack(): void;
 }
 
-const DEFAULT_TEXT_CHARS = 400;
-
-/** One AI question: single choice, multiple choice or open text, with its reason and a way to skip. */
+/** One AI question: single choice, multiple choice or open text, with its reason. Skipping is offered only the first time. */
 export function QuestionForm({ question, answer, busy, onSubmit, onBack }: QuestionFormProps) {
   const headingId = useId();
+  const schema = useMemo(() => answerFormSchema(question), [question]);
   const form = useForm({
     defaultValues: initialAnswerValues(question, answer),
     validationLogic: revalidateLogic(),
-    validators: { onDynamic: answerFormSchema(question) },
+    validators: { onDynamic: schema },
     onSubmit: ({ value }) => onSubmit(toAnswer(question, value)),
   });
   const options = [...(question.options ?? []), ...(question.allowOther ? [OTHER_CHOICE] : [])];
   const labelOf = (option: string) => (option === OTHER_CHOICE ? OTHER_LABEL : option);
+  // A question that already has an answer (given or skipped) cannot be skipped when the user comes back to it.
+  const skip = () => {
+    const skipped = skipAnswerFor(question, answer);
+    if (skipped) onSubmit(skipped);
+  };
 
   return (
-    <form
-      noValidate
-      className="flex flex-col gap-5"
+    <StepForm
+      actions={<StepActions busy={busy} onBack={onBack} onSkip={canSkip(answer) ? skip : undefined} />}
       onSubmit={(event) => {
         event.preventDefault();
         event.stopPropagation();
@@ -52,7 +57,7 @@ export function QuestionForm({ question, answer, busy, onSubmit, onBack }: Quest
 
       {question.kind === "text" ? (
         <form.Field name="text">
-          {(field) => <AutoTextareaField field={field} label={question.prompt} hideLabel maxChars={question.maxChars ?? DEFAULT_TEXT_CHARS} rows={3} />}
+          {(field) => <AutoTextareaField field={field} label={question.prompt} hideLabel rows={3} />}
         </form.Field>
       ) : (
         <>
@@ -102,7 +107,7 @@ export function QuestionForm({ question, answer, busy, onSubmit, onBack }: Quest
             {(usesOther) =>
               usesOther && (
                 <form.Field name="text">
-                  {(field) => <AutoTextareaField field={field} label="Otra respuesta" maxChars={OTHER_MAX_CHARS} />}
+                  {(field) => <AutoTextareaField field={field} label="Otra respuesta" />}
                 </form.Field>
               )
             }
@@ -110,7 +115,6 @@ export function QuestionForm({ question, answer, busy, onSubmit, onBack }: Quest
         </>
       )}
 
-      <StepActions busy={busy} onBack={onBack} onSkip={() => onSubmit(skippedAnswer(question))} />
-    </form>
+    </StepForm>
   );
 }

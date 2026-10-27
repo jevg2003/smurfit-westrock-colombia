@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { buildProfile, updateProfile, type ConfirmValues } from "@/core/onboarding/confirm";
 import { buildRequest, nextAction } from "@/core/onboarding/flow";
+import { canSkip } from "@/core/onboarding/skip";
 import type { Answer, OnboardingNotice, OnboardingRequest, OnboardingSeed } from "@/core/onboarding/schemas";
 import { useCompaniesStore } from "@/stores/companies.store";
 import { useOnboardingDraftStore } from "@/stores/onboarding-draft.store";
@@ -62,6 +63,8 @@ export function useOnboardingFlow() {
   };
 
   const submitAnswer = (answer: Answer) => {
+    // Skipping is only for a question that has no answer yet; a stale skip never replaces what is stored.
+    if (answer.skipped && !canSkip(draftState().draft?.answers[answer.questionId])) return;
     setError(null);
     draftState().saveAnswer(answer);
     void advance();

@@ -1,45 +1,46 @@
 "use client";
 
-import { revalidateLogic, useForm } from "@tanstack/react-form";
+import { revalidateLogic, useForm, type AnyFieldApi } from "@tanstack/react-form";
 import { PlusIcon, XIcon } from "lucide-react";
-import { useId, useState } from "react";
+import { z } from "zod";
 import { Badge } from "@/components/reui/badge";
-import { AutoTextareaField, ChipListField, TextField } from "@/components/reui/form-fields";
+import { AutoTextareaField, ChipListField, NitField, TextField, useFieldMeta } from "@/components/reui/form-fields";
 import { Button } from "@/components/ui/button";
-import { FieldDescription, FieldError, FieldLegend, FieldSet } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
+import { FieldDescription, FieldLegend, FieldSet } from "@/components/ui/field";
+import { competitorNameSchema } from "@/core/company/fields";
+import { formatNitWithDv, nitOf, optionalNitInputSchema } from "@/core/company/nit";
 import { NEWS_GROUP_IDS, NEWS_GROUP_LABELS } from "@/core/company/profile";
 import { confirmFormSchema, type ConfirmValues } from "@/core/onboarding/confirm";
-import { NIT_ERROR } from "./seed-form";
 import { StepActions } from "./step-actions";
+import { StepForm } from "./step-form";
 
 type Competitor = ConfirmValues["competitors"][number];
 
+/** The small row that adds one competitor: the same name and NIT rules as the competitors of the whole form. */
+const competitorRowSchema = z.object({ name: competitorNameSchema, nit: optionalNitInputSchema });
+
 interface CompetitorsEditorProps {
-  value: Competitor[];
+  /** The `competitors` field of the confirm form; its limit comes from the form schema. */
+  field: AnyFieldApi;
   onAdd(competitor: Competitor): void;
   onRemove(competitor: Competitor): void;
 }
 
-/** Competitors as chips, with a small row to add one (name and optional NIT). */
-function CompetitorsEditor({ value, onAdd, onRemove }: CompetitorsEditorProps) {
-  const id = useId();
-  const [name, setName] = useState("");
-  const [nit, setNit] = useState("");
-  const [error, setError] = useState<string | null>(null);
-
-  const add = () => {
-    const trimmed = name.trim();
-    if (!trimmed) return;
-    if (!/^(\d{5,12})?$/.test(nit.trim())) {
-      setError(NIT_ERROR);
-      return;
-    }
-    if (!value.some((item) => item.name.toLowerCase() === trimmed.toLowerCase())) onAdd({ name: trimmed, nit: nit.trim() });
-    setName("");
-    setNit("");
-    setError(null);
-  };
+/** Competitors as chips, with a small schema-validated row to add one (name and optional NIT). */
+function CompetitorsEditor({ field, onAdd, onRemove }: CompetitorsEditorProps) {
+  const value: Competitor[] = field.state.value;
+  const meta = useFieldMeta(field);
+  const full = meta.maxItems !== undefined && value.length >= meta.maxItems;
+  const row = useForm({
+    defaultValues: { name: "", nit: "" },
+    validationLogic: revalidateLogic(),
+    validators: { onDynamic: competitorRowSchema },
+    onSubmit: ({ value: entry, formApi }) => {
+      const name = entry.name.trim();
+      if (!value.some((item) => item.name.toLowerCase() === name.toLowerCase())) onAdd({ name, nit: nitOf(entry.nit) ?? "" });
+      formApi.reset();
+    },
+  });
 
   return (
     <FieldSet>
@@ -50,7 +51,7 @@ function CompetitorsEditor({ value, onAdd, onRemove }: CompetitorsEditorProps) {
             <li key={competitor.name}>
               <Badge variant="outline" className="gap-1 pe-0.5">
                 {competitor.name}
-                {competitor.nit && <span className="text-muted-foreground tabular-nums">NIT {competitor.nit}</span>}
+                {competitor.nit && <span className="text-muted-foreground tabular-nums">NIT {formatNitWithDv(competitor.nit)}</span>}
                 <button
                   type="button"
                   aria-label={`Quitar competidor ${competitor.name}`}
@@ -64,23 +65,23 @@ function CompetitorsEditor({ value, onAdd, onRemove }: CompetitorsEditorProps) {
           ))}
         </ul>
       )}
-      <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,10rem)_auto]">
-        <Input aria-label="Nombre del competidor" placeholder="Nombre" value={name} onChange={(event) => setName(event.target.value)} />
-        <Input
-          aria-label="NIT del competidor (opcional)"
-          aria-invalid={error ? true : undefined}
-          aria-describedby={error ? `${id}-error` : undefined}
-          inputMode="numeric"
-          placeholder="NIT"
-          value={nit}
-          onChange={(event) => setNit(event.target.value)}
-        />
-        <Button type="button" variant="outline" onClick={add}>
+      {/* A row, not a nested form: the confirm form already is one. Enter adds the competitor. */}
+      <div
+        className="grid items-start gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,12rem)_auto]"
+        onKeyDown={(event) => {
+          if (event.key !== "Enter") return;
+          event.preventDefault();
+          void row.handleSubmit();
+        }}
+      >
+        <row.Field name="name">{(entry) => <TextField field={entry} label="Nombre del competidor" disabled={full} />}</row.Field>
+        <row.Field name="nit">{(entry) => <NitField field={entry} label="NIT del competidor" />}</row.Field>
+        <Button type="button" variant="outline" disabled={full} className="sm:mt-6" onClick={() => void row.handleSubmit()}>
           <PlusIcon aria-hidden="true" />
           Agregar competidor
         </Button>
       </div>
-      {error ? <FieldError id={`${id}-error`}>{error}</FieldError> : <FieldDescription>Solo escriba el NIT si lo conoce: con él se consultan sus contratos.</FieldDescription>}
+      <FieldDescription>Solo escriba el NIT si lo conoce: con él se consultan sus contratos.</FieldDescription>
     </FieldSet>
   );
 }
@@ -91,12 +92,14 @@ interface ConfirmFormProps {
   submitLabel: string;
   /** Heading and help of the form; the settings tab already has its own. */
   intro?: { title: string; description: string };
+  /** Sits inside a section that already pads it (the Empresa tab of Configuración). */
+  embedded?: boolean;
   onBack?(): void;
   onSubmit(values: ConfirmValues): void;
 }
 
 /** The whole company profile as one editable form: the last onboarding step and the Empresa tab of Configuración. */
-export function ConfirmForm({ defaultValues, busy = false, submitLabel, intro, onBack, onSubmit }: ConfirmFormProps) {
+export function ConfirmForm({ defaultValues, busy = false, submitLabel, intro, embedded = false, onBack, onSubmit }: ConfirmFormProps) {
   const form = useForm({
     defaultValues,
     validationLogic: revalidateLogic(),
@@ -105,9 +108,10 @@ export function ConfirmForm({ defaultValues, busy = false, submitLabel, intro, o
   });
 
   return (
-    <form
-      noValidate
-      className="flex flex-col gap-6"
+    <StepForm
+      inset={!embedded}
+      contentClassName="gap-6"
+      actions={<StepActions busy={busy} submitLabel={submitLabel} onBack={onBack} />}
       onSubmit={(event) => {
         event.preventDefault();
         event.stopPropagation();
@@ -124,17 +128,17 @@ export function ConfirmForm({ defaultValues, busy = false, submitLabel, intro, o
       <section aria-label="Empresa" className="flex flex-col gap-4">
         <form.Field name="name">{(field) => <TextField field={field} label="Nombre de la empresa" />}</form.Field>
         <form.Field name="nit">
-          {(field) => <TextField field={field} label="NIT (opcional)" hint="Con el NIT se activan Contratación pública y Competidores." inputMode="numeric" />}
+          {(field) => <NitField field={field} label="NIT" hint="Con el NIT se activan Contratación pública y Competidores." />}
         </form.Field>
         <div className="grid gap-4 sm:grid-cols-2">
           <form.Field name="sector">{(field) => <TextField field={field} label="Sector" />}</form.Field>
           <form.Field name="city">{(field) => <TextField field={field} label="Ciudad principal" />}</form.Field>
         </div>
-        <form.Field name="activity">{(field) => <AutoTextareaField field={field} label="Actividad" maxChars={600} rows={2} />}</form.Field>
+        <form.Field name="activity">{(field) => <AutoTextareaField field={field} label="Actividad" rows={2} />}</form.Field>
         <form.Field name="competitors">
           {(field) => (
             <CompetitorsEditor
-              value={field.state.value}
+              field={field}
               onAdd={(competitor) => {
                 field.handleChange([...field.state.value, competitor]);
                 const company = form.getFieldValue("newsGroups.company");
@@ -166,12 +170,10 @@ export function ConfirmForm({ defaultValues, busy = false, submitLabel, intro, o
 
       <section aria-label="Objetivos" className="flex flex-col gap-4">
         <h3 className="text-sm font-semibold">Objetivos</h3>
-        <form.Field name="currentSituation">{(field) => <AutoTextareaField field={field} label="Situación actual" maxChars={1000} />}</form.Field>
-        <form.Field name="target">{(field) => <AutoTextareaField field={field} label="Meta" maxChars={1000} />}</form.Field>
+        <form.Field name="currentSituation">{(field) => <AutoTextareaField field={field} label="Situación actual" />}</form.Field>
+        <form.Field name="target">{(field) => <AutoTextareaField field={field} label="Meta" />}</form.Field>
         <form.Field name="priorities">{(field) => <ChipListField field={field} label="Prioridades" placeholder="Escriba una prioridad" />}</form.Field>
       </section>
-
-      <StepActions busy={busy} submitLabel={submitLabel} onBack={onBack} />
-    </form>
+    </StepForm>
   );
 }

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, render, renderHook, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { OnboardingDraft } from "@/core/onboarding/draft";
@@ -23,6 +23,7 @@ vi.mock("./api", async (importOriginal) => ({
 
 import { OnboardingRequestError } from "./api";
 import { OnboardingFlow } from "./onboarding-flow";
+import { useOnboardingFlow } from "./use-onboarding-flow";
 
 const sectorQuestion: Question = { id: "ai-empresa-1", block: "empresa", kind: "single", prompt: "¿En qué sector trabaja?", why: "Define las búsquedas.", options: ["Alimentos", "Energía"], allowOther: true };
 const clientsQuestion: Question = { id: "ai-empresa-2", block: "empresa", kind: "text", prompt: "¿Quiénes son sus clientes?", why: "Define el mercado.", maxChars: 300 };
@@ -79,15 +80,32 @@ describe("OnboardingFlow", () => {
     expect(useOnboardingDraftStore.getState().draft?.stage).toBe("seed");
   });
 
-  it("requires the name and accepts only digits in the NIT", async () => {
+  it("requires the name and a NIT with enough digits", async () => {
     renderFlow();
     await userEvent.click(await screen.findByRole("button", { name: "Continuar" }));
     expect(await screen.findByText("Escriba el nombre de la empresa.")).toBeInTheDocument();
     await userEvent.type(screen.getByRole("textbox", { name: /Nombre de la empresa/ }), "Acme SAS");
-    await userEvent.type(screen.getByRole("textbox", { name: /NIT/ }), "900.123");
+    await userEvent.type(screen.getByRole("textbox", { name: /NIT/ }), "900");
     await userEvent.click(screen.getByRole("button", { name: "Continuar" }));
-    expect(await screen.findByText(/solo dígitos/)).toBeInTheDocument();
+    expect(await screen.findByText(/entre 5 y 10 dígitos/)).toBeInTheDocument();
     expect(requestStep).not.toHaveBeenCalled();
+  });
+
+  it("rejects a pasted NIT whose verification digit does not match, and accepts the right one", async () => {
+    requestStep.mockResolvedValue(reply(sectorQuestion));
+    renderFlow();
+    await userEvent.type(await screen.findByRole("textbox", { name: /Nombre de la empresa/ }), "Acme SAS");
+    await userEvent.click(screen.getByRole("textbox", { name: "NIT" }));
+    await userEvent.paste("900.123.456-7");
+    await userEvent.click(screen.getByRole("button", { name: "Continuar" }));
+    expect(await screen.findByText(/no coincide/)).toBeInTheDocument();
+    expect(requestStep).not.toHaveBeenCalled();
+
+    await userEvent.clear(screen.getByRole("textbox", { name: "NIT" }));
+    await userEvent.paste("900.123.456-8");
+    await userEvent.click(screen.getByRole("button", { name: "Continuar" }));
+    await screen.findByRole("heading", { name: "¿En qué sector trabaja?" });
+    expect(useOnboardingDraftStore.getState().draft?.seed?.nit).toBe("900123456");
   });
 
   it("saves the seed, asks the AI for the first question and shows it", async () => {
@@ -142,6 +160,46 @@ describe("OnboardingFlow", () => {
     await userEvent.click(screen.getByRole("button", { name: "Saltar" }));
     await screen.findByRole("heading", { name: "¿Quiénes son sus clientes?" });
     expect(useOnboardingDraftStore.getState().draft?.answers["ai-empresa-1"].skipped).toBe(true);
+  });
+
+  it("offers Saltar only the first time a question is shown", async () => {
+    useOnboardingDraftStore.setState({ draft: baseDraft({ questions: [sectorQuestion] }) });
+    renderFlow();
+    expect(await screen.findByRole("button", { name: "Saltar" })).toBeInTheDocument();
+  });
+
+  it("hides Saltar when the user comes back to a question that already has an answer", async () => {
+    useOnboardingDraftStore.setState({
+      draft: baseDraft({
+        questions: [sectorQuestion, clientsQuestion],
+        cursor: 1,
+        answers: { [sectorQuestion.id]: answerTo(sectorQuestion, { selected: ["Energía"] }) },
+      }),
+    });
+    renderFlow();
+    expect(await screen.findByRole("button", { name: "Saltar" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Atrás" }));
+    expect(await screen.findByRole("radio", { name: "Energía" })).toBeChecked();
+    expect(screen.queryByRole("button", { name: "Saltar" })).not.toBeInTheDocument();
+  });
+
+  it("hides Saltar on a question that was skipped before", async () => {
+    useOnboardingDraftStore.setState({
+      draft: baseDraft({ questions: [sectorQuestion, clientsQuestion], cursor: 0, answers: { [sectorQuestion.id]: answerTo(sectorQuestion, { skipped: true }) } }),
+    });
+    renderFlow();
+    await screen.findByRole("radio", { name: "Energía" });
+    expect(screen.queryByRole("button", { name: "Saltar" })).not.toBeInTheDocument();
+  });
+
+  it("rejects a skip for a question that already has an answer", async () => {
+    const stored = answerTo(sectorQuestion, { selected: ["Energía"] });
+    useOnboardingDraftStore.setState({ draft: baseDraft({ questions: [sectorQuestion], answers: { [sectorQuestion.id]: stored } }) });
+    const client = new QueryClient();
+    const { result } = renderHook(() => useOnboardingFlow(), { wrapper: ({ children }) => <QueryClientProvider client={client}>{children}</QueryClientProvider> });
+    act(() => result.current.submitAnswer(answerTo(sectorQuestion, { skipped: true })));
+    expect(useOnboardingDraftStore.getState().draft?.answers[sectorQuestion.id]).toEqual(stored);
+    expect(requestStep).not.toHaveBeenCalled();
   });
 
   it("counts characters in an open question", async () => {
@@ -318,7 +376,7 @@ describe("OnboardingFlow confirm step", () => {
     renderFlow();
     await userEvent.click(await screen.findByRole("button", { name: "Quitar competidor Alpina" }));
     await userEvent.type(screen.getByRole("textbox", { name: "Nombre del competidor" }), "Colanta");
-    await userEvent.type(screen.getByRole("textbox", { name: "NIT del competidor (opcional)" }), "890904478");
+    await userEvent.type(screen.getByRole("textbox", { name: "NIT del competidor" }), "890904478");
     await userEvent.click(screen.getByRole("button", { name: "Agregar competidor" }));
     await userEvent.click(screen.getByRole("button", { name: "Crear empresa" }));
     await waitFor(() => expect(push).toHaveBeenCalled());
@@ -329,9 +387,9 @@ describe("OnboardingFlow confirm step", () => {
 
   it("does not create the company with an invalid NIT", async () => {
     renderFlow();
-    await userEvent.type(await screen.findByRole("textbox", { name: "NIT (opcional)" }), "12");
+    await userEvent.type(await screen.findByRole("textbox", { name: "NIT" }), "12");
     await userEvent.click(screen.getByRole("button", { name: "Crear empresa" }));
-    expect(await screen.findByText(/solo dígitos/)).toBeInTheDocument();
+    expect(await screen.findByText(/entre 5 y 10 dígitos/)).toBeInTheDocument();
     expect(useCompaniesStore.getState().companies).toHaveLength(0);
   });
 

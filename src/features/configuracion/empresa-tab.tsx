@@ -94,6 +94,7 @@ export function EmpresaTab() {
             key={company.id}
             defaultValues={buildConfirmValues(profileToSeed(company), profileToPatch(company))}
             submitLabel="Guardar cambios"
+            embedded
             onSubmit={save}
           />
           {saved && (

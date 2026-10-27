@@ -2,25 +2,22 @@
 
 import { revalidateLogic, useForm } from "@tanstack/react-form";
 import { z } from "zod";
-import { TextField } from "@/components/reui/form-fields";
+import { NitField, TextField } from "@/components/reui/form-fields";
+import { citySchema, nameSchema } from "@/core/company/fields";
+import { nitOf, optionalNitInputSchema } from "@/core/company/nit";
 import type { OnboardingSeed } from "@/core/onboarding/schemas";
 import { StepActions } from "./step-actions";
+import { StepForm } from "./step-form";
 
-export const NIT_ERROR = "El NIT lleva solo dígitos, sin puntos ni guion, entre 5 y 12.";
-
-/** Form values keep empty strings so inputs stay controlled; `toSeed` drops them. */
-export const seedFormSchema = z.object({
-  name: z.string().trim().min(1, "Escriba el nombre de la empresa.").max(120, "Use 120 caracteres como máximo."),
-  nit: z.string().trim().regex(/^(\d{5,12})?$/, NIT_ERROR),
-  city: z.string().trim().max(80, "Use 80 caracteres como máximo."),
-});
+/** Form values keep empty strings so inputs stay controlled; `toSeed` drops them. Every rule is the company's own. */
+export const seedFormSchema = z.object({ name: nameSchema, nit: optionalNitInputSchema, city: citySchema });
 type SeedValues = z.infer<typeof seedFormSchema>;
 
-const toSeed = (values: SeedValues): OnboardingSeed => ({
-  name: values.name.trim(),
-  ...(values.nit.trim() ? { nit: values.nit.trim() } : {}),
-  ...(values.city.trim() ? { city: values.city.trim() } : {}),
-});
+const toSeed = (values: SeedValues): OnboardingSeed => {
+  const nit = nitOf(values.nit);
+  const city = values.city.trim();
+  return { name: values.name.trim(), ...(nit ? { nit } : {}), ...(city ? { city } : {}) };
+};
 
 interface SeedFormProps {
   seed: OnboardingSeed | null;
@@ -39,9 +36,8 @@ export function SeedForm({ seed, busy, onSubmit }: SeedFormProps) {
   });
 
   return (
-    <form
-      noValidate
-      className="flex flex-col gap-5"
+    <StepForm
+      actions={<StepActions busy={busy} />}
       onSubmit={(event) => {
         event.preventDefault();
         event.stopPropagation();
@@ -54,19 +50,9 @@ export function SeedForm({ seed, busy, onSubmit }: SeedFormProps) {
       </div>
       <form.Field name="name">{(field) => <TextField field={field} label="Nombre de la empresa" autoComplete="organization" />}</form.Field>
       <form.Field name="nit">
-        {(field) => (
-          <TextField
-            field={field}
-            label="NIT (opcional)"
-            hint="Con el NIT se activan Contratación pública y Competidores."
-            inputMode="numeric"
-            autoComplete="off"
-            placeholder="900123456"
-          />
-        )}
+        {(field) => <NitField field={field} label="NIT" hint="Con el NIT se activan Contratación pública y Competidores." />}
       </form.Field>
       <form.Field name="city">{(field) => <TextField field={field} label="Ciudad principal" autoComplete="address-level2" />}</form.Field>
-      <StepActions busy={busy} />
-    </form>
+    </StepForm>
   );
 }
