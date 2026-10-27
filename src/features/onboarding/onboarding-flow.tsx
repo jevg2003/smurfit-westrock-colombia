@@ -86,32 +86,34 @@ export function OnboardingFlow({ askAboutDraft }: { askAboutDraft: boolean }) {
       thinking={thinking}
       onSelectStep={(next) => flow.goToBlock(next === 1 ? "empresa" : "objetivos")}
       preview={<ProfilePreview draft={draft} />}
+      summary={<ProfilePreview draft={draft} variant="list" />}
     >
-      <div className="flex flex-col gap-5">
-        {error && (
-          <Alert variant="destructive">
-            {error === "offline" && <WifiOffIcon aria-hidden="true" />}
-            <AlertDescription>{ERROR_TEXT[error]}</AlertDescription>
-            <AlertAction>
-              <Button size="sm" variant="outline" onClick={flow.retry}>
-                Reintentar
-              </Button>
-            </AlertAction>
-          </Alert>
-        )}
-        {!error && notice && (
-          <Alert>
-            <AlertDescription>{notice.message}</AlertDescription>
-          </Alert>
-        )}
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="flex shrink-0 flex-col gap-3 px-4 pt-4 empty:hidden">
+          {error && (
+            <Alert variant="destructive">
+              {error === "offline" && <WifiOffIcon aria-hidden="true" />}
+              <AlertDescription>{ERROR_TEXT[error]}</AlertDescription>
+              <AlertAction>
+                <Button size="sm" variant="outline" onClick={flow.retry}>
+                  Reintentar
+                </Button>
+              </AlertAction>
+            </Alert>
+          )}
+          {!error && notice && (
+            <Alert>
+              <AlertDescription>{notice.message}</AlertDescription>
+            </Alert>
+          )}
+          {draft.stage === "questions" && thinking && (isLast || !question) && <Skeleton role="status" aria-label="Preparando la siguiente pregunta" className="h-16" />}
+        </div>
 
         {draft.stage === "seed" && <SeedForm key="seed" seed={draft.seed} busy={thinking} onSubmit={flow.submitSeed} />}
 
         {draft.stage === "questions" && question && (
           <QuestionForm key={question.id} question={question} answer={draft.answers[question.id]} busy={thinking} onSubmit={flow.submitAnswer} onBack={flow.goBack} />
         )}
-        {draft.stage === "questions" && thinking && (isLast || !question) && <Skeleton role="status" aria-label="Preparando la siguiente pregunta" className="h-16" />}
-
         {draft.stage === "confirm" && draft.seed && (
           <ConfirmForm
             defaultValues={buildConfirmValues(draft.seed, draft.patch)}

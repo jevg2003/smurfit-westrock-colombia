@@ -4,7 +4,7 @@ import { PanelRightOpenIcon } from "lucide-react";
 import Image from "next/image";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { OnboardingStepper } from "./onboarding-stepper";
@@ -15,18 +15,25 @@ interface OnboardingShellProps {
   progress: number;
   thinking: boolean;
   onSelectStep(step: number): void;
-  /** Live summary of the company; the aside on wide screens and a sheet on small ones. */
+  /** Live summary of the company shown beside the form on wide screens. */
   preview: ReactNode;
+  /** The same summary as a simple list, for the sheet on small screens. */
+  summary: ReactNode;
   children: ReactNode;
 }
 
-/** Full-height page: thin progress bar, brand and step count, stepper and a card split in form and live summary. */
-export function OnboardingShell({ step, progress, thinking, onSelectStep, preview, children }: OnboardingShellProps) {
+/**
+ * Full-height page. On wide screens the page is exactly one viewport tall: the header and the stepper keep
+ * their natural height and the card takes all that remains (flex, so it follows the real header and margins),
+ * split in two equal columns. The form column scrolls inside and keeps its actions at the bottom. On small
+ * screens the page scrolls normally and the actions stick to the bottom of the viewport.
+ */
+export function OnboardingShell({ step, progress, thinking, onSelectStep, preview, summary, children }: OnboardingShellProps) {
   return (
-    <div className="flex min-h-dvh flex-col">
+    <div className="flex min-h-dvh flex-col lg:h-dvh lg:overflow-hidden">
       <Progress value={progress} aria-label="Avance del onboarding" className="fixed inset-x-0 top-0 z-20 gap-0" />
 
-      <header className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-4 pt-6 sm:px-6">
+      <header className="mx-auto flex w-full max-w-6xl shrink-0 items-center justify-between gap-4 px-4 pt-6 sm:px-6">
         <div className="flex items-center gap-2">
           <Image src="/icon.svg" alt="" aria-hidden="true" width={28} height={28} unoptimized priority />
           <span className="text-sm font-semibold">Smart Work Core</span>
@@ -34,7 +41,7 @@ export function OnboardingShell({ step, progress, thinking, onSelectStep, previe
         <p className="text-sm text-muted-foreground tabular-nums">Paso {step} de 3</p>
       </header>
 
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 pt-6 sm:px-6">
+      <div className="mx-auto flex w-full max-w-6xl shrink-0 flex-col gap-4 px-4 pt-6 sm:px-6">
         <OnboardingStepper step={step} thinking={thinking} onSelect={onSelectStep} />
         <Sheet>
           <SheetTrigger render={<Button variant="outline" size="sm" className="w-fit lg:hidden" />}>
@@ -46,15 +53,16 @@ export function OnboardingShell({ step, progress, thinking, onSelectStep, previe
               <SheetTitle>Resumen</SheetTitle>
               <SheetDescription>Lo que sabemos de su empresa hasta ahora.</SheetDescription>
             </SheetHeader>
-            <div className="px-4 pb-4">{preview}</div>
+            <div className="px-4 pb-4">{summary}</div>
           </SheetContent>
         </Sheet>
       </div>
 
-      <main className="mx-auto flex w-full max-w-5xl flex-1 items-start px-4 py-6 sm:px-6">
-        <Card className="w-full motion-safe:animate-in motion-safe:fade-in-0 lg:grid lg:grid-cols-[minmax(0,1fr)_20rem]">
-          <CardContent className="min-w-0">{children}</CardContent>
-          <aside aria-label="Resumen en vivo" className="hidden border-s bg-muted/40 px-(--card-spacing) lg:block">
+      <main className="mx-auto flex w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 lg:min-h-0">
+        {/* Visible overflow on small screens so the sticky actions can follow the page scroll. */}
+        <Card className="w-full gap-0 overflow-visible py-0 motion-safe:animate-in motion-safe:fade-in-0 lg:grid lg:h-full lg:grid-cols-2 lg:overflow-hidden">
+          <div className="flex min-h-0 min-w-0 flex-col">{children}</div>
+          <aside aria-label="Resumen en vivo" className="hidden min-h-0 border-s lg:block">
             {preview}
           </aside>
         </Card>
