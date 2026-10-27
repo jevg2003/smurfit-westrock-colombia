@@ -120,11 +120,34 @@ test.describe("Legacy routes", () => {
   }
 });
 
-test.describe("Mobile layout (375px)", () => {
-  test.use({ viewport: { width: 375, height: 800 } });
+// Every layout keeps the page still on a desktop: only the columns scroll.
+const PAGE_ROUTES = ["/resumen", "/resumen?tab=avisos", "/economia", "/economia?tab=trm", "/noticias", "/noticias?tab=regulacion", "/analisis", "/analisis?tab=briefing", "/configuracion"];
 
-  for (const route of ["/resumen", "/resumen?tab=avisos", "/analisis?tab=briefing"]) {
+test.describe("Desktop layout (1280px)", () => {
+  test.use({ viewport: { width: 1280, height: 800 } });
+
+  for (const route of PAGE_ROUTES) {
+    test(`${route} does not scroll the page`, async ({ page }) => {
+      await seedCompany(page);
+      await mockSources(page);
+      await page.goto(route);
+      await expect(page.getByRole("heading", { level: 1 }).first()).toBeVisible();
+      await page.waitForLoadState("networkidle");
+      const { scrollHeight, clientHeight } = await page.evaluate(() => ({
+        scrollHeight: document.documentElement.scrollHeight,
+        clientHeight: document.documentElement.clientHeight,
+      }));
+      expect(scrollHeight).toBeLessThanOrEqual(clientHeight + 1);
+    });
+  }
+});
+
+test.describe("Mobile layout (360px)", () => {
+  test.use({ viewport: { width: 360, height: 800 } });
+
+  for (const route of [...PAGE_ROUTES, "/economia?tab=contratacion", "/asistente"]) {
     test(`${route} has no horizontal page scroll`, async ({ page }) => {
+      await seedCompany(page);
       await mockSources(page);
       await page.goto(route);
       await expect(page.getByRole("heading", { level: 1 }).first()).toBeVisible();

@@ -37,7 +37,7 @@ Si la validación pasa, el proxy agrega la cabecera `x-access-email` con el corr
 
 - Si faltan `CF_ACCESS_TEAM_DOMAIN` o `CF_ACCESS_AUD` en producción, las rutas privadas responden `503` ("Acceso no configurado..."). Es a propósito: una configuración olvidada no debe dejar la app abierta.
 - En desarrollo y en pruebas (`NODE_ENV` igual a `development` o `test`) no se exige.
-- Interruptor de emergencia: `CF_ACCESS_ENFORCE=off` desactiva la validación. Úsalo solo si Access falla y quítalo en cuanto se arregle. Mientras esté puesto, la pantalla Fuentes muestra "Cloudflare Access: sin configurar".
+- Interruptor de emergencia: `CF_ACCESS_ENFORCE=off` desactiva la validación. Úsalo solo si Access falla y quítalo en cuanto se arregle. Mientras esté puesto, la pestaña Fuentes de Configuración muestra "Cloudflare Access: sin configurar".
 
 ## 2. Lo que está creado en Cloudflare
 
@@ -48,7 +48,7 @@ Aplicado y verificado el 2026-10-21 en la cuenta de Cloudflare del proyecto. No 
 - Tipo self-hosted, sesión de 24 horas, redirección automática al proveedor de login.
 - Login: **Google** (el mismo proveedor que usan las otras aplicaciones de la cuenta). No se creó un proveedor nuevo.
 - Política `swc-emails` (reutilizable, acción Allow): solo `arbelaeznicolas636@gmail.com` y `jevgdg@gmail.com`. No se reutilizó `team-emails` porque deja entrar a otros dos correos.
-- Destinos: uno por cada ruta privada. La lista vive en `src/lib/access-destinations.ts` (`PRIVATE_ACCESS_DESTINATIONS`): las 17 páginas del grupo `(app)` como prefijo (`swc.mecateo.co/home*`, ...), `swc.mecateo.co/api/*`, `/_next/image*`, `/_next/data/*` y `/.well-known/*`.
+- Destinos: uno por cada ruta privada. La lista vive en `src/lib/access-destinations.ts` (`PRIVATE_ACCESS_DESTINATIONS`): las seis páginas del grupo `(app)` como prefijo (`swc.mecateo.co/resumen*`, `/economia*`, `/noticias*`, `/analisis*`, `/asistente*` y `/configuracion*`), `swc.mecateo.co/api/*`, `/_next/image*`, `/_next/data/*` y `/.well-known/*`.
 - El **AUD** de esta aplicación es el valor de `CF_ACCESS_AUD`. Se ve en Zero Trust > Access > Applications > `SWC Monitor (privado)`, o en el parámetro `kid` de la URL de login.
 
 ### b) Aplicación pública: `SWC Landing (pública)`
@@ -64,7 +64,7 @@ Consecuencias:
 
 - Una ruta nueva que no esté en la lista queda **pública en el borde de Cloudflare**. La app sigue protegida porque `src/proxy.ts` la rechaza con 401 (sin JWT válido de Access) o con 503 si falta la configuración. Pero ya no se ve la pantalla de login, solo el 401.
 - Por eso `src/lib/access-destinations.test.ts` falla si aparece una carpeta nueva en `src/app/(app)` que no esté en la lista. Al agregar una ruta: súmala a `PRIVATE_ACCESS_DESTINATIONS` **y** a los destinos de `SWC Monitor (privado)` en Cloudflare.
-- Si se agrega una ruta privada fuera de `(app)`, hay que sumarla a mano a las dos cosas.
+- Si se agrega una ruta privada fuera de `(app)`, hay que sumarla a mano a las dos cosas. Hoy son `/empresas` (selector de empresa) y `/onboarding` (alta de empresa), que viven en el grupo `(account)`: agréguelas a los destinos de `SWC Monitor (privado)` como `swc.mecateo.co/empresas*` y `swc.mecateo.co/onboarding*`. Mientras no estén, el borde de Cloudflare las deja pasar y la protección la da solo `src/proxy.ts` (401 sin JWT válido).
 
 ### d) DNS
 
@@ -95,11 +95,11 @@ curl -s -o /dev/null -w "%{http_code}\n" https://swc.mecateo.co/favicon.ico
 curl -s -o /dev/null -w "%{http_code}\n" https://swc.mecateo.co/apple-touch-icon.png
 
 # 3. Páginas y API privadas: 302 a cloudflareaccess.com.
-curl -s -o /dev/null -w "%{http_code} %{redirect_url}\n" https://swc.mecateo.co/home
+curl -s -o /dev/null -w "%{http_code} %{redirect_url}\n" https://swc.mecateo.co/resumen
 curl -s -o /dev/null -w "%{http_code} %{redirect_url}\n" https://swc.mecateo.co/api/news
 
 # 4. Entrada directa a Vercel: 401 en la página y en la API.
-curl -s -o /dev/null -w "%{http_code}\n" https://<proyecto>.vercel.app/home
+curl -s -o /dev/null -w "%{http_code}\n" https://<proyecto>.vercel.app/resumen
 curl -s -X POST -o /dev/null -w "%{http_code}\n" https://<proyecto>.vercel.app/api/chat
 
 # 5. Con la cabecera de AJAX, Access responde 401 en lugar de redirigir (así detecta la app una sesión vencida).
@@ -111,9 +111,9 @@ Resultado esperado: 200, 200, 302, 302, 401, 401, 401. Si el paso 1 da 302, la r
 Prueba en el navegador:
 
 1. Abre `https://swc.mecateo.co/`: ves el landing sin login.
-2. Entra a `/home`: te manda a iniciar sesión con Google y entras solo con los dos correos permitidos.
-3. Sesión vencida: en Zero Trust revoca la sesión del usuario (o borra la cookie `CF_Authorization`) con la app abierta y pulsa Reintentar en cualquier dato o envía un mensaje al asistente. Debe aparecer "Tu sesión de acceso venció. Vuelve a entrar para seguir." con el botón "Volver a entrar", que recarga la página y muestra el login.
-4. En la pantalla Fuentes la fila "Cloudflare Access" dice "protegido".
+2. Entre a `/resumen`: lo manda a iniciar sesión con Google y entran solo los dos correos permitidos. Haga lo mismo con `/economia`, `/noticias`, `/analisis`, `/asistente`, `/configuracion`, `/empresas` y `/onboarding`.
+3. Sesión vencida: en Zero Trust revoca la sesión del usuario (o borra la cookie `CF_Authorization`) con la app abierta y pulsa Reintentar en cualquier dato o envía un mensaje al asistente. Debe aparecer "Su sesión de acceso venció. Vuelva a entrar para seguir." con el botón "Volver a entrar", que recarga la página y muestra el login.
+4. En Configuración > Fuentes la fila "Cloudflare Access" dice "protegido".
 
 ## 5. Previews de Vercel
 
