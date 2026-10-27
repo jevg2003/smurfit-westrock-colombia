@@ -70,16 +70,6 @@ describe("schema-driven fields", () => {
     await userEvent.click(screen.getByRole("button", { name: "Enviar" }));
     expect(await screen.findByText("Escriba el nombre.")).toBeInTheDocument();
   });
-
-  it("stops adding chips at the item limit of the schema", async () => {
-    render(<Harness />);
-    const input = screen.getByLabelText("Etiquetas");
-    for (const tag of ["a", "b", "c"]) {
-      await userEvent.type(input, `${tag}{Enter}`);
-    }
-    expect(screen.getByText("3/3")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Agregar a Etiquetas" })).toBeDisabled();
-  });
 });
 
 describe("NitField", () => {
@@ -184,5 +174,73 @@ describe("NumberField", () => {
     await userEvent.type(screen.getByLabelText("Porcentaje"), "80");
     await userEvent.click(screen.getByRole("button", { name: "Enviar" }));
     expect(await screen.findByText("Muy alto.")).toBeInTheDocument();
+  });
+});
+
+describe("ChipListField", () => {
+  const tagSchema = z.object({ tags: z.array(z.string().max(8, "Muy larga.")).max(3, "Hasta 3.") });
+
+  function ChipHarness({ initial = [], suggestions }: { initial?: string[]; suggestions?: string[] }) {
+    const form = useForm({
+      defaultValues: { tags: initial },
+      validationLogic: revalidateLogic(),
+      validators: { onDynamic: tagSchema },
+    });
+    return (
+      <form.Field name="tags">
+        {(field) => <ChipListField field={field} label="Etiquetas" placeholder="Escriba" suggestions={suggestions} />}
+      </form.Field>
+    );
+  }
+
+  const chips = () => screen.queryAllByRole("button", { name: /^Quitar /, hidden: true }).map((button) => button.getAttribute("aria-label"));
+
+  it("adds the typed term with Enter", async () => {
+    render(<ChipHarness />);
+    await userEvent.type(screen.getByLabelText("Etiquetas"), "gas{Enter}");
+    expect(chips()).toEqual(["Quitar gas"]);
+    expect(screen.getByLabelText("Etiquetas")).toHaveValue("");
+  });
+
+  it("splits a pasted list on commas and new lines", async () => {
+    render(<ChipHarness />);
+    await userEvent.click(screen.getByLabelText("Etiquetas"));
+    await userEvent.paste("uno, dos\ntres");
+    expect(chips()).toEqual(["Quitar uno", "Quitar dos", "Quitar tres"]);
+  });
+
+  it("ignores a duplicate regardless of case", async () => {
+    render(<ChipHarness initial={["Gas"]} />);
+    await userEvent.type(screen.getByLabelText("Etiquetas"), "gAS{Enter}");
+    expect(chips()).toEqual(["Quitar Gas"]);
+  });
+
+  it("blocks adding past the item limit of the schema and shows the count", async () => {
+    render(<ChipHarness initial={["a", "b", "c"]} />);
+    expect(screen.getByText("3/3")).toBeInTheDocument();
+    await userEvent.type(screen.getByLabelText("Etiquetas"), "d{Enter}");
+    expect(chips()).toHaveLength(3);
+    expect(await screen.findByText("Hasta 3.")).toBeInTheDocument();
+  });
+
+  it("rejects a term longer than the schema allows with the schema message", async () => {
+    render(<ChipHarness />);
+    await userEvent.type(screen.getByLabelText("Etiquetas"), "demasiado largo{Enter}");
+    expect(chips()).toHaveLength(0);
+    expect(await screen.findByText("Muy larga.")).toBeInTheDocument();
+  });
+
+  it("removes the last chip with Backspace on an empty input", async () => {
+    render(<ChipHarness initial={["uno", "dos"]} />);
+    await userEvent.click(screen.getByLabelText("Etiquetas"));
+    await userEvent.keyboard("{Backspace}");
+    expect(chips()).toEqual(["Quitar uno"]);
+  });
+
+  it("offers suggestions that can be picked", async () => {
+    render(<ChipHarness suggestions={["Energía", "Gas"]} />);
+    await userEvent.click(screen.getByLabelText("Etiquetas"));
+    await userEvent.click(await screen.findByRole("option", { name: "Gas" }));
+    expect(chips()).toEqual(["Quitar Gas"]);
   });
 });

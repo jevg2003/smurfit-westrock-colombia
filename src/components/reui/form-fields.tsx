@@ -1,15 +1,24 @@
 "use client"
 
 import type { AnyFieldApi } from "@tanstack/react-form"
-import { PlusIcon, XIcon } from "lucide-react"
-import { useId, useState, type ClipboardEvent, type ComponentProps, type ReactNode } from "react"
+import { Fragment, useId, useRef, useState, type ClipboardEvent, type ComponentProps, type ReactNode } from "react"
 import { NumericFormat } from "react-number-format"
 import type { z } from "zod"
 import { DatePicker } from "@/components/date/date-picker"
 import type { DateDirection } from "@/components/date/presets"
-import { Badge } from "@/components/reui/badge"
 import { AutoTextarea, CharCounter } from "@/components/reui/auto-textarea"
-import { Button } from "@/components/ui/button"
+import {
+  Combobox,
+  ComboboxChip,
+  ComboboxChips,
+  ComboboxChipsInput,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxItem,
+  ComboboxList,
+  ComboboxValue,
+  useComboboxAnchor,
+} from "@/components/ui/combobox"
 import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from "@/components/ui/input-group"
@@ -275,72 +284,165 @@ export function AutoTextareaField({ field, label, hint, hideLabel, schema, extra
   )
 }
 
-type ChipListFieldProps = BaseProps & { placeholder?: string; addLabel?: string }
+type ChipListFieldProps = BaseProps & {
+  placeholder?: string
+  /** Ready-made terms offered in the list; anything else the user types can still be added. */
+  suggestions?: string[]
+  /** Kept for existing callers; adding is done with Enter, the "Agregar" row of the list, or by pasting. */
+  addLabel?: string
+}
 
-/** A list of short terms: type one, press Enter or the button, remove with the x on each chip. Limits come from the schema. */
-export function ChipListField({ field, label, hint, placeholder, addLabel = "Agregar" }: ChipListFieldProps) {
+/** Splits pasted text into terms on commas, semicolons and new lines. */
+const splitTerms = (text: string) =>
+  text
+    .split(/[,;\n\r]+/)
+    .map((term) => term.trim())
+    .filter(Boolean)
+
+const segmentsOfName = (name: string) => name.split(/[.[\]]+/).filter(Boolean)
+
+/** Copy of `source` with `value` stored at the dotted path of a field name. */
+function withValueAt(source: unknown, path: string, value: unknown): unknown {
+  const root: Record<string, unknown> = structuredClone((source ?? {}) as Record<string, unknown>)
+  const segments = segmentsOfName(path)
+  let node = root
+  for (const segment of segments.slice(0, -1)) node = node[segment] as Record<string, unknown>
+  node[segments[segments.length - 1]] = value
+  return root
+}
+
+/** The schema message that complains about `next` as the value of `field`, or undefined when the schema accepts it. */
+function refusalOf(field: AnyFieldApi, next: string[], schema?: z.ZodType): string | undefined {
+  const rules = schema ?? schemaOf(field)
+  if (!rules) return undefined
+  const parsed = rules.safeParse(withValueAt(field.form.state.values, field.name, next))
+  if (parsed.success) return undefined
+  const own = segmentsOfName(field.name)
+  const issue = parsed.error.issues.find((entry) => own.every((segment, index) => String(entry.path[index]) === segment))
+  return issue?.message
+}
+
+/**
+ * A list of short terms as pills (ReUI c-combobox-20): type one and press Enter, pick a suggestion, or paste
+ * several separated by commas or new lines. Item count, item length and the required mark come from the schema.
+ */
+export function ChipListField({ field, label, hint, hideLabel, schema, placeholder, suggestions = [] }: ChipListFieldProps) {
   const id = useId()
+  const anchor = useComboboxAnchor()
   const [draft, setDraft] = useState("")
+  const [refusal, setRefusal] = useState<string | null>(null)
+  const [open, setOpen] = useState(false)
+  const highlighted = useRef<string | null>(null)
   const items: string[] = field.state.value
   const invalid = invalidOf(field)
-  const meta = useFieldMeta(field)
-  const full = meta.maxItems !== undefined && items.length >= meta.maxItems
+  const meta = useFieldMeta(field, schema)
+  const term = draft.trim()
 
-  const add = () => {
-    const term = draft.trim()
-    if (!term || full) return
-    if (!items.some((item) => item.toLowerCase() === term.toLowerCase())) field.handleChange([...items, term])
+  /** Adds terms one by one, stopping at the first one the schema refuses; duplicates are skipped. */
+  const addTerms = (terms: string[]) => {
+    let next = items
+    for (const candidate of terms) {
+      if (next.some((item) => item.toLowerCase() === candidate.toLowerCase())) continue
+      const attempt = [...next, candidate]
+      const message = refusalOf(field, attempt, schema)
+      if (message) {
+        setRefusal(message)
+        break
+      }
+      next = attempt
+    }
+    if (next !== items) {
+      setRefusal(null)
+      field.handleChange(next)
+    }
     setDraft("")
   }
 
+  const offered = suggestions.filter((suggestion) => suggestion.toLowerCase().includes(term.toLowerCase()))
+  const creatable = term !== "" && ![...suggestions, ...items].some((item) => item.toLowerCase() === term.toLowerCase())
+  const options = creatable ? [term, ...offered] : offered
+
   return (
-    <Field data-invalid={invalid}>
-      <LabelRow htmlFor={id} label={label} required={meta.required}>
+    <Field data-invalid={invalid || Boolean(refusal)}>
+      <LabelRow htmlFor={id} label={label} hideLabel={hideLabel} required={meta.required}>
         {meta.maxItems !== undefined && <CharCounter length={items.length} max={meta.maxItems} className="ms-auto" />}
       </LabelRow>
-      {items.length > 0 && (
-        <ul aria-label={`Agregados en ${label}`} className="flex flex-wrap gap-1">
-          {items.map((item) => (
-            <li key={item}>
-              <Badge variant="outline" className="gap-1 pe-0.5">
-                {item}
-                <button
-                  type="button"
-                  aria-label={`Quitar ${item}`}
-                  onClick={() => field.handleChange(items.filter((other) => other !== item))}
-                  className="inline-flex size-4 items-center justify-center rounded-full outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50"
-                >
-                  <XIcon className="size-3" aria-hidden="true" />
-                </button>
-              </Badge>
-            </li>
-          ))}
-        </ul>
-      )}
-      <div className="flex gap-2">
-        <Input
-          id={id}
-          value={draft}
-          placeholder={placeholder}
-          maxLength={meta.itemMaxLength}
-          disabled={full}
-          aria-invalid={invalid || undefined}
-          aria-describedby={hint ? `${id}-hint` : undefined}
-          onChange={(event) => setDraft(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              event.preventDefault()
-              add()
-            }
-          }}
-        />
-        <Button type="button" variant="outline" disabled={full} onClick={add} aria-label={`${addLabel} a ${label}`}>
-          <PlusIcon aria-hidden="true" />
-          {addLabel}
-        </Button>
-      </div>
+      <Combobox
+        multiple
+        items={options}
+        value={items}
+        inputValue={draft}
+        filter={null}
+        open={open && options.length > 0}
+        onOpenChange={setOpen}
+        onInputValueChange={(next, details) => {
+          setDraft(next)
+          if (details.reason === "input-change") setRefusal(null)
+        }}
+        onItemHighlighted={(item) => {
+          highlighted.current = (item as string | undefined) ?? null
+        }}
+        onValueChange={(next: string[]) => {
+          if (next.length < items.length) {
+            setRefusal(null)
+            field.handleChange(next)
+          } else {
+            addTerms(next.filter((value) => !items.includes(value)))
+          }
+        }}
+      >
+        <ComboboxChips ref={anchor} aria-label={`Agregados en ${label}`} className="border-none bg-transparent p-0 shadow-none ring-0 focus-within:ring-0 dark:bg-transparent">
+          <ComboboxValue>
+            {(selected: string[]) => (
+              <Fragment>
+                {selected.map((item) => (
+                  <ComboboxChip
+                    key={item}
+                    removeLabel={`Quitar ${item}`}
+                    className="inline-flex h-auto items-center gap-1.5 rounded-full border bg-background py-0.5 pl-2.5 shadow-xs **:data-[slot=combobox-chip-remove]:mr-0.5 **:data-[slot=combobox-chip-remove]:bg-transparent"
+                  >
+                    {item}
+                  </ComboboxChip>
+                ))}
+                <ComboboxChipsInput
+                  id={id}
+                  name={field.name}
+                  placeholder={placeholder}
+                  aria-required={meta.required || undefined}
+                  aria-invalid={invalid || Boolean(refusal) || undefined}
+                  aria-describedby={hint ? `${id}-hint` : undefined}
+                  className="rounded-lg border border-input bg-transparent px-2.5 py-1 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:bg-input/30"
+                  onBlur={field.handleBlur}
+                  onKeyDown={(event) => {
+                    if (event.key !== "Enter") return
+                    event.preventDefault()
+                    // An option the user moved to is chosen by the list itself; otherwise Enter adds what was typed.
+                    if (highlighted.current === null && term) addTerms([term])
+                  }}
+                  onPaste={(event) => {
+                    const terms = splitTerms(event.clipboardData.getData("text"))
+                    if (terms.length < 2) return
+                    event.preventDefault()
+                    addTerms(terms)
+                  }}
+                />
+              </Fragment>
+            )}
+          </ComboboxValue>
+        </ComboboxChips>
+        <ComboboxContent anchor={anchor} className="max-w-(--anchor-width) min-w-(--anchor-width)">
+          <ComboboxEmpty>Sin sugerencias</ComboboxEmpty>
+          <ComboboxList>
+            {(option: string) => (
+              <ComboboxItem key={option} value={option}>
+                {creatable && option === term ? `Agregar «${option}»` : option}
+              </ComboboxItem>
+            )}
+          </ComboboxList>
+        </ComboboxContent>
+      </Combobox>
       {hint && <FieldDescription id={`${id}-hint`}>{hint}</FieldDescription>}
-      {invalid && <FieldError errors={field.state.meta.errors} />}
+      {refusal ? <FieldError>{refusal}</FieldError> : invalid && <FieldError errors={field.state.meta.errors} />}
     </Field>
   )
 }

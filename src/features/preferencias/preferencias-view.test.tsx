@@ -56,9 +56,15 @@ describe("PreferenciasView", () => {
     expect(usePreferencesStore.getState().thresholds).toEqual(TEST_COMPANY.thresholds);
   });
 
-  it("takes the length of a term from the company limits", () => {
+  it("refuses a term longer than the company limits", async () => {
+    const user = userEvent.setup();
     render(<PreferenciasView />);
-    expect(within(screen.getByRole("group", { name: "Sector" })).getByLabelText("Sector")).toHaveAttribute("maxlength", "120");
+    const input = within(screen.getByRole("group", { name: "Sector" })).getByLabelText("Sector");
+    const tooLong = "x".repeat(121);
+    await user.click(input);
+    await user.paste(tooLong);
+    await user.keyboard("{Enter}");
+    expect(screen.queryByRole("button", { name: `Quitar ${tooLong}`, hidden: true })).not.toBeInTheDocument();
   });
 
   it("restores the defaults", async () => {
@@ -93,9 +99,9 @@ describe("PreferenciasView", () => {
     const { company, sector } = usePreferencesStore.getState().newsContext;
     const companyGroup = within(screen.getByRole("group", { name: "Empresa y competidores" }));
     const sectorGroup = within(screen.getByRole("group", { name: "Sector" }));
-    const contextList = within(companyGroup.getByRole("list", { name: "Agregados en Palabras de contexto (Empresa y competidores)" }));
+    const contextList = within(companyGroup.getByRole("toolbar", { name: "Agregados en Palabras de contexto (Empresa y competidores)" }));
     for (const word of company.requireAny) await user.click(contextList.getByRole("button", { name: `Quitar ${word}` }));
-    const excludeList = within(sectorGroup.getByRole("list", { name: "Agregados en Palabras a excluir (Sector)" }));
+    const excludeList = within(sectorGroup.getByRole("toolbar", { name: "Agregados en Palabras a excluir (Sector)" }));
     for (const word of sector.excludeAny) await user.click(excludeList.getByRole("button", { name: `Quitar ${word}` }));
     await user.type(companyGroup.getByLabelText("Palabras de contexto (Empresa y competidores)"), "Itagüí{Enter}");
     await user.type(sectorGroup.getByLabelText("Palabras a excluir (Sector)"), "fútbol{Enter}");
