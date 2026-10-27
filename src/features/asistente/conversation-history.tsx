@@ -7,7 +7,7 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/
 import { Input } from "@/components/ui/input";
 import { Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemTitle } from "@/components/ui/item";
 import type { Conversation } from "@/stores/chat.store";
-import { relativeTime } from "./relative-time";
+import { relativeTime } from "@/lib/relative-time";
 
 interface Props {
   conversations: Conversation[];

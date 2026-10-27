@@ -23,7 +23,7 @@ import { useChatRuntime } from "./chat-runtime";
 import { ChatSession } from "./chat-session";
 import { Composer } from "./composer";
 import { useCurrentPageContext } from "./page-context";
-import { relativeTime } from "./relative-time";
+import { relativeTime } from "@/lib/relative-time";
 import { useChatHydrated } from "./use-chat-hydration";
 
 const MAX_HISTORY = 10;
