@@ -9,14 +9,25 @@ interface Props<T extends { at: string }> {
   /** Must return an `EventItem` (an `li`). */
   renderItem: (item: T) => ReactNode;
   now?: Date;
+  /** One list in the given order, without day headings (for feeds ordered by relevance). */
+  flat?: boolean;
 }
 
 /**
  * Events under sticky day headings, separated by thin lines. The headings stick to the top of the
  * scrolling region that contains the list (the column of the layout), never to the page.
  */
-export function EventList<T extends { at: string }>({ label, items, getKey, renderItem, now }: Props<T>) {
+export function EventList<T extends { at: string }>({ label, items, getKey, renderItem, now, flat }: Props<T>) {
   if (items.length === 0) return null;
+  if (flat) {
+    return (
+      <ul aria-label={label} className="flex flex-col divide-y">
+        {items.map((item) => (
+          <Fragment key={getKey(item)}>{renderItem(item)}</Fragment>
+        ))}
+      </ul>
+    );
+  }
 
   return (
     <div className="flex flex-col">

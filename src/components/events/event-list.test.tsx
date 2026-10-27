@@ -29,6 +29,13 @@ describe("EventList", () => {
     expect(screen.getByRole("heading", { name: "Hoy" }).className).toContain("top-0");
   });
 
+  it("keeps the given order in one list when it is flat", () => {
+    render(<EventList flat label="Noticias" items={items} now={NOW} getKey={(item) => item.id} renderItem={(item) => <li>{item.title}</li>} />);
+
+    expect(screen.queryByRole("heading")).not.toBeInTheDocument();
+    expect(within(screen.getByRole("list", { name: "Noticias" })).getAllByRole("listitem").map((node) => node.textContent)).toEqual(["Primero", "Segundo", "Tercero"]);
+  });
+
   it("renders nothing for an empty list", () => {
     const { container } = render(<EventList label="Avisos" items={[]} getKey={() => ""} renderItem={() => null} />);
 

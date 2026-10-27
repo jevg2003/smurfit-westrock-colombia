@@ -60,28 +60,30 @@ describe("NoticiasView", () => {
     expect(link).toHaveAttribute("href", "https://example.test/a");
     expect(link).toHaveAttribute("target", "_blank");
     expect(link).toHaveAttribute("rel", "noopener noreferrer");
-    const row = link.closest("[data-slot=item]") as HTMLElement;
+    const row = link.closest("li") as HTMLElement;
     expect(within(row).getByText(/Portafolio/)).toBeInTheDocument();
-    expect(within(row).getByText(/19\/10\/2026/)).toBeInTheDocument();
-    expect(within(row).getByText("Empresa Ejemplo")).toBeInTheDocument();
-    expect(within(row).getByText("Itagüí")).toBeInTheDocument();
+    expect(within(row).getByTitle(/19\/10\/2026/)).toBeInTheDocument();
+    expect(within(row).getByText("Empresa Ejemplo, Itagüí")).toBeInTheDocument();
     expect(screen.queryByText("Un titular sin nada que ver")).not.toBeInTheDocument();
   });
 
   it("labels Google News items 'vía Google News' and keeps the original outlet", async () => {
     renderWithQuery(<NoticiasView />);
 
-    const row = (await screen.findByRole("link", { name: /Nuevas reglas de economía circular/ })).closest("[data-slot=item]") as HTMLElement;
-    expect(within(row).getByText("vía Google News")).toBeInTheDocument();
+    const row = (await screen.findByRole("link", { name: /Nuevas reglas de economía circular/ })).closest("li") as HTMLElement;
+    expect(within(row).getByText("Vía Google News")).toBeInTheDocument();
     expect(within(row).getByText(/Valora Analitik/)).toBeInTheDocument();
-    const direct = (await screen.findByRole("link", { name: /Empresa Ejemplo invierte/ })).closest("[data-slot=item]") as HTMLElement;
-    expect(within(direct).queryByText("vía Google News")).not.toBeInTheDocument();
+    const direct = (await screen.findByRole("link", { name: /Empresa Ejemplo invierte/ })).closest("li") as HTMLElement;
+    expect(within(direct).queryByText("Vía Google News")).not.toBeInTheDocument();
   });
 
   it("says how many headlines are relevant out of all of them", async () => {
     renderWithQuery(<NoticiasView />);
 
-    expect(await screen.findByText("3 noticias relevantes de 4")).toBeInTheDocument();
+    expect(await screen.findByText("noticias relevantes")).toBeInTheDocument();
+    const summary = screen.getByRole("complementary", { name: "Resumen de noticias" });
+    expect(within(summary).getByText("3")).toBeInTheDocument();
+    expect(within(summary).getByText("Titulares leídos").parentElement).toHaveTextContent("4");
   });
 
   it("orders by relevance (company, regulation, operations) and not only by date", async () => {
@@ -94,14 +96,17 @@ describe("NoticiasView", () => {
     expect(order.every((index) => index >= 0)).toBe(true);
   });
 
-  it("hides unmatched headlines by default and shows them with 'Ver todas'", async () => {
+  it("hides unmatched headlines by default and shows them with Mostrar > Todas las noticias", async () => {
     renderWithQuery(<NoticiasView />);
 
-    const toggle = await screen.findByRole("checkbox", { name: "Ver todas" });
-    expect(toggle).not.toBeChecked();
+    const show = await screen.findByRole("combobox", { name: "Mostrar" });
+    expect(show).toHaveValue("");
     expect(screen.queryByText("Un titular sin nada que ver")).not.toBeInTheDocument();
-    fireEvent.click(toggle);
+    fireEvent.change(show, { target: { value: "all" } });
     expect(await screen.findByText("Un titular sin nada que ver")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Limpiar" }));
+    expect(screen.queryByText("Un titular sin nada que ver")).not.toBeInTheDocument();
   });
 
   it("shows loading, error with retry, empty and switched-off states", async () => {

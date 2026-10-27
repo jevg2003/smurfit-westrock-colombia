@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Provenance } from "@/core/domain/provenance";
 import type { RegulationEntry, RegulationItem } from "@/core/domain/regulation";
@@ -74,10 +74,10 @@ describe("RegulacionView", () => {
   it("shows a curated norm with the 'curado manualmente' badge, review date and official link", async () => {
     renderWithQuery(<RegulacionView />);
 
-    const norm = (await screen.findByText("Ley de ejemplo")).closest("[data-slot=item]") as HTMLElement;
+    const norm = (await screen.findByText("Ley de ejemplo")).closest("li") as HTMLElement;
     expect(within(norm).getByText("Curado manualmente")).toBeInTheDocument();
     expect(within(norm).getByText(/Revisada el 20\/10\/2026/)).toBeInTheDocument();
-    const link = within(norm).getByRole("link", { name: /Ver la norma/ });
+    const link = within(norm).getByRole("link", { name: /Ley de ejemplo/ });
     expect(link).toHaveAttribute("href", expect.stringMatching(/^https:\/\//));
     expect(link).toHaveAttribute("target", "_blank");
     expect(link).toHaveAttribute("rel", "noopener noreferrer");
@@ -88,7 +88,8 @@ describe("RegulacionView", () => {
     renderWithQuery(<RegulacionView />);
 
     await screen.findByRole("link", { name: /DECRETO No\. 0970/ });
-    expect(screen.queryByText("Normas curadas")).not.toBeInTheDocument();
+    expect(screen.queryByText("Ley de ejemplo")).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "Normas curadas" })).not.toBeInTheDocument();
   });
 
   it("lists Minambiente posts and decrees with safe links and their sources", async () => {
@@ -122,18 +123,30 @@ describe("RegulacionView", () => {
     expect(await screen.findByText("Fuente desactivada: Minambiente")).toBeInTheDocument();
   });
 
+  it("filters by source and clears the filter", async () => {
+    renderWithQuery(<RegulacionView />);
+    await screen.findByRole("link", { name: /DECRETO No\. 0970/ });
+
+    fireEvent.change(screen.getByRole("combobox", { name: "Fuente" }), { target: { value: "minambiente" } });
+    expect(screen.queryByRole("link", { name: /DECRETO No\. 0970/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Colombia y Armenia/ })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Limpiar" }));
+    expect(screen.getByRole("link", { name: /DECRETO No\. 0970/ })).toBeInTheDocument();
+  });
+
   it("shows empty states when a source has no items", async () => {
+    curated.norms = [];
     regulationFetch.mockResolvedValue(ok({ minambiente: { status: "ok", items: [] }, presidencia: { status: "ok", items: [] } }));
     renderWithQuery(<RegulacionView />);
 
-    expect(await screen.findByText("Minambiente no tiene publicaciones recientes")).toBeInTheDocument();
-    expect(screen.getByText("No hay decretos recientes sobre estos temas")).toBeInTheDocument();
+    expect(await screen.findByText("No hay publicaciones recientes")).toBeInTheDocument();
   });
 
   it("shows a loading state and a whole-call error with retry, and still shows the curated norms", async () => {
     regulationFetch.mockReturnValue(new Promise(() => {}));
     const { unmount } = renderWithQuery(<RegulacionView />);
-    expect(screen.getAllByRole("status", { name: "Consultando Minambiente y Presidencia" })).toHaveLength(2);
+    expect(screen.getByRole("status", { name: "Consultando Minambiente y Presidencia" })).toBeInTheDocument();
     expect(screen.getByText("Ley de ejemplo")).toBeInTheDocument();
     unmount();
 

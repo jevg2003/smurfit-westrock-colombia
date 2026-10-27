@@ -1,205 +1,187 @@
 "use client";
 
-import { ExternalLinkIcon, InfoIcon } from "lucide-react";
-import type { ReactNode } from "react";
-import { Badge } from "@/components/reui/badge";
-import { PageIntro } from "@/components/shell/page-intro";
+import { InfoIcon } from "lucide-react";
+import { useMemo, useState } from "react";
+import { EventItem } from "@/components/events/event-item";
+import { EventList } from "@/components/events/event-list";
+import { FeedSummary } from "@/components/events/feed-summary";
+import { FeedLayout } from "@/components/layouts/feed-layout";
+import { FilterBar } from "@/components/layouts/filter-bar";
+import { FilterSelect } from "@/components/layouts/filter-select";
+import { useFilterValues } from "@/components/layouts/use-filter-values";
 import { ProvenanceNote } from "@/components/shell/provenance-note";
 import { ErrorState } from "@/components/states/error-state";
-import { StaleNotice } from "@/components/states/stale-notice";
+import { EventListSkeleton } from "@/components/states/event-list-skeleton";
+import { RegionEmpty } from "@/components/states/region-empty";
+import { SourceNotices } from "@/components/states/source-notices";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
-import { Item, ItemContent, ItemDescription, ItemGroup, ItemTitle } from "@/components/ui/item";
-import { Skeleton } from "@/components/ui/skeleton";
 import type { RegulationEntry, RegulationItem } from "@/core/domain/regulation";
+import { bogotaDateKey } from "@/core/time/bogota";
 import { useCuratedNorms, useRegulation } from "@/features/entorno/use-regulation";
-import type { RegulationBlock } from "@/infrastructure/sources/regulation/client-adapter";
+import { DateRangeFilter, type DayRange } from "@/features/filtros/date-range-filter";
 import { formatDiaBogota } from "@/lib/date";
-import { safeHttpUrl } from "@/lib/safe-url";
 
-const linkClass =
-  "inline-flex items-start gap-1 underline underline-offset-4 outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50";
+type Origin = "curated" | "minambiente" | "decree";
 
-/** Norms that affect the company: hand-picked ones, Minambiente publications and Presidencia decrees. */
+const ORIGIN_LABELS: Record<Origin, string> = {
+  curated: "Normas curadas",
+  minambiente: "Minambiente",
+  decree: "Decretos de Presidencia",
+};
+
+interface Entry {
+  id: string;
+  origin: Origin;
+  at: string;
+  title: string;
+  source: string;
+  topic?: string;
+  detail?: string;
+  why?: string;
+  href?: string;
+  curated?: boolean;
+}
+
+const fromNorm = (norm: RegulationEntry): Entry => ({
+  id: `curated:${norm.id}`,
+  origin: "curated",
+  at: `${norm.date}T12:00:00.000Z`,
+  title: norm.name,
+  source: "Norma curada",
+  topic: norm.topic,
+  why: norm.whyItMatters,
+  detail: `Revisada el ${formatDiaBogota(`${norm.reviewedAt}T12:00:00.000Z`)}.${norm.url ? "" : " Sin enlace oficial verificado todavía."}`,
+  href: norm.url,
+  curated: true,
+});
+
+const fromItem = (item: RegulationItem): Entry => ({
+  id: item.id,
+  origin: item.kind === "decree" ? "decree" : "minambiente",
+  at: item.publishedAt,
+  title: item.title,
+  source: item.kind === "decree" ? "Presidencia" : "Minambiente",
+  topic: item.kind === "decree" ? "Decreto" : "Publicación",
+  detail: item.summary,
+  href: item.url,
+});
+
+/** Norms that affect the company: hand-picked ones, Minambiente publications and Presidencia decrees (L1). */
 export function RegulacionView() {
   const norms = useCuratedNorms();
   const regulation = useRegulation();
   const { view, data } = regulation;
+  const { values, set, clear: clearValues, active } = useFilterValues({ origin: "" });
+  const [dates, setDates] = useState<DayRange | undefined>();
 
-  return (
-    <div className="flex min-w-0 flex-col gap-4">
-      <PageIntro description="Normas que pueden afectar a la empresa y por qué importan, más lo último de Minambiente y los decretos de Presidencia que coinciden con sus palabras clave."
-      />
-
-      {view.status === "error" && <ErrorState source="Regulación" message={view.errorMessage ?? "Error desconocido."} kind={view.errorKind} onRetry={view.retry} />}
-      {view.isStale && <StaleNotice source="Regulación" updatedAt={view.updatedAt} />}
-
-      {norms.length > 0 && <CuratedSection norms={norms} />}
-
-      <FeedSection
-        title="Minambiente"
-        sourceName="Minambiente"
-        description="Últimas publicaciones del Ministerio de Ambiente. Solo se muestra el título, la fecha y el enlace."
-        pending={view.status === "pending"}
-        loadingLabel="Consultando Minambiente y Presidencia"
-        block={data?.minambiente}
-        emptyTitle="Minambiente no tiene publicaciones recientes"
-        emptyHelp="El feed del Ministerio no trajo publicaciones de los últimos 12 meses."
-        onRetry={view.retry}
-        footer={
-          data && (
-            <ProvenanceNote
-              attribution="Ministerio de Ambiente y Desarrollo Sostenible"
-              license="Solo titular, fecha y enlace (derechos del Ministerio)"
-              fetchedAt={view.updatedAt}
-            />
-          )
-        }
-      />
-
-      <FeedSection
-        title="Decretos de Presidencia"
-        sourceName="Presidencia"
-        description="Decretos de los últimos 12 meses que mencionan las palabras clave de regulación de la empresa."
-        pending={view.status === "pending"}
-        loadingLabel="Consultando Minambiente y Presidencia"
-        block={data?.presidencia}
-        emptyTitle="No hay decretos recientes sobre estos temas"
-        emptyHelp="Ningún decreto reciente mencionó las palabras clave de regulación y sostenibilidad."
-        onRetry={view.retry}
-        footer={
-          data && (
-            <ProvenanceNote
-              attribution="Departamento Administrativo de la Presidencia de la República (DAPRE) vía datos.gov.co"
-              license="CC BY-SA 4.0"
-              fetchedAt={view.updatedAt}
-            />
-          )
-        }
-      />
-    </div>
+  const entries = useMemo<Entry[]>(
+    () =>
+      [...norms.map(fromNorm), ...regulation.items.map(fromItem)].sort((a, b) => Date.parse(b.at) - Date.parse(a.at) || a.id.localeCompare(b.id)),
+    [norms, regulation.items],
   );
-}
-
-function CuratedSection({ norms }: { norms: RegulationEntry[] }) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Normas curadas</CardTitle>
-        <CardDescription>Las eligió una persona del equipo. Revisa que sigan vigentes antes de decidir con ellas.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <ItemGroup className="gap-2">
-          {norms.map((norm) => (
-            <CuratedRow key={norm.id} norm={norm} />
-          ))}
-        </ItemGroup>
-      </CardContent>
-      <CardFooter>
-        <ProvenanceNote attribution="Curado manualmente por el equipo del prototipo" license="Resumen propio; el texto de cada norma es público" />
-      </CardFooter>
-    </Card>
+  const filtered = useMemo(
+    () =>
+      entries.filter((entry) => {
+        if (values.origin && entry.origin !== values.origin) return false;
+        if (!dates) return true;
+        const day = bogotaDateKey(entry.at);
+        return day >= dates.fromDate && day <= dates.toDate;
+      }),
+    [entries, values, dates],
   );
-}
+  const clear = () => {
+    clearValues();
+    setDates(undefined);
+  };
 
-function CuratedRow({ norm }: { norm: RegulationEntry }) {
-  const url = norm.url ? safeHttpUrl(norm.url) : undefined;
+  const origins = (Object.keys(ORIGIN_LABELS) as Origin[]).filter((origin) => origin !== "curated" || norms.length > 0);
+  const counts = origins.map((origin) => ({ value: origin, label: ORIGIN_LABELS[origin], count: entries.filter((entry) => entry.origin === origin).length }));
+  const blocks = [
+    { name: "Minambiente", block: data?.minambiente },
+    { name: "Presidencia", block: data?.presidencia },
+  ];
+  const pending = view.status === "pending";
+  const nothing = !pending && view.status !== "error" && entries.length === 0;
+
   return (
-    <Item variant="outline" size="sm">
-      <ItemContent>
-        <ItemTitle className="flex-wrap whitespace-normal">
-          {norm.name}
-          <Badge variant="info-light" size="sm">
-            Curado manualmente
-          </Badge>
-        </ItemTitle>
-        <ItemDescription>
-          {norm.topic} · Fecha de la norma: {formatDiaBogota(`${norm.date}T12:00:00.000Z`)} · Revisada el {formatDiaBogota(`${norm.reviewedAt}T12:00:00.000Z`)}
-        </ItemDescription>
-        <p className="text-sm">{norm.whyItMatters}</p>
-        {url ? (
-          <a href={url} target="_blank" rel="noopener noreferrer" aria-label={`Ver la norma: ${norm.name}`} className={`${linkClass} w-fit text-sm`}>
-            Ver la norma{norm.urlLabel ? ` (${norm.urlLabel})` : ""}
-            <ExternalLinkIcon aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />
-          </a>
-        ) : (
-          <span className="text-xs text-muted-foreground">Sin enlace oficial verificado todavía.</span>
-        )}
-      </ItemContent>
-    </Item>
-  );
-}
-
-interface FeedSectionProps {
-  title: string;
-  sourceName: string;
-  description: string;
-  pending: boolean;
-  loadingLabel: string;
-  block: RegulationBlock | undefined;
-  emptyTitle: string;
-  emptyHelp: string;
-  onRetry: () => void;
-  footer: ReactNode;
-}
-
-function FeedSection({ title, sourceName, description, pending, loadingLabel, block, emptyTitle, emptyHelp, onRetry, footer }: FeedSectionProps) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {pending ? (
-          <Skeleton role="status" aria-label={loadingLabel} className="h-32 rounded-lg" />
-        ) : !block ? null : block.status === "disabled" ? (
-          <Alert>
-            <InfoIcon />
-            <AlertTitle>Fuente desactivada: {sourceName}</AlertTitle>
-            <AlertDescription>Esta fuente está apagada en este despliegue. Un administrador puede volver a encenderla.</AlertDescription>
-          </Alert>
-        ) : block.status === "error" ? (
-          <ErrorState source={sourceName} message={block.message ?? "La fuente no respondió."} onRetry={onRetry} />
-        ) : block.items.length === 0 ? (
-          <Empty className="border-0 p-6">
-            <EmptyHeader>
-              <EmptyTitle>{emptyTitle}</EmptyTitle>
-              <EmptyDescription>{emptyHelp}</EmptyDescription>
-            </EmptyHeader>
-          </Empty>
-        ) : (
-          <ItemGroup className="gap-2">
-            {block.items.map((item) => (
-              <FeedRow key={item.id} item={item} />
-            ))}
-          </ItemGroup>
-        )}
-      </CardContent>
-      {block?.status === "ok" && <CardFooter>{footer}</CardFooter>}
-    </Card>
-  );
-}
-
-function FeedRow({ item }: { item: RegulationItem }) {
-  const url = safeHttpUrl(item.url);
-  return (
-    <Item variant="outline" size="sm">
-      <ItemContent>
-        <ItemTitle className="whitespace-normal">
-          {url ? (
-            <a href={url} target="_blank" rel="noopener noreferrer" className={linkClass}>
-              {item.title}
-              <ExternalLinkIcon aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />
-            </a>
-          ) : (
-            item.title
+    <FeedLayout
+      filters={
+        <FilterBar active={active || dates !== undefined} onClear={clear}>
+          <FilterSelect label="Fuente" value={values.origin} options={counts.map(({ value, label }) => ({ value, label }))} onChange={(value) => set("origin", value)} />
+          <DateRangeFilter value={dates} onChange={setDates} label="Período" />
+        </FilterBar>
+      }
+      notices={
+        <div className="flex shrink-0 flex-col gap-2">
+          <SourceNotices sources={[{ name: "Regulación", ...view }]} />
+          {data?.off && (
+            <Alert>
+              <InfoIcon />
+              <AlertTitle>Fuente desactivada: Regulación</AlertTitle>
+              <AlertDescription>Esta fuente está apagada en este despliegue. Un administrador puede volver a encenderla.</AlertDescription>
+            </Alert>
           )}
-        </ItemTitle>
-        <ItemDescription>{formatDiaBogota(item.publishedAt)}</ItemDescription>
-        {item.summary && <p className="text-sm">{item.summary}</p>}
-      </ItemContent>
-    </Item>
+          {blocks.map(({ name, block }) =>
+            block?.status === "disabled" && !data?.off ? (
+              <Alert key={name}>
+                <InfoIcon />
+                <AlertTitle>Fuente desactivada: {name}</AlertTitle>
+                <AlertDescription>Esta fuente está apagada en este despliegue. Un administrador puede volver a encenderla.</AlertDescription>
+              </Alert>
+            ) : block?.status === "error" ? (
+              <ErrorState key={name} source={name} message={block.message ?? "La fuente no respondió."} onRetry={view.retry} othersKeepWorking />
+            ) : null,
+          )}
+        </div>
+      }
+      asideLabel="Resumen de regulación"
+      aside={!pending && <FeedSummary total={entries.length} totalLabel={entries.length === 1 ? "publicación" : "publicaciones"} groups={[{ title: "Por fuente", selected: values.origin, onSelect: (value) => set("origin", value), options: counts }]} />}
+    >
+      {pending && norms.length === 0 ? (
+        <EventListSkeleton label="Consultando Minambiente y Presidencia" />
+      ) : nothing || filtered.length === 0 ? (
+        pending ? null : (
+          <RegionEmpty
+            title={nothing ? "No hay publicaciones recientes" : "Ninguna publicación cumple estos filtros"}
+            description={nothing ? "Minambiente y Presidencia no trajeron novedades con las palabras clave de la empresa." : "Quite un filtro para ver más."}
+            action={!nothing && (active || dates) ? { label: "Limpiar filtros", onClick: clear } : undefined}
+          />
+        )
+      ) : (
+        <>
+          {pending && <EventListSkeleton label="Consultando Minambiente y Presidencia" rows={2} />}
+          <EventList
+            label="Regulación"
+            items={filtered}
+            getKey={(entry) => entry.id}
+            renderItem={(entry) => (
+              <EventItem
+                title={entry.title}
+                at={entry.at}
+                source={entry.source}
+                topic={entry.topic}
+                badge={entry.curated ? { label: "Curado manualmente", tone: "low" } : undefined}
+                detail={entry.detail}
+                why={entry.why}
+                href={entry.href}
+              />
+            )}
+          />
+          <div className="flex flex-col gap-1 px-3 py-2">
+            {norms.length > 0 && <ProvenanceNote attribution="Curado manualmente por el equipo del prototipo" license="Resumen propio; el texto de cada norma es público" />}
+            {data?.minambiente.status === "ok" && (
+              <ProvenanceNote attribution="Ministerio de Ambiente y Desarrollo Sostenible" license="Solo titular, fecha y enlace (derechos del Ministerio)" fetchedAt={view.updatedAt} />
+            )}
+            {data?.presidencia.status === "ok" && (
+              <ProvenanceNote
+                attribution="Departamento Administrativo de la Presidencia de la República (DAPRE) vía datos.gov.co"
+                license="CC BY-SA 4.0"
+                fetchedAt={view.updatedAt}
+              />
+            )}
+          </div>
+        </>
+      )}
+    </FeedLayout>
   );
 }
