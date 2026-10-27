@@ -21,6 +21,9 @@ import { nitOf, optionalNitInputSchema } from "@/core/company/nit";
 import type { OnboardingSeed, ProfilePatch } from "./schemas";
 
 
+/** One competitor: the same rules in the confirm form and in the dialog that adds or edits it. */
+export const competitorSchema = z.object({ name: competitorNameSchema, nit: optionalNitInputSchema });
+
 /** What the user reviews in the last step. Empty strings stand for "not given" so inputs stay controlled. */
 export const confirmFormSchema = z.object({
   name: nameSchema,
@@ -28,7 +31,7 @@ export const confirmFormSchema = z.object({
   sector: sectorSchema,
   city: citySchema,
   activity: activitySchema,
-  competitors: z.array(z.object({ name: competitorNameSchema, nit: optionalNitInputSchema })).max(COMPETITORS_MAX, `Use ${COMPETITORS_MAX} competidores como máximo.`),
+  competitors: z.array(competitorSchema).max(COMPETITORS_MAX, `Use ${COMPETITORS_MAX} competidores como máximo.`),
   newsGroups: z.object({ company: termList(), sector: termList(), regulation: termList(), operations: termList() }),
   regulationKeywords: termList(REGULATION_KEYWORDS_MAX),
   currentSituation: goalTextSchema,
