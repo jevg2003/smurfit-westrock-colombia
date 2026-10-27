@@ -19,8 +19,8 @@ import { cn } from "@/lib/utils";
 import { RadarMockup } from "./radar-mockup";
 import { ThemeSwitch } from "./theme-switch";
 
-export const NOTICE = "Prototipo independiente y no oficial. Sin relación ni aval de Smurfit Westrock.";
-export const CTA_LABEL = "Entrar al monitor";
+export const NOTICE = "Herramienta independiente: usa datos públicos y no reemplaza asesoría financiera, legal ni de compras.";
+export const CTA_LABEL = "Entrar a Smart Work Core";
 
 const FOCUS = "focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none";
 
@@ -60,7 +60,7 @@ export function LandingHeader() {
           <span aria-hidden="true" className="grid size-7 place-items-center rounded-md bg-primary/15 text-primary">
             <RadarIcon className="size-4" />
           </span>
-          Monitor de entorno
+          Smart Work Core
         </a>
         <nav aria-label="Secciones" className="hidden items-center gap-6 text-sm text-muted-foreground md:flex">
           <a className={cn("rounded-sm transition-colors hover:text-foreground", FOCUS)} href="#que-hace">
@@ -85,10 +85,10 @@ export function Hero() {
       <div aria-hidden="true" className="landing-grid pointer-events-none absolute inset-0 -z-10" />
       <div className="mx-auto flex max-w-6xl flex-col items-start gap-6 px-4 pt-16 pb-10 sm:px-6 md:pt-24 md:pb-14">
         <h1 id="titulo" className="landing-rise max-w-3xl text-4xl leading-[1.05] font-semibold tracking-tighter text-balance md:text-5xl lg:text-6xl">
-          Vigila el entorno del sector empaques en Colombia
+          Lee el contexto de Colombia antes de decidir
         </h1>
         <p className="landing-rise max-w-[60ch] text-base leading-relaxed text-muted-foreground [animation-delay:80ms] md:text-lg">
-          Dólar, contratación pública, competidores y regulación en un solo lugar, con datos abiertos y reglas que puedes revisar.
+          Dólar, contratación pública, competidores, noticias y regulación de tu empresa en un solo lugar, con datos abiertos y reglas que puedes revisar.
         </p>
         <div className="landing-rise flex flex-wrap items-center gap-x-5 gap-y-3 [animation-delay:160ms]">
           <EnterButton />
@@ -195,7 +195,7 @@ export function FeatureGrid() {
   return (
     <section id="que-hace" aria-labelledby="que-hace-titulo" className="mx-auto w-full max-w-6xl scroll-mt-20 px-4 pb-16 sm:px-6 md:pb-24">
       <h2 id="que-hace-titulo" className="max-w-2xl text-3xl font-semibold tracking-tight text-balance md:text-4xl">
-        Qué hace el monitor
+        Qué hace Smart Work Core
       </h2>
       <ul className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
         {FEATURES.map(({ icon: Icon, title, text, span, extra, tint }) => (
@@ -315,10 +315,10 @@ export function PilotNotice() {
           <ScaleIcon aria-hidden="true" className="mt-1 size-5 shrink-0 text-warning-foreground" />
           <div className="flex flex-col gap-2">
             <h2 id="piloto-titulo" className="text-2xl font-semibold tracking-tight">
-              Un prototipo independiente
+              Una herramienta independiente
             </h2>
             <p className="max-w-[65ch] text-sm leading-relaxed text-muted-foreground">
-              Smurfit Westrock Colombia es el caso piloto con el que probamos el monitor. No participa en este proyecto ni lo respalda.
+              Smart Work Core usa datos públicos de fuentes oficiales colombianas, pero no es una fuente oficial ni cuenta con el aval de esas entidades.
             </p>
             <p className="text-base font-semibold">{NOTICE}</p>
           </div>

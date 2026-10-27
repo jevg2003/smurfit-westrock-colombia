@@ -16,14 +16,14 @@ describe("LandingPage", () => {
 
   it("sends the primary call to action to /home", () => {
     render(<LandingPage />);
-    const cta = screen.getAllByRole("link", { name: "Entrar al monitor" });
+    const cta = screen.getAllByRole("link", { name: "Entrar a Smart Work Core" });
     expect(cta.length).toBeGreaterThan(0);
     for (const link of cta) expect(link).toHaveAttribute("href", "/home");
   });
 
-  it("states that the prototype is unofficial", () => {
+  it("states that the tool is independent and uses public data", () => {
     render(<LandingPage />);
-    expect(screen.getAllByText(/Prototipo independiente y no oficial\. Sin relación ni aval de Smurfit Westrock\./).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Herramienta independiente: usa datos públicos y no reemplaza asesoría financiera, legal ni de compras\./).length).toBeGreaterThan(0);
   });
 
   it("labels the radar mockup as sample data", () => {

@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
+import { seedCompany } from "./support";
 
 const fixture = (path: string) => readFileSync(resolve(process.cwd(), "src/infrastructure/sources", path), "utf8");
 
@@ -40,7 +41,7 @@ async function mockSources(page: Page) {
     route.fulfill(
       json(
         JSON.stringify({
-          items: [{ id: "n1", title: "Cartón corrugado: demanda estable", url: "https://example.com/n1", outlet: "Portafolio", publishedAt: fetchedAt, via: "rss", feedId: "portafolio-economia" }],
+          items: [{ id: "n1", title: "Acero laminado: demanda estable", url: "https://example.com/n1", outlet: "Portafolio", publishedAt: fetchedAt, via: "rss", feedId: "portafolio-economia" }],
           feeds: [{ id: "portafolio-economia", outlet: "Portafolio", status: "ok", count: 1 }],
           fetchedAt,
         }),
@@ -80,11 +81,12 @@ test.describe("Smoke", () => {
       page.on("console", (message) => {
         if (message.type() === "error" && !isThirdPartyAbort(message.text())) consoleErrors.push(message.text());
       });
+      await seedCompany(page);
       await mockSources(page);
 
       await page.goto(route);
       await expect(page.getByRole("heading", { level: 1 }).first()).toBeVisible();
-      await expect(page.getByText(/no oficial/i).first()).toBeVisible();
+      await expect(page.getByText(/herramienta independiente/i).first()).toBeVisible();
       // Let late client fetches settle so their errors are collected before asserting.
       await page.waitForLoadState("networkidle");
 

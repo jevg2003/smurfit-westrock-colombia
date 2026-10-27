@@ -19,6 +19,6 @@ describe("shell navigation", () => {
   it("derives the page title from the pathname", () => {
     expect(navTitle("/home")).toBe("Radar");
     expect(navTitle("/senales")).toBe("Señales");
-    expect(navTitle("/unknown")).toBe("Monitor de entorno");
+    expect(navTitle("/unknown")).toBe("Smart Work Core");
   });
 });

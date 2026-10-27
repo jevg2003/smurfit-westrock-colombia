@@ -8,16 +8,16 @@ function isPublicPath(pathname: string): boolean {
 const baseOrigin = new URL(process.env.E2E_BASE_URL ?? "http://localhost:3000").origin;
 
 test.describe("landing page", () => {
-  test("shows the headline, the CTA and the prototype notice", async ({ page }) => {
+  test("shows the headline, the CTA and the independence notice", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-    await expect(page.getByText("Prototipo independiente y no oficial. Sin relación ni aval de Smurfit Westrock.").first()).toBeVisible();
+    await expect(page.getByText("Herramienta independiente: usa datos públicos y no reemplaza asesoría financiera, legal ni de compras.").first()).toBeVisible();
     await expect(page.getByText("Datos de ejemplo").first()).toBeVisible();
   });
 
   test("the main call to action goes to /home", async ({ page }) => {
     await page.goto("/");
-    const cta = page.getByRole("link", { name: "Entrar al monitor" }).first();
+    const cta = page.getByRole("link", { name: "Entrar a Smart Work Core" }).first();
     await expect(cta).toHaveAttribute("href", "/home");
     await cta.click();
     await expect(page).toHaveURL(/\/home/);

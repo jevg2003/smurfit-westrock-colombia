@@ -154,7 +154,7 @@ export function TrmGrid({ title, icon, datos, estaGuardado, onAlternarAlerta, oc
             variant="outline"
             size="sm"
             disabled={filas.length === 0}
-            onClick={() => exportarCsv(filas, "trm-smurfit-westrock.csv")}
+            onClick={() => exportarCsv(filas, "trm.csv")}
           >
             <DownloadIcon aria-hidden="true" data-icon="inline-start" />
             Exportar CSV

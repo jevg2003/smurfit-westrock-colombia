@@ -62,4 +62,4 @@ export const NAV = NAV_GROUPS.flatMap((group) => group.items);
 
 export const isNavActive = (pathname: string, href: string) => pathname === href;
 
-export const navTitle = (pathname: string) => NAV.find((item) => isNavActive(pathname, item.href))?.label ?? "Monitor de entorno";
+export const navTitle = (pathname: string) => NAV.find((item) => isNavActive(pathname, item.href))?.label ?? "Smart Work Core";

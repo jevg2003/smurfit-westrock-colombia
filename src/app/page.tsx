@@ -5,9 +5,9 @@ import { LandingPage } from "@/features/landing/landing-page";
 export const dynamic = "force-static";
 
 export const metadata: Metadata = {
-  title: "Monitor de entorno del sector empaques en Colombia",
+  title: "Smart Work Core · Contexto de Colombia para decidir",
   description:
-    "Prototipo independiente y no oficial que vigila el dólar, la contratación pública, los competidores y la regulación del sector empaques en Colombia.",
+    "Herramienta independiente que lee el dólar, la contratación pública, los competidores, las noticias y la regulación de Colombia para que una empresa decida con datos.",
 };
 
 export default function Page() {

@@ -81,7 +81,7 @@ export function BriefingDocument({ briefing, extras }: { briefing: Briefing; ext
       )}
 
       <footer className="border-t pt-3 text-xs text-muted-foreground">
-        Prototipo no oficial, sin relación ni aval de Smurfit Westrock. {briefing.note}.
+        Smart Work Core: herramienta independiente, sin aval de las entidades que publican los datos. {briefing.note}.
       </footer>
     </article>
   );

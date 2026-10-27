@@ -8,6 +8,7 @@ import { BRAND_HREF, HOME_HREF, NAV_GROUPS, isNavActive, navTitle } from "./nav"
 import { ThemeTogglerButton } from "@/components/animate-ui/components/buttons/theme-toggler";
 import { Button } from "@/components/ui/button";
 import { AssistantSheet } from "@/features/asistente/assistant-sheet";
+import { useActiveCompany } from "@/stores/companies.store";
 import { PageContextProvider } from "@/features/asistente/page-context";
 import {
   Breadcrumb,
@@ -38,7 +39,7 @@ function Logo() {
     <Button
       size="icon"
       nativeButton={false}
-      render={<Link href={BRAND_HREF} aria-label="Smurfit Westrock Colombia, radar" />}
+      render={<Link href={BRAND_HREF} aria-label="Smart Work Core, radar" />}
       className="size-7"
     >
       <LineChartIcon aria-hidden="true" className="size-3.5" />
@@ -64,6 +65,7 @@ interface Props {
 
 export function AppShell({ actions, children }: Props) {
   const pathname = usePathname();
+  const company = useActiveCompany();
   const title = navTitle(pathname);
 
   return (
@@ -123,7 +125,7 @@ export function AppShell({ actions, children }: Props) {
             <Breadcrumb className="min-w-0">
               <BreadcrumbList className="flex-nowrap">
                 <BreadcrumbItem className="hidden sm:inline-flex">
-                  <BreadcrumbLink render={<Link href={BRAND_HREF} />}>Smurfit Westrock Colombia</BreadcrumbLink>
+                  <BreadcrumbLink render={<Link href={BRAND_HREF} />}>Smart Work Core</BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden sm:block" />
                 <BreadcrumbItem className="min-w-0">
@@ -134,14 +136,14 @@ export function AppShell({ actions, children }: Props) {
           </div>
           <div className="ml-auto flex shrink-0 items-center gap-2">
             {pathname === "/dias" && actions}
-            {pathname !== "/asistente" && <AssistantSheet />}
+            {pathname !== "/asistente" && company && <AssistantSheet />}
           </div>
         </header>
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-x-hidden overflow-y-auto p-4 print:overflow-visible">
           <div className="flex flex-1 flex-col gap-4">{children}</div>
           <footer className="max-w-prose text-xs text-muted-foreground print:hidden">
-            <p className="font-medium">Prototipo no oficial, sin relación ni aval de Smurfit Westrock.</p>
+            <p className="font-medium">Smart Work Core: herramienta independiente, sin aval de las entidades que publican los datos.</p>
             <p>
               Construido con datos públicos (datos.gov.co: TRM, SECOP II, Supersociedades y exportaciones; Banco Mundial: PIB e inflación; titulares de medios y Google News; Minambiente y decretos de Presidencia). Las señales salen de reglas escritas y
               visibles. El asistente de IA solo lee estos datos y puede equivocarse.
