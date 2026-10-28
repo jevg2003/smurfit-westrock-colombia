@@ -21,7 +21,7 @@ import { useCuratedNorms, useRegulation } from "@/features/entorno/use-regulatio
 import { DateRangeFilter, type DayRange } from "@/features/filtros/date-range-filter";
 import { formatDiaBogota } from "@/lib/date";
 
-type Origin = "curated" | "minambiente" | "decree";
+export type Origin = "curated" | "minambiente" | "decree";
 
 const ORIGIN_LABELS: Record<Origin, string> = {
   curated: "Normas curadas",

@@ -120,4 +120,18 @@ describe("EventItem", () => {
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
     expect(within(screen.getByRole("listitem")).getByText("Noticia")).toBeInTheDocument();
   });
+
+  it("renders the media slot at the leading edge and keeps the new dot", () => {
+    render(<EventItem title="Con ícono" state="new" media={<svg data-testid="media" aria-hidden="true" />} />);
+
+    const item = screen.getByRole("listitem");
+    expect(within(item).getByTestId("media")).toBeInTheDocument();
+    expect(within(item).getByText("Nuevo")).toBeInTheDocument();
+  });
+
+  it("renders no media wrapper when media is absent", () => {
+    render(<EventItem title="Sin ícono" />);
+
+    expect(screen.getByRole("listitem").querySelector("[data-slot='event-media']")).toBeNull();
+  });
 });

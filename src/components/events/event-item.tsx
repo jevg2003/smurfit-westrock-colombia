@@ -42,6 +42,8 @@ export interface EventItemProps {
   note?: string;
   /** Original record. Only a safe http(s) url becomes a link. */
   href?: string;
+  /** Decorative leading visual, such as a kind icon. Sits between the "new" dot and the body; must be aria-hidden. */
+  media?: ReactNode;
   selected?: boolean;
   onOpen?: () => void;
   onReview?: () => void;
@@ -76,6 +78,7 @@ export function EventItem({
   why,
   note,
   href,
+  media,
   selected,
   onOpen,
   onReview,
@@ -125,6 +128,12 @@ export function EventItem({
           </>
         )}
       </span>
+
+      {media && (
+        <span data-slot="event-media" className="mt-0.5 flex size-4 shrink-0 items-center justify-center text-muted-foreground [&_svg]:size-4">
+          {media}
+        </span>
+      )}
 
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex min-w-0 items-start justify-between gap-3">

@@ -1,3 +1,4 @@
+import { DIMENSION_ICONS, SEVERITY_ICONS } from "@/components/events/event-icons";
 import { Badge } from "@/components/reui/badge";
 import type { AlertState } from "@/core/domain/alert";
 import type { Dimension, Severity } from "@/core/domain/dimension";
@@ -17,8 +18,10 @@ const STATE_VARIANT = {
 
 /** Severity is always written out, never only a color. */
 export function SeverityBadge({ severity }: { severity: Severity }) {
+  const Icon = SEVERITY_ICONS[severity];
   return (
     <Badge variant={SEVERITY_VARIANT[severity]}>
+      <Icon aria-hidden="true" className="size-3.5" />
       {SEVERITY_LABELS[severity]}
     </Badge>
   );
@@ -33,8 +36,10 @@ export function AlertStateBadge({ state }: { state: AlertState }) {
 }
 
 export function DimensionBadge({ dimension }: { dimension: Dimension }) {
+  const Icon = DIMENSION_ICONS[dimension];
   return (
     <Badge variant="outline">
+      <Icon aria-hidden="true" className="size-3.5" />
       {DIMENSION_LABELS[dimension]}
     </Badge>
   );
