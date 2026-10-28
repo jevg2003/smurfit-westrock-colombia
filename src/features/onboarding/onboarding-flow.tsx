@@ -6,18 +6,21 @@ import { useEffect, useState } from "react";
 import { Alert, AlertAction, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import { buildConfirmValues } from "@/core/onboarding/confirm";
 import { blockOf, progressOf, stepNumberOf } from "@/core/onboarding/draft";
 import { useHydrationStore } from "@/stores/hydration.store";
 import { useOnboardingDraftStore } from "@/stores/onboarding-draft.store";
 import type { OnboardingErrorKind } from "./api";
 import { ConfirmForm } from "./confirm-form";
+import { FormSkeleton, THINKING_PHASES } from "./form-skeleton";
 import { OnboardingShell } from "./onboarding-shell";
 import { ProfilePreview } from "./profile-preview";
 import { QuestionForm } from "./question-form";
 import { SeedForm } from "./seed-form";
 import { useOnboardingFlow } from "./use-onboarding-flow";
+
+/** Shown while the saved draft is read back from the browser (a reload). */
+const LOADING_PHASES = ["Recuperando su avance"] as const;
 
 const ERROR_TEXT: Record<OnboardingErrorKind, string> = {
   offline: "Sin conexión. Sus respuestas están guardadas.",
@@ -57,7 +60,15 @@ export function OnboardingFlow({ askAboutDraft }: { askAboutDraft: boolean }) {
     if (hasHydrated && !draft && !mustAsk && !finished) start();
   }, [hasHydrated, draft, mustAsk, finished, start]);
 
-  if (!hasHydrated || !draft) return <Skeleton role="status" aria-label="Cargando" className="m-6 h-96 rounded-xl" />;
+  if (!hasHydrated || !draft) {
+    return (
+      <main className="mx-auto flex min-h-dvh w-full max-w-xl items-center px-4 py-6">
+        <Card className="w-full gap-0 py-0">
+          <FormSkeleton phases={LOADING_PHASES} />
+        </Card>
+      </main>
+    );
+  }
 
   if (mustAsk) {
     return (
@@ -78,6 +89,8 @@ export function OnboardingFlow({ askAboutDraft }: { askAboutDraft: boolean }) {
 
   const question = draft.stage === "questions" ? draft.questions[draft.cursor] : undefined;
   const isLast = question !== undefined && draft.cursor === draft.questions.length - 1;
+  // The user just continued from the last question (or the first one is not here yet): the AI is writing the next.
+  const waitingForAi = draft.stage === "questions" && thinking && (isLast || !question);
 
   return (
     <OnboardingShell
@@ -106,12 +119,13 @@ export function OnboardingFlow({ askAboutDraft }: { askAboutDraft: boolean }) {
               <AlertDescription>{notice.message}</AlertDescription>
             </Alert>
           )}
-          {draft.stage === "questions" && thinking && (isLast || !question) && <Skeleton role="status" aria-label="Preparando la siguiente pregunta" className="h-16" />}
         </div>
 
         {draft.stage === "seed" && <SeedForm key="seed" seed={draft.seed} busy={thinking} onSubmit={flow.submitSeed} />}
 
-        {draft.stage === "questions" && question && (
+        {waitingForAi && <FormSkeleton phases={THINKING_PHASES} />}
+
+        {draft.stage === "questions" && question && !waitingForAi && (
           <QuestionForm key={question.id} question={question} answer={draft.answers[question.id]} busy={thinking} onSubmit={flow.submitAnswer} onBack={flow.goBack} />
         )}
         {draft.stage === "confirm" && draft.seed && (
