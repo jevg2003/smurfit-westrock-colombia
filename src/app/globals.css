@@ -94,7 +94,9 @@
 }
 
 @theme inline {
-  --font-sans: var(--font-geist-sans), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-sans:
+    var(--font-geist-sans), system-ui, -apple-system, "Segoe UI", Roboto,
+    sans-serif;
   --font-heading: var(--font-sans);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -161,6 +163,11 @@
   }
   table {
     font-variant-numeric: tabular-nums;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
   }
 }
 
@@ -240,10 +247,22 @@
 /* Faint engineering grid behind the hero, faded toward the edges. */
 @utility landing-grid {
   background-image:
-    linear-gradient(to right, color-mix(in oklab, var(--foreground) 7%, transparent) 1px, transparent 1px),
-    linear-gradient(to bottom, color-mix(in oklab, var(--foreground) 7%, transparent) 1px, transparent 1px);
+    linear-gradient(
+      to right,
+      color-mix(in oklab, var(--foreground) 7%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      to bottom,
+      color-mix(in oklab, var(--foreground) 7%, transparent) 1px,
+      transparent 1px
+    );
   background-size: 48px 48px;
-  mask-image: radial-gradient(ellipse 70% 80% at 30% 0%, #000 30%, transparent 100%);
+  mask-image: radial-gradient(
+    ellipse 70% 80% at 30% 0%,
+    #000 30%,
+    transparent 100%
+  );
 }
 
 /* Scrolls without drawing a scrollbar (tab bars that overflow on a phone). */
