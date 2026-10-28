@@ -61,6 +61,14 @@ describe("RadarView", () => {
     expect(screen.getByRole("status", { name: "Consultando las fuentes" })).toBeInTheDocument();
   });
 
+  it("gives each aviso row a leading icon for its dimension", async () => {
+    fetchTrm.mockResolvedValue([trmRecord("2026-10-19", "4000"), trmRecord("2026-10-16", "3900")]);
+    renderWithQuery(<RadarView />);
+
+    const row = (await screen.findByText(/La TRM subió/)).closest("li") as HTMLElement;
+    expect(row.querySelector('[data-slot="event-media"] svg')).not.toBeNull();
+  });
+
   it("reviews an aviso from its row: it leaves the inbox and stays reviewed in the store", async () => {
     fetchTrm.mockResolvedValue([trmRecord("2026-10-19", "4000"), trmRecord("2026-10-16", "3900")]);
     renderWithQuery(<RadarView />);

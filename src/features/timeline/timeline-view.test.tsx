@@ -40,6 +40,14 @@ describe("TimelineView", () => {
     expect(items[0]).toHaveTextContent("2026-10-19");
   });
 
+  it("gives every event row a leading icon for its kind", async () => {
+    fetchTrm.mockResolvedValue([trmRecord("2026-10-19", "4000"), trmRecord("2026-10-16", "3900")]);
+    renderWithQuery(<TimelineView />);
+
+    const row = (await screen.findAllByText(/La TRM (subió|bajó)/))[0].closest("li") as HTMLElement;
+    expect(row.querySelector('[data-slot="event-media"] svg')).not.toBeNull();
+  });
+
   it("filters events to what the user follows (RF-15)", async () => {
     const contract = (id: string, nit: string, name: string): PublicContract => ({
       id,

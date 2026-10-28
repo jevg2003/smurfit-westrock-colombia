@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { EventItem, type EventTone } from "@/components/events/event-item";
+import { TIMELINE_KIND_ICONS } from "@/components/events/event-icons";
 import { EventList } from "@/components/events/event-list";
 import { FeedSummary } from "@/components/events/feed-summary";
 import { FeedLayout } from "@/components/layouts/feed-layout";
@@ -150,8 +151,10 @@ export function TimelineView() {
               getKey={(event) => event.id}
               renderItem={(event) => {
                 const signal = signalsById.get(event.id);
+                const KindIcon = TIMELINE_KIND_ICONS[event.kind];
                 return (
                   <EventItem
+                    media={<KindIcon aria-hidden="true" />}
                     title={event.title}
                     at={event.at}
                     source={KIND_LABELS[event.kind]}

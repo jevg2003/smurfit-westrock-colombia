@@ -83,6 +83,13 @@ describe("RegulacionView", () => {
     expect(link).toHaveAttribute("rel", "noopener noreferrer");
   });
 
+  it("gives each row a leading icon for its origin", async () => {
+    renderWithQuery(<RegulacionView />);
+
+    const decree = (await screen.findByRole("link", { name: /DECRETO No\. 0970/ })).closest("li") as HTMLElement;
+    expect(decree.querySelector('[data-slot="event-media"] svg')).not.toBeNull();
+  });
+
   it("hides the curated section when the company has no curated norms", async () => {
     curated.norms = [];
     renderWithQuery(<RegulacionView />);

@@ -1,6 +1,7 @@
 "use client";
 
 import { EventItem, type EventTone } from "@/components/events/event-item";
+import { DIMENSION_ICONS } from "@/components/events/event-icons";
 import { EventList } from "@/components/events/event-list";
 import type { Severity } from "@/core/domain/dimension";
 import { DIMENSION_LABELS, SEVERITY_LABELS } from "@/core/labels";
@@ -31,8 +32,10 @@ export function AlertEvents({ rows, selectedId, onOpen }: Props) {
       getKey={({ row }) => row.alert.signalId}
       renderItem={({ row }) => {
         const { signal, alert } = row;
+        const DimensionIcon = DIMENSION_ICONS[signal.dimension];
         return (
           <EventItem
+            media={<DimensionIcon aria-hidden="true" />}
             title={signal.title}
             at={signal.occurredAt}
             source={signal.provenance[0] ? SOURCE_NAMES[signal.provenance[0].sourceId] : undefined}

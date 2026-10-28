@@ -3,6 +3,7 @@
 import { InfoIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 import { EventItem } from "@/components/events/event-item";
+import { REGULATION_ORIGIN_ICONS } from "@/components/events/event-icons";
 import { EventList } from "@/components/events/event-list";
 import { FeedSummary } from "@/components/events/feed-summary";
 import { FeedLayout } from "@/components/layouts/feed-layout";
@@ -154,8 +155,11 @@ export function RegulacionView() {
             label="Regulación"
             items={filtered}
             getKey={(entry) => entry.id}
-            renderItem={(entry) => (
+            renderItem={(entry) => {
+              const OriginIcon = REGULATION_ORIGIN_ICONS[entry.origin];
+              return (
               <EventItem
+                media={<OriginIcon aria-hidden="true" />}
                 title={entry.title}
                 at={entry.at}
                 source={entry.source}
@@ -165,7 +169,8 @@ export function RegulacionView() {
                 why={entry.why}
                 href={entry.href}
               />
-            )}
+              );
+            }}
           />
           <div className="flex flex-col gap-1 px-3 py-2">
             {norms.length > 0 && <ProvenanceNote attribution="Curado manualmente por el equipo del prototipo" license="Resumen propio; el texto de cada norma es público" />}
