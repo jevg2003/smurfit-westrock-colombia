@@ -41,14 +41,14 @@ Si la validación pasa, el proxy agrega la cabecera `x-access-email` con el corr
 
 ## 2. Lo que está creado en Cloudflare
 
-Aplicado y verificado el 2026-10-21 en la cuenta de Cloudflare del proyecto. No se tocaron las aplicaciones `Mecateo Admin` ni `Mecateo Web`.
+Aplicado el 2026-10-21 y actualizado el 2026-10-27 (destinos de las rutas nuevas) en la cuenta de Cloudflare del proyecto. No se tocaron las aplicaciones `Mecateo Admin` ni `Mecateo Web`.
 
 ### a) Aplicación privada: `SWC Monitor (privado)`
 
 - Tipo self-hosted, sesión de 24 horas, redirección automática al proveedor de login.
 - Login: **Google** (el mismo proveedor que usan las otras aplicaciones de la cuenta). No se creó un proveedor nuevo.
 - Política `swc-emails` (reutilizable, acción Allow): solo `arbelaeznicolas636@gmail.com` y `jevgdg@gmail.com`. No se reutilizó `team-emails` porque deja entrar a otros dos correos.
-- Destinos: uno por cada ruta privada. La lista vive en `src/lib/access-destinations.ts` (`PRIVATE_ACCESS_DESTINATIONS`): las seis páginas del grupo `(app)` como prefijo (`swc.mecateo.co/resumen*`, `/economia*`, `/noticias*`, `/analisis*`, `/asistente*` y `/configuracion*`), `swc.mecateo.co/api/*`, `/_next/image*`, `/_next/data/*` y `/.well-known/*`.
+- Destinos: uno por cada ruta privada. La lista vive en `src/lib/access-destinations.ts` (`PRIVATE_ACCESS_DESTINATIONS`): las ocho páginas privadas de los grupos `(app)` y `(account)` como prefijo (`swc.mecateo.co/resumen*`, `/economia*`, `/noticias*`, `/analisis*`, `/asistente*`, `/configuracion*`, `/empresas*` y `/onboarding*`), `swc.mecateo.co/api/*`, `/_next/image*`, `/_next/data/*` y `/.well-known/*`.
 - El **AUD** de esta aplicación es el valor de `CF_ACCESS_AUD`. Se ve en Zero Trust > Access > Applications > `SWC Monitor (privado)`, o en el parámetro `kid` de la URL de login.
 
 ### b) Aplicación pública: `SWC Landing (pública)`
@@ -64,7 +64,8 @@ Consecuencias:
 
 - Una ruta nueva que no esté en la lista queda **pública en el borde de Cloudflare**. La app sigue protegida porque `src/proxy.ts` la rechaza con 401 (sin JWT válido de Access) o con 503 si falta la configuración. Pero ya no se ve la pantalla de login, solo el 401.
 - Por eso `src/lib/access-destinations.test.ts` falla si aparece una carpeta nueva en `src/app/(app)` que no esté en la lista. Al agregar una ruta: súmala a `PRIVATE_ACCESS_DESTINATIONS` **y** a los destinos de `SWC Monitor (privado)` en Cloudflare.
-- Si se agrega una ruta privada fuera de `(app)`, hay que sumarla a mano a las dos cosas. Hoy son `/empresas` (selector de empresa) y `/onboarding` (alta de empresa), que viven en el grupo `(account)`: agréguelas a los destinos de `SWC Monitor (privado)` como `swc.mecateo.co/empresas*` y `swc.mecateo.co/onboarding*`. Mientras no estén, el borde de Cloudflare las deja pasar y la protección la da solo `src/proxy.ts` (401 sin JWT válido).
+- La prueba cubre los grupos `(app)` y `(account)`. `/empresas` (selector de empresa) y `/onboarding` (alta de empresa) viven en `(account)` y ya están en los destinos. Una ruta privada fuera de esos dos grupos hay que sumarla a mano a las dos cosas.
+- Las rutas antiguas (`/home`, `/senales`, `/alertas`, `/linea-de-tiempo`, `/seguimiento`, `/macro`, `/dias`, `/contratacion`, `/competidores`, `/regulacion`, `/pestel`, `/briefing`, `/preferencias`, `/fuentes`, `/acerca`) se quitaron de los destinos el 2026-10-27. Solo redirigen desde `next.config.ts` (`src/lib/legacy-redirects.ts`) a las rutas nuevas, que sí exigen login.
 
 ### d) DNS
 

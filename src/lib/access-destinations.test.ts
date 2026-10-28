@@ -4,15 +4,18 @@ import { describe, expect, it } from "vitest";
 import { isPublicPath } from "./access-paths";
 import { ACCESS_HOST, PRIVATE_ACCESS_DESTINATIONS, privateRouteNames } from "./access-destinations";
 
-const APP_GROUP = join(process.cwd(), "src", "app", "(app)");
+const ROUTE_GROUPS = ["(app)", "(account)"] as const;
 
-/** Route folders of the `(app)` group: every one of them is a private page. */
+/** Route folders of the `(app)` and `(account)` groups: every one of them is a private page. */
 function appRouteFolders(): string[] {
-  return readdirSync(APP_GROUP).filter((name) => statSync(join(APP_GROUP, name)).isDirectory());
+  return ROUTE_GROUPS.flatMap((group) => {
+    const dir = join(process.cwd(), "src", "app", group);
+    return readdirSync(dir).filter((name) => statSync(join(dir, name)).isDirectory());
+  });
 }
 
 describe("Cloudflare Access private destinations", () => {
-  it("lists every page folder of the (app) group, so a new route cannot be left public at the edge", () => {
+  it("lists every page folder of the (app) and (account) groups, so a new route cannot be left public at the edge", () => {
     const declared = new Set(privateRouteNames());
     const missing = appRouteFolders().filter((name) => !declared.has(name));
     expect(missing, `add these routes to PRIVATE_ACCESS_DESTINATIONS and to the Cloudflare app: ${missing.join(", ")}`).toEqual([]);
