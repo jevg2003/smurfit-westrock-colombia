@@ -443,4 +443,14 @@ describe("OnboardingFlow re-answering an existing company", () => {
     expect(activeCompanyId).toBe(TEST_COMPANY.id);
     expect(useOnboardingDraftStore.getState().draft).toBeNull();
   });
+
+  it("sends the previous profile to the AI so the questions build on it, and none for a new company", async () => {
+    requestStep.mockResolvedValue(reply(sectorQuestion));
+    useOnboardingDraftStore.setState({ draft: baseDraft({ companyId: TEST_COMPANY.id, stage: "questions", seed: profileToSeed(TEST_COMPANY) }) });
+    renderFlow();
+    await screen.findByRole("heading", { name: "¿En qué sector trabaja?" });
+    const sent = requestStep.mock.calls[0][0] as { previous?: { name: string; competitors?: string[] } };
+    expect(sent.previous).toMatchObject({ name: TEST_COMPANY.name, competitors: ["Competidora Uno", "Competidora Dos", "Competidora Tres"] });
+    expect(JSON.stringify(sent)).not.toContain("900000002");
+  });
 });

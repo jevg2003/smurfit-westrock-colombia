@@ -78,6 +78,23 @@ describe("generateOnboardingStep", () => {
     expect(sent.match(/<<<END_UNTRUSTED_DATA/g)).toHaveLength(1);
   });
 
+  it("builds on the previous profile: it travels as untrusted data and the instructions say to use it", async () => {
+    const model = modelReturning({ nextQuestion: aiQuestion, patch: emptyPatch });
+    const previous = { name: "Acme SAS", sector: "Alimentos", competitors: ["Rival Uno"], regulationKeywords: ["arancel"] };
+    await generateOnboardingStep(request({ previous }), deps(model));
+    const user = JSON.stringify(model.doGenerateCalls[0].prompt.filter((message) => message.role === "user"));
+    expect(user).toContain("Rival Uno");
+    expect(user).toContain("UNTRUSTED_DATA");
+    expect(JSON.stringify(model.doGenerateCalls[0].prompt.filter((message) => message.role === "system"))).toMatch(/perfil anterior/i);
+  });
+
+  it("does not mention a previous profile for a new company", async () => {
+    const model = modelReturning({ nextQuestion: aiQuestion, patch: emptyPatch });
+    await generateOnboardingStep(request(), deps(model));
+    const user = model.doGenerateCalls[0].prompt.filter((message) => message.role === "user");
+    expect(JSON.stringify(user)).not.toContain("previous");
+  });
+
   it("forces the block to end at the question cap even if the model asks for more", async () => {
     const answers = Array.from({ length: MAX_QUESTIONS_PER_BLOCK.empresa }, (_, index) => answer(`q${index}`, "empresa", { text: "x" }));
     const model = modelReturning({ nextQuestion: aiQuestion, patch: emptyPatch });
@@ -148,6 +165,13 @@ describe("handleOnboarding", () => {
     const response = await handleOnboarding(post(request()), good);
     expect(response.status).toBe(200);
     expect((await response.json()).nextQuestion.id).toBe("ai-empresa-1");
+  });
+
+  it("accepts a previous profile and rejects unknown keys inside it", async () => {
+    const model = modelReturning({ nextQuestion: aiQuestion, patch: emptyPatch });
+    const post = (previous: unknown) => handleOnboarding(new Request("http://localhost/api/onboarding", { method: "POST", body: JSON.stringify({ ...request(), previous }) }), deps(model));
+    expect((await post({ name: "Acme SAS", sector: "Alimentos" })).status).toBe(200);
+    expect((await post({ name: "Acme SAS", nit: "900000001" })).status).toBe(400);
   });
 
   it("rejects invalid JSON and invalid shapes with a typed 400", async () => {

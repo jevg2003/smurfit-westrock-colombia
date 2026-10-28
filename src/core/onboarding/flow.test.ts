@@ -63,6 +63,12 @@ describe("buildRequest", () => {
     expect(buildRequest(draft({ questions: [a, b], answers: { a: answer(a) } }), "empresa").answers).toHaveLength(1);
   });
 
+  it("adds the previous profile when the round re-answers a company, and not otherwise", () => {
+    expect(buildRequest(draft(), "empresa").previous).toBeUndefined();
+    expect("previous" in buildRequest(draft(), "empresa")).toBe(false);
+    expect(buildRequest(draft(), "empresa", { name: "Acme", sector: "Alimentos" }).previous).toEqual({ name: "Acme", sector: "Alimentos" });
+  });
+
   it("throws without a seed", () => {
     expect(() => buildRequest(draft({ seed: null }), "empresa")).toThrow();
   });

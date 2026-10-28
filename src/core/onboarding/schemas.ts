@@ -54,10 +54,29 @@ export type Answer = z.infer<typeof answerSchema>;
 
 export const MAX_ANSWERS = 20;
 
+const previousTerms = z.array(text(TERM_MAX)).max(TERMS_PER_GROUP_MAX);
+
+/**
+ * What the company already had before this round (re-onboarding). It only gives the AI context so the questions and
+ * the patch build on it; it never reaches the profile by itself. No NITs travel: the AI cannot echo what it was not given.
+ */
+export const previousProfileSchema = z.strictObject({
+  name: nameSchema,
+  sector: freeText(SECTOR_MAX).optional(),
+  activity: freeText(ACTIVITY_MAX).optional(),
+  competitors: z.array(text(120)).max(COMPETITORS_MAX).optional(),
+  newsTerms: z.strictObject({ company: previousTerms, sector: previousTerms, regulation: previousTerms, operations: previousTerms }).optional(),
+  regulationKeywords: z.array(text(TERM_MAX)).max(60).optional(),
+  goals: z.strictObject({ currentSituation: freeText(GOAL_TEXT_MAX), target: freeText(GOAL_TEXT_MAX), priorities: z.array(text(PRIORITY_MAX)).max(PRIORITIES_MAX) }).optional(),
+});
+export type PreviousProfile = z.infer<typeof previousProfileSchema>;
+
 export const onboardingRequestSchema = z.strictObject({
   seed: seedSchema,
   block: z.enum(AI_BLOCKS),
   answers: z.array(answerSchema).max(MAX_ANSWERS),
+  /** Present when the round re-answers an existing company. */
+  previous: previousProfileSchema.optional(),
 });
 export type OnboardingRequest = z.infer<typeof onboardingRequestSchema>;
 

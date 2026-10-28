@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { buildProfile, updateProfile, type ConfirmValues } from "@/core/onboarding/confirm";
 import { buildRequest, nextAction } from "@/core/onboarding/flow";
+import { buildPreviousProfile } from "@/core/onboarding/previous";
 import { canSkip } from "@/core/onboarding/skip";
 import type { Answer, OnboardingNotice, OnboardingRequest, OnboardingSeed } from "@/core/onboarding/schemas";
 import { useCompaniesStore } from "@/stores/companies.store";
@@ -36,7 +37,9 @@ export function useOnboardingFlow() {
         if (action.type === "show") return draftState().goTo(action.cursor);
         if (action.type === "confirm") return draftState().toConfirm();
 
-        const response = await mutateAsync(buildRequest(current, action.block));
+        // A round that re-answers a company starts from what it already had instead of blind.
+        const existing = current.companyId ? useCompaniesStore.getState().companies.find((company) => company.id === current.companyId) : undefined;
+        const response = await mutateAsync(buildRequest(current, action.block, existing ? buildPreviousProfile(existing) : undefined));
         draftState().applyPatch(response.profilePatch);
         setNotice(response.notice ?? null);
         if (response.nextQuestion) return draftState().addQuestion(response.nextQuestion);

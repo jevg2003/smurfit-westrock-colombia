@@ -1,5 +1,5 @@
 import type { OnboardingDraft } from "./draft";
-import type { AiBlock, Answer, OnboardingRequest } from "./schemas";
+import type { AiBlock, Answer, OnboardingRequest, PreviousProfile } from "./schemas";
 
 export type NextAction = { type: "show"; cursor: number } | { type: "request"; block: AiBlock } | { type: "confirm" };
 
@@ -17,9 +17,9 @@ export function nextAction(draft: Pick<OnboardingDraft, "questions" | "cursor" |
   return { type: "confirm" };
 }
 
-/** The request for the AI: the seed and every current answer in question order. */
-export function buildRequest(draft: Pick<OnboardingDraft, "seed" | "questions" | "answers">, block: AiBlock): OnboardingRequest {
+/** The request for the AI: the seed and every current answer in question order, plus the previous profile when re-answering. */
+export function buildRequest(draft: Pick<OnboardingDraft, "seed" | "questions" | "answers">, block: AiBlock, previous?: PreviousProfile): OnboardingRequest {
   if (!draft.seed) throw new Error("El borrador no tiene los datos iniciales.");
   const answers = draft.questions.flatMap((question): Answer[] => (draft.answers[question.id] ? [draft.answers[question.id]] : []));
-  return { seed: draft.seed, block, answers };
+  return { seed: draft.seed, block, answers, ...(previous ? { previous } : {}) };
 }
