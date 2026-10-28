@@ -46,7 +46,7 @@ export function ConversationHistory({ conversations, activeId, onSelect, onNew, 
               <MessageSquareIcon aria-hidden="true" />
             </EmptyMedia>
             <EmptyTitle>Aún no hay conversaciones</EmptyTitle>
-            <EmptyDescription>Cuando hagas una pregunta, quedará guardada aquí.</EmptyDescription>
+            <EmptyDescription>Cuando haga una pregunta, quedará guardada aquí.</EmptyDescription>
           </EmptyHeader>
         </Empty>
       ) : (

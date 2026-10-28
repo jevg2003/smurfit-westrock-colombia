@@ -144,7 +144,7 @@ describe("PestelView", () => {
     await user.click(await screen.findByRole("button", { name: "Descartada" }));
     await user.click(screen.getByRole("button", { name: "Aplicar estado" }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("Escribe el motivo para marcar la decisión como decidida o descartada.");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Escriba el motivo para marcar la decisión como decidida o descartada.");
     expect(screen.getByLabelText(/Motivo/)).toHaveAttribute("aria-invalid", "true");
     expect(useDecisionsStore.getState().decisions[0].status).toBe("open");
   });

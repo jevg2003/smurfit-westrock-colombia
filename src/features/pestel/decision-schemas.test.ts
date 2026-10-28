@@ -21,7 +21,7 @@ describe("statusSchema", () => {
   it.each(["decided", "discarded"] as const)("requires a rationale to mark %s", (status) => {
     const result = statusSchema.safeParse({ status, rationale: "  ", chosen: undefined });
     expect(result.success).toBe(false);
-    expect(messages(result)).toEqual(["Escribe el motivo para marcar la decisión como decidida o descartada."]);
+    expect(messages(result)).toEqual(["Escriba el motivo para marcar la decisión como decidida o descartada."]);
   });
 
   it("does not need a rationale for open or evaluating", () => {

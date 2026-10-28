@@ -111,7 +111,7 @@ export function buildTrmDaySignal({
     severity: "info",
     kind: "event",
     title: `TRM del ${date.slice(0, 10)}`,
-    detail: "Día de la TRM guardado como alerta.",
+    detail: "Día de la TRM guardado como aviso.",
     occurredAt: date,
     evidence: [{ kind: "observation", ref: `trm:${date}` }],
     provenance: [

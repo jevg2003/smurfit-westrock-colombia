@@ -85,8 +85,8 @@ export interface ChatDeps {
 
 const json = (status: number, error: string) => Response.json({ error }, { status });
 
-const RATE_LIMIT_MESSAGE = "Hay demasiadas consultas en este momento. Espera un poco y vuelve a intentarlo.";
-const GENERIC_MESSAGE = "No pude responder en este momento. Vuelve a intentarlo.";
+const RATE_LIMIT_MESSAGE = "Hay demasiadas consultas en este momento. Espere un poco y vuelva a intentarlo.";
+const GENERIC_MESSAGE = "No pude responder en este momento. Vuelva a intentarlo.";
 
 /** Short Spanish text for the user; never includes provider details or keys. */
 export function describeChatError(error: unknown): string {

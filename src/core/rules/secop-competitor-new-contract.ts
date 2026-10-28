@@ -33,7 +33,7 @@ export function detectCompetitorNewContracts({
 }: CompetitorNewContractInput): Signal[] {
   const now = clock.now();
   const byNit = new Map(competitors.map((competitor) => [competitor.nit, competitor.name]));
-  const ruleText = `Un competidor configurado firma un contrato nuevo (firmado en los últimos ${daysLabel(windowDays)})`;
+  const ruleText = `Un competidor que usted sigue firma un contrato nuevo (firmado en los últimos ${daysLabel(windowDays)})`;
 
   return contracts.flatMap((contract): Signal[] => {
     const competitorName = byNit.get(contract.supplierNit);

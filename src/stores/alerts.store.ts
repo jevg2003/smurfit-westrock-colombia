@@ -100,7 +100,7 @@ export function createAlertsStore({ storage, clock = systemClock, companyId = UN
           dismiss: (signalId, note) =>
             note?.trim()
               ? transition(signalId, "dismissed", note)
-              : fail("note_required", "Escribe una nota para descartar el aviso."),
+              : fail("note_required", "Escriba una nota para descartar el aviso."),
           remove: (signalId) => set({ alerts: get().alerts.filter((alert) => alert.signalId !== signalId) }),
         };
       },

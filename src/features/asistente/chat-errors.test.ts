@@ -8,7 +8,7 @@ describe("describeChatFailure", () => {
   });
 
   it("explains a rate limit", () => {
-    const failure = describeChatFailure(new Error("Hay demasiadas consultas en este momento. Espera un poco y vuelve a intentarlo."));
+    const failure = describeChatFailure(new Error("Hay demasiadas consultas en este momento. Espere un poco y vuelva a intentarlo."));
     expect(failure.title).toBe("Demasiadas consultas");
   });
 

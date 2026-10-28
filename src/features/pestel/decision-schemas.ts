@@ -4,7 +4,7 @@ import type { Pestel } from "@/core/domain/dimension";
 
 const TITLE_REQUIRED = "Escriba un título para la decisión.";
 const OPTION_REQUIRED = "Escriba el nombre de la opción.";
-const RATIONALE_REQUIRED = "Escribe el motivo para marcar la decisión como decidida o descartada.";
+const RATIONALE_REQUIRED = "Escriba el motivo para marcar la decisión como decidida o descartada.";
 
 /** Limits of the decision fields. They are enforced here and read by the fields (maxLength and counters). */
 export const TITLE_MAX = 120;
