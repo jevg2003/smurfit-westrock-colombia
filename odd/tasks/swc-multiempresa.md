@@ -38,35 +38,34 @@ Convertir la app de una sola empresa (Smurfit Westrock / Cartón de Colombia) en
   - C: `ChipListField` reemplazado por `@reui/c-combobox-20` (chips con entrada libre).
   - Evidencia: A `0ce9905` (ScrollArea en `step-form.tsx`, raíz `flex-1 min-h-0`; estilos, sin RED); B `7b39f26` + `281e268` (RED 7/8 → GREEN 8/8 en `confirm-form.test.tsx`; `competitorSchema` único en `core/onboarding/confirm.ts`); C `e620c5d` (RED 5/7 → GREEN 7/7; límites desde el schema con `safeParse`). Integrado: `pnpm typecheck` sin errores, `pnpm lint` sin errores (solo advertencias conocidas de landing/react-bits), `pnpm test` 169 archivos / 1249 pruebas, `pnpm build` compila. Sin prueba en navegador.
 
-## Pendientes de generalización (anotar durante la implementación)
-- Normas curadas (`src/content/regulacion/normas.json`): hoy es una lista vacía y la sección se oculta. Cada empresa necesita sus propias normas (curadas a mano o generadas en el onboarding); la fuente es un archivo único del despliegue, no del perfil.
-- Plantillas de decisión (`pestel/decision-templates.ts`): son cuatro textos fijos (cobertura cambiaria, contratos públicos, norma nueva, costo de energía). Suponen exposición al dólar y contratación pública; deberían salir de los objetivos de la empresa (T3/T5).
-- Macro, energía (XM) y exportaciones no minero-energéticas son indicadores nacionales fijos; no cambian con el perfil. Falta decidir si el perfil elige cuáles ver.
-- Sin NIT, Contratación y Competidores muestran estados vacíos (no hay consulta); ocultarlos es parte de T4.
-- Las heurísticas de `pestelForNewsTerm` (palabras de sostenibilidad y de riesgo social) son expresiones regulares fijas en español; no se adaptan al sector.
-- La búsqueda de Google News usa solo los primeros 4 grupos y ~400 caracteres por consulta: una empresa con muchos términos pierde los últimos. Los términos del sector, regulación y operaciones de un perfil nuevo empiezan vacíos hasta que T3 los genere.
-- Regulación: solo los decretos se filtran con las palabras clave de la empresa; las publicaciones de Minambiente se muestran todas.
-- `docs/deploy.md` y `docs/explicacion-del-proyecto-en-cinco-preguntas.md` siguen nombrando a Smurfit Westrock y enlazan documentos borrados; quedaron fuera de la superficie de edición de T1.
+## Cierre de generalización (2026-10-27)
 
-- El onboarding solo llena lo que un perfil nuevo no tiene. Los umbrales (`thresholds`) quedan en sus valores por defecto: la IA no los propone todavía.
-- ~~`companyContextSchema` no incluía `sector`~~: resuelto en T4 (`deab8dc`).
-- ~~`Nueva empresa` del `CompanySwitcher` enlazaba a `/onboarding` sin `?nueva=1`~~: resuelto en T4.
-- Los componentes instalados `progress` (`transition-all` en el indicador) y `radio-group` vienen tal cual del registro.
-- Configuración > Reglas y preferencias reúne dos formularios independientes (umbrales/términos y selección de seguimiento) con sus propios botones de guardado; falta unificarlos en un solo flujo de guardado.
-- La selección de seguimiento (competidores con NIT e indicadores) sigue siendo por empresa en `watchlist.store`, pero solo la TRM genera avisos: los demás indicadores se guardan sin efecto.
-- «Volver a responder el onboarding» conserva umbrales, fecha de creación y palabras de contexto/exclusión de la empresa; las preguntas de la IA se generan solo con semilla y respuestas, no con el perfil completo (el servidor no recibe el perfil previo).
-- Los estados de los avisos (Nuevo, Revisado, Descartado) están en masculino en `ALERT_STATE_LABELS`, pero el estado de una decisión de PESTEL sigue en femenino («Descartada»): no hay un único género para ambos vocabularios.
-- La landing (`src/features/landing`, fuera de la superficie de T4) todavía enlaza a `/home`; funciona por la redirección permanente a `/resumen?tab=radar`, pero conviene apuntar el CTA a `/resumen`.
-- Cloudflare Access: las destinaciones privadas cambian (resumen, economia, noticias, analisis, asistente, configuracion). Hay que actualizar la aplicación en Cloudflare y `docs/cloudflare-access.md`/`docs/deploy.md` (siguen nombrando `/home`, `/macro`, `/fuentes`, `/acerca`); las rutas viejas redirigen sin sesión porque el redirect responde antes de Access.
-- Los textos del dominio que no son del evento (p. ej. `ruleText` de las reglas, «vigilar/alerta» como severidad) conservan «alerta» como nivel de severidad; los verbos y el tratamiento (tú/usted) de pantallas antiguas no se uniformaron: solo el texto nuevo usa usted.
-- T5: `Filters` de ReUI (chips con popover) se sustituyó por selectores nativos con nombre visible y un solo «Limpiar» (`FilterSelect`, `FilterBar`), porque los chips ocultan el filtro y la persona los confundía. Los componentes `filters`, `data-grid` y `timeline` de ReUI siguen instalados pero sin uso; queda decidir si se borran del registro local.
-- T5: el doc de diseño pide `DataGrid` para la lista SECOP; Contratación y Competidores usan `EventItem` en lista-detalle (un solo componente de fila). Se perdió el orden por columna y la paginación; si una empresa tiene cientos de contratos habrá que paginar o volver al `DataGrid`.
-- T5: el «por qué le importa» por empresa no existe en los datos: `EventItem` lo omite salvo en normas curadas (`whyItMatters`). Los avisos muestran el hecho (`detail`), no una consecuencia generada para la empresa. Hace falta un generador (regla o IA) que dependa del perfil.
-- T5: «Descartar» sigue exigiendo una nota (regla del store), así que desde la fila abre el detalle; el deshacer de 6 s cubre revisar, marcar como pendiente y descartar, pero no puede evitar la nota. `src/stores` quedó fuera de la superficie.
-- T5: Regulación no muestra vigencia ni «a quién aplica» porque ni `RegulationEntry` ni los feeds traen esos datos.
-- T5: Macro muestra el historial del indicador como eventos (cada dato es un punto de la serie) y no avisos de la dimensión macro; el cursor sobre un evento no resalta el punto del gráfico.
-- T5: `/empresas` y `/onboarding` viven en `(account)` y no están en `PRIVATE_ACCESS_DESTINATIONS` (`src/lib/access-destinations.ts`, fuera de la superficie de T5): hay que añadirlas ahí y en Cloudflare. `docs/cloudflare-access.md` lo explica.
-- T5: copy en tú que no se tocó: textos de reglas del dominio (`ruleText`), `src/infrastructure/ai/handle-chat.ts` (`GENERIC_MESSAGE`), `src/stores/alerts.store.ts` (mensaje de nota obligatoria, inalcanzable porque el formulario valida antes), onboarding y landing.
+Resuelto:
+- Plantillas de decisión: salen del perfil (`decisionTemplatesFor`); contratos públicos solo con NIT.
+- «Por qué le importa»: línea determinista (`whyItMatters`) con competidor, prioridad o término vigilado; sin IA.
+- Heurísticas PESTEL: vocabulario general sin términos de la empresa anterior; el grupo del perfil decide cuando el término no dice otra cosa.
+- Google News: todos los términos se empaquetan en hasta 6 consultas de 400 caracteres con dedup por enlace.
+- Regulación: decretos y Minambiente se filtran por palabras clave y términos de sector; sin palabras se muestra todo con aviso «Sin filtrar».
+- Re-onboarding: la IA recibe el perfil anterior (sin NIT); el límite del cuerpo pasa a 128 KB.
+- Contratación: páginas de 30 con «Ver más».
+- Configuración: umbrales y términos comparten una sola barra de guardado.
+- Copy: tratamiento de usted y vocabulario aviso/regla; género por sustantivo (avisos en masculino, decisiones en femenino).
+- Código sin uso: copias de ReUI (filters, data-grid, cascader, date-selector, timeline), border-beam, button-group, spinner y 5 dependencias.
+- Cloudflare Access: destinos de la aplicación «SWC Monitor (privado)» actualizados y verificados en vivo; `/empresas` y `/onboarding` incluidos en `PRIVATE_ACCESS_DESTINATIONS`.
+
+Decidido no hacer (añadiría configuración o es decisión de producto):
+- Umbrales propuestos por la IA: un umbral incorrecto cambia en silencio qué avisos aparecen y el formulario no los muestra.
+- Normas curadas por empresa e indicadores macro a elección: son configuración extra para un público no técnico. La lista de normas sigue vacía y su sección se oculta.
+- Seguimiento como borrador: sus botones aplican al instante por diseño.
+- Paginar Competidores: el máximo es 20.
+
+Pendiente:
+- Contratación y Competidores sin NIT muestran estado vacío en vez de ocultarse del todo en algunos caminos.
+- Sin orden por columna ni paginación en Contratación (se usó `EventItem` en lista-detalle); si una empresa tiene cientos de contratos, valorar volver a una tabla.
+- Descartar un aviso exige una nota (regla del store).
+- Regulación sin vigencia ni «a quién aplica» (los feeds no traen esos datos).
+- Unos 50 exports sin uso en `core` y `features` y `src/core/domain/source-health.ts`: revisar con `knip --production`.
+- El CTA y el copy de la landing son del usuario (sigue en tú en algunas partes).
 
 ## Progreso / evidencia
 - Rama `feat/swc-base` creada desde `main` (c1e42f3).

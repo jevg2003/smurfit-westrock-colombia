@@ -66,7 +66,7 @@ export function changeDecisionStatus(
   if (closing && cleanRationale === "") {
     return {
       ok: false,
-      error: { kind: "rationale_required", message: "Escribe el motivo para marcar la decisión como decidida o descartada." },
+      error: { kind: "rationale_required", message: "Escriba el motivo para marcar la decisión como decidida o descartada." },
     };
   }
   if (chosenOption !== undefined && !decision.options.some((option) => option.id === chosenOption)) {

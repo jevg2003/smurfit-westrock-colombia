@@ -28,7 +28,7 @@ describe("changeDecisionStatus", () => {
 
   it.each(["decided", "discarded"] as const)("requires a rationale to mark %s", (status) => {
     const empty = changeDecisionStatus(base(), status, { rationale: "   " }, NOW);
-    expect(empty).toMatchObject({ ok: false, error: { kind: "rationale_required" } });
+    expect(empty).toMatchObject({ ok: false, error: { kind: "rationale_required", message: expect.stringMatching(/^Escriba /) } });
     const missing = changeDecisionStatus(base(), status, {}, NOW);
     expect(missing.ok).toBe(false);
   });
