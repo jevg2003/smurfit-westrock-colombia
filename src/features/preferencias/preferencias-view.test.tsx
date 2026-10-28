@@ -50,10 +50,10 @@ describe("PreferenciasView", () => {
     const user = userEvent.setup();
     render(<PreferenciasView />);
     expect(screen.queryByRole("button", { name: "Guardar cambios" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Guardar términos" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Guardar cambios" })).not.toBeInTheDocument();
     const watch = screen.getByLabelText(/Variación diaria de la TRM para vigilar/);
     await user.type(watch, "5");
-    await user.click((await screen.findAllByRole("button", { name: "Descartar" }))[0]);
+    await user.click(await screen.findByRole("button", { name: "Descartar" }));
     expect(watch).toHaveValue("1");
     expect(screen.queryByRole("button", { name: "Guardar cambios" })).not.toBeInTheDocument();
   });
@@ -104,7 +104,7 @@ describe("PreferenciasView", () => {
       await user.click(group.getByRole("button", { name: `Quitar ${term}` }));
     }
     await user.type(group.getByLabelText("Sector"), "hierro{Enter}acero{Enter}");
-    await user.click(await screen.findByRole("button", { name: "Guardar términos" }));
+    await user.click(await screen.findByRole("button", { name: "Guardar cambios" }));
 
     expect(usePreferencesStore.getState().newsTermGroups.sector).toEqual(["hierro", "acero"]);
   });
@@ -122,10 +122,49 @@ describe("PreferenciasView", () => {
     for (const word of sector.excludeAny) await user.click(excludeList.getByRole("button", { name: `Quitar ${word}` }));
     await user.type(companyGroup.getByLabelText("Palabras de contexto (Empresa y competidores)"), "Itagüí{Enter}");
     await user.type(sectorGroup.getByLabelText("Palabras a excluir (Sector)"), "fútbol{Enter}");
-    await user.click(await screen.findByRole("button", { name: "Guardar términos" }));
+    await user.click(await screen.findByRole("button", { name: "Guardar cambios" }));
 
     expect(usePreferencesStore.getState().newsContext.company.requireAny).toEqual(["Itagüí"]);
     expect(usePreferencesStore.getState().newsContext.sector.excludeAny).toEqual(["fútbol"]);
+  });
+
+  it("has one save bar for thresholds and terms, and saves both at once with one notice", async () => {
+    const user = userEvent.setup();
+    notify.ok.mockClear();
+    render(<PreferenciasView />);
+
+    const watch = screen.getByLabelText(/Variación diaria de la TRM para vigilar/);
+    await user.clear(watch);
+    await user.type(watch, "1,5");
+    await user.type(within(screen.getByRole("group", { name: "Sector" })).getByLabelText("Sector"), "hierro{Enter}");
+
+    expect(await screen.findAllByRole("button", { name: "Guardar cambios" })).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: "Descartar" })).toHaveLength(1);
+    await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
+
+    expect(usePreferencesStore.getState().thresholds.trmDailyMovePct).toBe(1.5);
+    expect(usePreferencesStore.getState().newsTermGroups.sector).toContain("hierro");
+    expect(notify.ok).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("button", { name: "Guardar cambios" })).not.toBeInTheDocument();
+  });
+
+  it("saves nothing when one part is invalid, and discard reverts both parts", async () => {
+    const user = userEvent.setup();
+    render(<PreferenciasView />);
+
+    const watch = screen.getByLabelText(/Variación diaria de la TRM para vigilar/);
+    await user.clear(watch);
+    await user.type(watch, "0");
+    await user.type(within(screen.getByRole("group", { name: "Sector" })).getByLabelText("Sector"), "hierro{Enter}");
+    await user.click(await screen.findByRole("button", { name: "Guardar cambios" }));
+
+    expect(screen.getByText("El valor debe ser mayor que cero.")).toBeInTheDocument();
+    expect(usePreferencesStore.getState().newsTermGroups.sector).not.toContain("hierro");
+
+    await user.click(screen.getByRole("button", { name: "Descartar" }));
+    expect(watch).toHaveValue("1");
+    expect(screen.queryByRole("button", { name: "Quitar hierro" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Guardar cambios" })).not.toBeInTheDocument();
   });
 
   it("offers context and excluded words for every group", () => {

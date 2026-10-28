@@ -4,9 +4,8 @@ import { revalidateLogic, useForm, useStore } from "@tanstack/react-form";
 import { RotateCcwIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 import { FormIssues } from "@/features/onboarding/step-form";
-import { saveWithFeedback } from "@/lib/notify";
 import { Button } from "@/components/ui/button";
-import { SettingsContent, SettingsDescription, SettingsFooter, SettingsHeader, SettingsSection, SettingsTitle } from "@/components/layouts/settings-section";
+import { SettingsContent, SettingsDescription, SettingsHeader, SettingsSection, SettingsTitle } from "@/components/layouts/settings-section";
 import { ChipListField, NumberField } from "@/components/reui/form-fields";
 import { FieldDescription, FieldGroup, FieldLegend, FieldSet } from "@/components/ui/field";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,6 +15,7 @@ import { useCompany } from "@/stores/companies.store";
 import { useHydrationStore } from "@/stores/hydration.store";
 import { type NewsTermGroupId, usePreferencesStore } from "@/stores/preferences.store";
 import { activeRuleTexts } from "./rule-texts";
+import { SaveBarProvider, useSaveSection } from "./save-bar";
 import { termsSchema, thresholdsSchema, wordsSchema, type ThresholdKey, type ThresholdValues } from "./validate";
 
 interface FieldSpec {
@@ -103,6 +103,7 @@ export function PreferenciasView() {
   const [generation, setGeneration] = useState(0);
 
   return (
+    <SaveBarProvider>
     <div className="flex min-w-0 flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-muted-foreground">Ajuste cuándo salta un aviso y qué palabras se buscan en las noticias. Todo se guarda en este navegador.</p>
@@ -120,6 +121,7 @@ export function PreferenciasView() {
         </div>
       )}
     </div>
+    </SaveBarProvider>
   );
 }
 
@@ -148,16 +150,21 @@ function ThresholdsCard() {
     defaultValues: toValues(saved),
     validationLogic: revalidateLogic(),
     validators: { onDynamic: thresholdsSchema },
-    onSubmit: ({ value }) => {
-      // The schema accepted the form, so every threshold is a number here.
-      const done = saveWithFeedback(() => {
-        for (const key of THRESHOLD_KEYS) setThreshold(key, value[key] as number);
-      });
-      // The saved values become the baseline, so the actions go away until the next edit.
-      if (done) form.reset(value);
-    },
+    onSubmit: () => {},
   });
   const unchanged = useStore(form.store, (state) => state.isDefaultValue);
+  const save = useSaveSection("thresholds", {
+    dirty: !unchanged,
+    validate: () => thresholdsSchema.safeParse(form.state.values).success,
+    showIssues: () => void form.handleSubmit(),
+    // The schema accepted the form, so every threshold is a number here.
+    apply: () => {
+      for (const key of THRESHOLD_KEYS) setThreshold(key, form.state.values[key] as number);
+    },
+    // The saved values become the baseline, so the bar goes away until the next edit.
+    settle: () => form.reset(form.state.values),
+    discard: () => form.reset(),
+  });
 
   return (
     <SettingsSection>
@@ -166,7 +173,7 @@ function ThresholdsCard() {
         onSubmit={(event) => {
           event.preventDefault();
           event.stopPropagation();
-          void form.handleSubmit();
+          save();
         }}
       >
         <SettingsHeader>
@@ -188,17 +195,7 @@ function ThresholdsCard() {
             </FieldSet>
           ))}
         </SettingsContent>
-        {!unchanged && (
-          <SettingsFooter>
-            <FormIssues form={form} schema={thresholdsSchema} />
-            <Button type="submit" size="sm">
-              Guardar cambios
-            </Button>
-            <Button type="button" variant="ghost" size="sm" onClick={() => form.reset()}>
-              Descartar
-            </Button>
-          </SettingsFooter>
-        )}
+        <FormIssues form={form} schema={thresholdsSchema} />
       </form>
     </SettingsSection>
   );
@@ -255,19 +252,25 @@ function TermsCard() {
     defaultValues,
     validationLogic: revalidateLogic(),
     validators: { onDynamic: termsFormSchema },
-    onSubmit: ({ value }) => {
-      const done = saveWithFeedback(() => {
-        for (const group of definitions) {
-          setGroup(group.id, uniqueTerms(value[group.id]));
-          const requireAny = value[contextKey(group.id)] ?? context[group.id].requireAny;
-          setContext(group.id, { requireAny: uniqueTerms(requireAny), excludeAny: uniqueTerms(value[excludeKey(group.id)]) });
-        }
-      });
-      // Repeated terms were merged on save, so the baseline is the merged lists.
-      if (done) form.reset(Object.fromEntries(Object.entries(value).map(([key, terms]) => [key, uniqueTerms(terms)])));
-    },
+    onSubmit: () => {},
   });
   const unchanged = useStore(form.store, (state) => state.isDefaultValue);
+  const save = useSaveSection("terms", {
+    dirty: !unchanged,
+    validate: () => termsFormSchema.safeParse(form.state.values).success,
+    showIssues: () => void form.handleSubmit(),
+    apply: () => {
+      const value = form.state.values;
+      for (const group of definitions) {
+        setGroup(group.id, uniqueTerms(value[group.id]));
+        const requireAny = value[contextKey(group.id)] ?? context[group.id].requireAny;
+        setContext(group.id, { requireAny: uniqueTerms(requireAny), excludeAny: uniqueTerms(value[excludeKey(group.id)]) });
+      }
+    },
+    // Repeated terms were merged on save, so the baseline is the merged lists.
+    settle: () => form.reset(Object.fromEntries(Object.entries(form.state.values).map(([key, terms]) => [key, uniqueTerms(terms)]))),
+    discard: () => form.reset(),
+  });
 
   return (
     <SettingsSection>
@@ -276,7 +279,7 @@ function TermsCard() {
         onSubmit={(event) => {
           event.preventDefault();
           event.stopPropagation();
-          void form.handleSubmit();
+          save();
         }}
       >
         <SettingsHeader>
@@ -310,17 +313,7 @@ function TermsCard() {
             ))}
           </FieldGroup>
         </SettingsContent>
-        {!unchanged && (
-          <SettingsFooter>
-            <FormIssues form={form} schema={termsFormSchema} />
-            <Button type="submit" size="sm">
-              Guardar términos
-            </Button>
-            <Button type="button" variant="ghost" size="sm" onClick={() => form.reset()}>
-              Descartar
-            </Button>
-          </SettingsFooter>
-        )}
+        <FormIssues form={form} schema={termsFormSchema} />
       </form>
     </SettingsSection>
   );
