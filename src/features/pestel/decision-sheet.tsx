@@ -2,7 +2,7 @@
 
 import { revalidateLogic, useForm, useStore } from "@tanstack/react-form";
 import { PlusIcon, Trash2Icon } from "lucide-react";
-import { useId, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { Badge } from "@/components/reui/badge";
 import { AutoTextareaField, DateField, TextField } from "@/components/reui/form-fields";
 import { Button } from "@/components/ui/button";
@@ -23,9 +23,10 @@ import type { Signal } from "@/core/domain/signal";
 import { DECISION_STATUS_LABELS } from "@/core/labels";
 import { PESTEL_ORDER } from "@/core/usecases/build-pestel";
 import { PESTEL_LABELS } from "@/features/entorno/labels";
+import { useCompany } from "@/stores/companies.store";
 import { useDecisionsStore } from "@/stores/decisions.store";
 import { createDecisionSchema, detailsSchema, statusSchema, statusSchemaFor, type DetailsValues, type StatusValues } from "./decision-schemas";
-import { DECISION_TEMPLATES, type DecisionTemplate } from "./decision-templates";
+import { decisionTemplatesFor, type DecisionTemplate } from "./decision-templates";
 
 const STATUSES: readonly DecisionStatus[] = ["open", "evaluating", "decided", "discarded"];
 
@@ -78,6 +79,8 @@ function FactorPicker({ value, onChange }: { value: Pestel[]; onChange: (value: 
 
 function CreateForm({ onCreated }: { onCreated: (id: string) => void }) {
   const create = useDecisionsStore((state) => state.create);
+  const company = useCompany();
+  const templates = useMemo(() => decisionTemplatesFor(company), [company]);
   const formId = useId();
   const [template, setTemplate] = useState<DecisionTemplate | null>(null);
 
@@ -108,7 +111,7 @@ function CreateForm({ onCreated }: { onCreated: (id: string) => void }) {
     <>
       <SheetHeader className="gap-1 pe-12">
         <SheetTitle>Nueva decisión</SheetTitle>
-        <SheetDescription>Parte de una plantilla o de una hoja en blanco. Después puedes editar todo.</SheetDescription>
+        <SheetDescription>Parte de una plantilla o de una hoja en blanco. Después puede editar todo.</SheetDescription>
       </SheetHeader>
 
       <form
@@ -127,7 +130,7 @@ function CreateForm({ onCreated }: { onCreated: (id: string) => void }) {
             Las plantillas son ejemplos escritos a partir del contexto de la empresa. No son datos ni recomendaciones.
           </p>
           <ul className="flex flex-col gap-2">
-            {DECISION_TEMPLATES.map((item) => (
+            {templates.map((item) => (
               <li key={item.id}>
                 <button
                   type="button"
