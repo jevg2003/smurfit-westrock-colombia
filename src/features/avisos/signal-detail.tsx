@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { AutoTextareaField } from "@/components/reui/form-fields";
 import type { Signal } from "@/core/domain/signal";
 import { bogotaDateKey } from "@/core/time/bogota";
+import { EVIDENCE_KIND_ICONS } from "@/components/events/event-icons";
 import { EVIDENCE_LABELS, PESTEL_LABELS } from "@/features/entorno/labels";
 import { SOURCE_NAMES } from "@/features/entorno/sources";
 import { formatHoraBogota } from "@/lib/date";
@@ -77,11 +78,17 @@ export function SignalDetail({ signal, onDone }: Props) {
             <p className="text-sm text-muted-foreground">Este aviso no trae registros de apoyo.</p>
           ) : (
             <ul className="flex flex-col gap-1 text-sm">
-              {signal.evidence.map((item) => (
-                <li key={`${item.kind}:${item.ref}`} className="min-w-0 break-words">
-                  {EVIDENCE_LABELS[item.kind]}: <span className="font-mono text-xs">{item.ref}</span>
-                </li>
-              ))}
+              {signal.evidence.map((item) => {
+                const Icon = EVIDENCE_KIND_ICONS[item.kind];
+                return (
+                  <li key={`${item.kind}:${item.ref}`} className="flex min-w-0 items-start gap-2">
+                    <Icon aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                    <span className="min-w-0 break-words">
+                      {EVIDENCE_LABELS[item.kind]}: <span className="font-mono text-xs">{item.ref}</span>
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           )}
           <p className="text-xs text-muted-foreground">Ocurrió el {bogotaDateKey(signal.occurredAt)} (hora de Bogotá).</p>

@@ -24,4 +24,18 @@ describe("SelectableRow", () => {
     await userEvent.click(screen.getByRole("button", { name: /Competidora Uno/ }));
     expect(onSelect).toHaveBeenCalledTimes(1);
   });
+
+  it("renders a decorative leading media slot only when given", () => {
+    const { container } = render(
+      <SelectableList label="Factores">
+        <SelectableRow title="Con icono" media={<svg data-testid="icon" aria-hidden="true" />} selected={false} onSelect={vi.fn()} />
+        <SelectableRow title="Sin icono" selected={false} onSelect={vi.fn()} />
+      </SelectableList>,
+    );
+
+    const slots = container.querySelectorAll('[data-slot="row-media"]');
+    expect(slots).toHaveLength(1);
+    expect(slots[0]).toContainElement(screen.getByTestId("icon"));
+    expect(screen.getByRole("button", { name: "Con icono" })).toBeInTheDocument();
+  });
 });

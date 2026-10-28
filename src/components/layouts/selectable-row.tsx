@@ -23,12 +23,14 @@ interface Props {
   title: string;
   subtitle?: ReactNode;
   badge?: EventBadge;
+  /** Decorative leading visual, such as a kind icon; must be aria-hidden. */
+  media?: ReactNode;
   selected: boolean;
   onSelect: () => void;
 }
 
 /** A row of a list-detail list that is not an event (a company, a dimension): one line, one badge, one click. */
-export function SelectableRow({ title, subtitle, badge, selected, onSelect }: Props) {
+export function SelectableRow({ title, subtitle, badge, media, selected, onSelect }: Props) {
   return (
     <li aria-current={selected ? "true" : undefined} className={cn("transition-colors hover:bg-muted/50", selected && "bg-muted")}>
       <button
@@ -36,9 +38,16 @@ export function SelectableRow({ title, subtitle, badge, selected, onSelect }: Pr
         onClick={onSelect}
         className="flex w-full min-w-0 items-start justify-between gap-3 px-3 py-3 text-start outline-none focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset"
       >
-        <span className="flex min-w-0 flex-col gap-0.5">
-          <span className={cn("text-sm leading-snug", selected && "font-medium")}>{title}</span>
-          {subtitle && <span className="text-xs text-muted-foreground">{subtitle}</span>}
+        <span className="flex min-w-0 items-start gap-3">
+          {media && (
+            <span data-slot="row-media" className="mt-0.5 flex size-4 shrink-0 items-center justify-center text-muted-foreground [&_svg]:size-4">
+              {media}
+            </span>
+          )}
+          <span className="flex min-w-0 flex-col gap-0.5">
+            <span className={cn("text-sm leading-snug", selected && "font-medium")}>{title}</span>
+            {subtitle && <span className="text-xs text-muted-foreground">{subtitle}</span>}
+          </span>
         </span>
         {badge && <Badge variant={VARIANT[badge.tone]}>{badge.label}</Badge>}
       </button>

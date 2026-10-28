@@ -92,6 +92,15 @@ describe("CompetidoresView", () => {
     expect(within(pane).getByText(/Superintendencia de Sociedades vía datos\.gov\.co · CC BY-SA 4\.0/)).toBeInTheDocument();
   });
 
+  it("marks the company and each competitor with a different decorative icon", async () => {
+    renderWithQuery(<CompetidoresView />);
+
+    const list = await screen.findByRole("list", { name: "Empresas" });
+    const rows = within(list).getAllByRole("listitem");
+    expect(rows[0].querySelector('[data-slot="row-media"] svg.lucide-building')).not.toBeNull();
+    expect(rows[1].querySelector('[data-slot="row-media"] svg.lucide-swords')).not.toBeNull();
+  });
+
   it("uses the latest cutoff year of the company and shows the net margin", async () => {
     renderWithQuery(<CompetidoresView />);
 

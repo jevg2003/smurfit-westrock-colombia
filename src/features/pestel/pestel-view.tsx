@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { FilterBar } from "@/components/layouts/filter-bar";
 import { ListDetailLayout } from "@/components/layouts/list-detail-layout";
 import { SelectableList, SelectableRow } from "@/components/layouts/selectable-row";
+import { PESTEL_ICONS } from "@/components/events/event-icons";
 import { EventListSkeleton } from "@/components/states/event-list-skeleton";
 import { ErrorState } from "@/components/states/error-state";
 import { SourceNotices } from "@/components/states/source-notices";
@@ -86,6 +87,10 @@ export function PestelView() {
                   {factors.map((summary) => (
                     <SelectableRow
                       key={summary.pestel}
+                      media={(() => {
+                        const Icon = PESTEL_ICONS[summary.pestel];
+                        return <Icon aria-hidden="true" />;
+                      })()}
                       title={PESTEL_LABELS[summary.pestel]}
                       subtitle={summary.total === 0 ? "Sin avisos en este período" : `${summary.total} ${summary.total === 1 ? "aviso" : "avisos"}`}
                       badge={summary.bySeverity.alert > 0 ? { label: `${summary.bySeverity.alert} en alerta`, tone: "high" } : undefined}

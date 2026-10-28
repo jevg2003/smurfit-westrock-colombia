@@ -51,6 +51,16 @@ describe("PestelView", () => {
     expect(screen.getByRole("article", { name: "Factor Político" })).toBeInTheDocument();
   });
 
+  it("gives each factor row its own decorative icon", async () => {
+    renderWithQuery(<PestelView />);
+
+    const matrix = await screen.findByRole("region", { name: "Matriz PESTEL" });
+    const rows = within(matrix).getAllByRole("listitem");
+    expect(rows[0].querySelector('[data-slot="row-media"] svg.lucide-landmark')).not.toBeNull();
+    expect(rows[5].querySelector('[data-slot="row-media"] svg.lucide-gavel')).not.toBeNull();
+    for (const row of rows) expect(row.querySelectorAll('[data-slot="row-media"] svg[aria-hidden="true"]')).toHaveLength(1);
+  });
+
   it("puts an expiring own contract under Político, with a link to the original record and a prefiltered link", async () => {
     secopFetch.mockResolvedValue(secopOk([OWN_EXPIRING]));
     renderWithQuery(<PestelView />);

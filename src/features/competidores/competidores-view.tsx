@@ -1,5 +1,6 @@
 "use client";
 
+import { BuildingIcon, SwordsIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 import { ListDetailLayout } from "@/components/layouts/list-detail-layout";
 import { SelectableList, SelectableRow } from "@/components/layouts/selectable-row";
@@ -71,6 +72,7 @@ export function CompetidoresView() {
               {companies.map((item) => (
                 <SelectableRow
                   key={item.nit}
+                  media={item.isCompany ? <BuildingIcon aria-hidden="true" /> : <SwordsIcon aria-hidden="true" />}
                   title={names.get(item.nit) ?? item.name}
                   subtitle={`NIT ${item.nit}`}
                   badge={{ label: item.isCompany ? "Empresa" : "Competidor", tone: "neutral" }}
