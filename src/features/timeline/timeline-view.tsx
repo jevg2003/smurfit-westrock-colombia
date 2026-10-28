@@ -21,6 +21,7 @@ import { DIMENSION_LABELS, SEVERITY_LABELS } from "@/core/labels";
 import { contractSubject, isFollowed, signalSubject } from "@/core/rules/watch-subject";
 import { bogotaDateKey } from "@/core/time/bogota";
 import { buildTimeline, type TimelineEvent } from "@/core/usecases/build-timeline";
+import { whyItMatters } from "@/core/usecases/why-it-matters";
 import { useRegisterPageContext } from "@/features/asistente/page-context";
 import { timelineContext } from "@/features/asistente/screen-contexts";
 import { SignalDetailSheet } from "@/features/avisos/signal-detail-sheet";
@@ -161,6 +162,7 @@ export function TimelineView() {
                     topic={DIMENSION_LABELS[event.dimension]}
                     badge={event.severity ? { label: SEVERITY_LABELS[event.severity], tone: SEVERITY_TONE[event.severity] } : undefined}
                     detail={event.detail}
+                    why={signal ? whyItMatters(signal, company) : undefined}
                     href={event.url}
                     onOpen={signal ? () => setOpen(signal) : undefined}
                   />

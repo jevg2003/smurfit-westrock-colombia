@@ -6,6 +6,8 @@ import { Badge } from "@/components/reui/badge";
 import { IMPACT_LABELS, SEVERITY_LABELS } from "@/core/labels";
 import type { Impact } from "@/core/rules/pestel-mapping";
 import type { PestelFactorSummary, TrendDirection } from "@/core/usecases/build-pestel";
+import { whyItMatters } from "@/core/usecases/why-it-matters";
+import { useActiveCompany } from "@/stores/companies.store";
 import { PESTEL_LABELS } from "@/features/entorno/labels";
 import { SOURCE_NAMES } from "@/features/entorno/sources";
 import { DIMENSION_LABELS } from "@/core/labels";
@@ -25,6 +27,7 @@ const TONE = { alert: "high", watch: "medium", info: "low" } as const;
 
 /** One PESTEL factor: counts by severity, count trend, impact chips and the main avisos as events. */
 export function FactorDetail({ summary }: { summary: PestelFactorSummary }) {
+  const company = useActiveCompany();
   const label = PESTEL_LABELS[summary.pestel];
   const TrendIcon = TREND_ICON[summary.trend.direction];
 
@@ -92,6 +95,7 @@ export function FactorDetail({ summary }: { summary: PestelFactorSummary }) {
                 source={signal.provenance[0] ? SOURCE_NAMES[signal.provenance[0].sourceId] : undefined}
                 topic={DIMENSION_LABELS[signal.dimension]}
                 badge={{ label: SEVERITY_LABELS[signal.severity], tone: TONE[signal.severity] }}
+                why={whyItMatters(signal, company)}
                 href={signal.provenance[0]?.url}
               />
             )}

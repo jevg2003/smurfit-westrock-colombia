@@ -4,6 +4,8 @@ import { EventItem, type EventTone } from "@/components/events/event-item";
 import { DIMENSION_ICONS } from "@/components/events/event-icons";
 import { EventList } from "@/components/events/event-list";
 import type { Severity } from "@/core/domain/dimension";
+import { whyItMatters } from "@/core/usecases/why-it-matters";
+import { useActiveCompany } from "@/stores/companies.store";
 import { DIMENSION_LABELS, SEVERITY_LABELS } from "@/core/labels";
 import { SOURCE_NAMES } from "@/features/entorno/sources";
 import type { AlertRow } from "./alert-row";
@@ -23,6 +25,7 @@ interface Props {
  * where the note is written; review and «Marcar como pendiente» act at once and can be undone.
  */
 export function AlertEvents({ rows, selectedId, onOpen }: Props) {
+  const company = useActiveCompany();
   const items = rows.map((row) => ({ row, at: row.signal.occurredAt }));
 
   return (
@@ -43,6 +46,7 @@ export function AlertEvents({ rows, selectedId, onOpen }: Props) {
             badge={{ label: SEVERITY_LABELS[signal.severity], tone: SEVERITY_TONE[signal.severity] }}
             state={alert.state}
             detail={signal.detail}
+            why={whyItMatters(signal, company)}
             note={alert.note}
             selected={signal.id === selectedId}
             onOpen={() => onOpen(row)}
