@@ -1,8 +1,24 @@
-import { ExternalLinkIcon } from "lucide-react";
+import {
+  ChevronDownIcon,
+  ChevronRightIcon,
+  CircleCheckIcon,
+  CopyrightIcon,
+  ExternalLinkIcon,
+  InfoIcon,
+  KeyRoundIcon,
+  LinkIcon,
+  type LucideIcon,
+  RefreshCwIcon,
+  ScaleIcon,
+  ToggleRightIcon,
+  TriangleAlertIcon,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import { EventItem, type EventTone } from "@/components/events/event-item";
 import { Badge } from "@/components/reui/badge";
 import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemMedia, ItemSeparator, ItemTitle } from "@/components/ui/item";
 import { formatHoraBogota } from "@/lib/date";
 import { safeHttpUrl } from "@/lib/safe-url";
 import type { FuenteRow } from "./build-rows";
@@ -20,12 +36,17 @@ const STATE_VIEW: Record<RowState, { label: string; tone: EventTone }> = {
   unchecked: { label: "Sin consultar", tone: "neutral" },
 };
 
-function Fact({ label, children }: { label: string; children: ReactNode }) {
+function Fact({ icon: Icon, label, children }: { icon: LucideIcon; label: string; children: ReactNode }) {
   return (
-    <div className="flex min-w-0 flex-col gap-0.5">
-      <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className="min-w-0 break-words">{children}</dd>
-    </div>
+    <Item size="xs" className="items-start">
+      <ItemMedia variant="icon">
+        <Icon aria-hidden="true" />
+      </ItemMedia>
+      <ItemContent>
+        <ItemDescription>{label}</ItemDescription>
+        <ItemTitle className="min-w-0 break-words font-normal">{children}</ItemTitle>
+      </ItemContent>
+    </Item>
   );
 }
 
@@ -52,44 +73,72 @@ export function FuenteEvent({ row }: { row: FuenteRow }) {
         ) : undefined
       }
     >
-      <details className="group/facts text-sm">
-        <summary className="w-fit cursor-pointer rounded-sm text-xs text-muted-foreground underline-offset-4 outline-none transition-colors hover:text-foreground hover:underline focus-visible:ring-3 focus-visible:ring-ring/50">
+      <Collapsible>
+        <CollapsibleTrigger className="flex w-fit cursor-pointer items-center gap-1 rounded-sm text-xs text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50">
           Ver datos de la fuente
-        </summary>
-        <dl className="mt-2 grid gap-x-4 gap-y-2 sm:grid-cols-2">
-          <Fact label="Acceso">{ACCESS_LABELS[entry.access]}</Fact>
-          <Fact label="Actualización esperada">{entry.frequency}</Fact>
-          <Fact label="Licencia">{entry.license}</Fact>
-          <Fact label="Atribución">{entry.attribution}</Fact>
-          <Fact label="Último dato correcto">{lastSuccessAt ? formatHoraBogota(lastSuccessAt) : "Aún sin lectura correcta"}</Fact>
-          {flag !== undefined && <Fact label="Interruptor del servidor">{flag ? "Activada" : "Desactivada"}</Fact>}
-          {snapshot.detail && <Fact label="Detalle">{snapshot.detail}</Fact>}
-          <Fact label="Último error">
-            {snapshot.error ? (
-              <span>
-                <Badge variant="destructive-light" className="me-1.5 align-middle">
-                  {ERROR_KIND_LABELS[snapshot.error.kind]}
-                </Badge>
-                {snapshot.error.message}
-              </span>
-            ) : (
-              "Ninguno"
+          <ChevronDownIcon aria-hidden="true" className="size-3.5 shrink-0 transition-transform in-aria-expanded:rotate-180 motion-reduce:transition-none" />
+        </CollapsibleTrigger>
+        <CollapsibleContent keepMounted className="h-(--collapsible-panel-height) overflow-hidden transition-[height] duration-200 ease-out data-ending-style:h-0 data-starting-style:h-0 motion-reduce:transition-none">
+          <ItemGroup className="mt-2 gap-0">
+            <Fact icon={KeyRoundIcon} label="Acceso">{ACCESS_LABELS[entry.access]}</Fact>
+            <ItemSeparator />
+            <Fact icon={RefreshCwIcon} label="Actualización esperada">{entry.frequency}</Fact>
+            <ItemSeparator />
+            <Fact icon={ScaleIcon} label="Licencia">{entry.license}</Fact>
+            <ItemSeparator />
+            <Fact icon={CopyrightIcon} label="Atribución">{entry.attribution}</Fact>
+            <ItemSeparator />
+            <Fact icon={CircleCheckIcon} label="Último dato correcto">{lastSuccessAt ? formatHoraBogota(lastSuccessAt) : "Aún sin lectura correcta"}</Fact>
+            {flag !== undefined && (
+              <>
+                <ItemSeparator />
+                <Fact icon={ToggleRightIcon} label="Interruptor del servidor">{flag ? "Activada" : "Desactivada"}</Fact>
+              </>
             )}
-          </Fact>
-          {href && (
-            <Fact label="Fuente oficial">
-              <a
-                href={href}
-                {...(internal ? {} : { target: "_blank", rel: "noopener noreferrer" })}
-                className="inline-flex items-center gap-1 break-all underline underline-offset-4 outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
-              >
-                {entry.url}
-                {!internal && <ExternalLinkIcon aria-hidden="true" className="size-3 shrink-0" />}
-              </a>
+            {snapshot.detail && (
+              <>
+                <ItemSeparator />
+                <Fact icon={InfoIcon} label="Detalle">{snapshot.detail}</Fact>
+              </>
+            )}
+            <ItemSeparator />
+            <Fact icon={TriangleAlertIcon} label="Último error">
+              {snapshot.error ? (
+                <span>
+                  <Badge variant="destructive-light" className="me-1.5 align-middle">
+                    {ERROR_KIND_LABELS[snapshot.error.kind]}
+                  </Badge>
+                  {snapshot.error.message}
+                </span>
+              ) : (
+                "Ninguno"
+              )}
             </Fact>
-          )}
-        </dl>
-      </details>
+            {href && (
+              <>
+                <ItemSeparator />
+                <Item
+                  size="xs"
+                  className="items-start"
+                  render={<a href={href} {...(internal ? {} : { target: "_blank", rel: "noopener noreferrer" })} />}
+                >
+                  <ItemMedia variant="icon">
+                    <LinkIcon aria-hidden="true" />
+                  </ItemMedia>
+                  <ItemContent>
+                    <ItemDescription>Fuente oficial</ItemDescription>
+                    <ItemTitle className="min-w-0 break-all font-normal">{entry.url}</ItemTitle>
+                  </ItemContent>
+                  <ItemActions>
+                    {internal ? <ChevronRightIcon aria-hidden="true" className="size-4 text-muted-foreground" /> : <ExternalLinkIcon aria-hidden="true" className="size-4 text-muted-foreground" />}
+                    {!internal && <span className="sr-only">(se abre en una pestaña nueva)</span>}
+                  </ItemActions>
+                </Item>
+              </>
+            )}
+          </ItemGroup>
+        </CollapsibleContent>
+      </Collapsible>
     </EventItem>
   );
 }

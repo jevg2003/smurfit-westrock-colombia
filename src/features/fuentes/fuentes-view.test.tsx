@@ -54,7 +54,7 @@ describe("FuentesView", () => {
     expect(other).not.toHaveBeenCalled();
 
     const google = screen.getByText("Google News").closest("li") as HTMLElement;
-    expect(within(google).getByText("Desactivada", { selector: "dd" })).toBeInTheDocument();
+    expect(within(google).getByText("Desactivada", { selector: "[data-slot=item-title]" })).toBeInTheDocument();
     expect(within(google).getByText("Proxy del servidor")).toBeInTheDocument();
 
     const trm = screen.getByText("TRM").closest("li") as HTMLElement;
