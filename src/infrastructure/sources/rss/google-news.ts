@@ -11,7 +11,7 @@ import { toPlainText } from "./sanitize";
  * outlet, date and link are shown (no content republished), results are cached for 30 minutes, the
  * number of queries is bounded, and `FEATURE_GOOGLE_NEWS=false` switches the source off without a deploy.
  */
-export const GOOGLE_NEWS_MAX_QUERIES = 4;
+export const GOOGLE_NEWS_MAX_QUERIES = 6;
 /** Upper bound of the query text, so the URL stays short and Google does not reject it. */
 export const GOOGLE_NEWS_MAX_QUERY_LENGTH = 400;
 /** Google News only looks at headlines of this recent window. */
@@ -31,23 +31,43 @@ export interface GoogleNewsSearch {
 }
 
 /**
- * One query per group (at most `GOOGLE_NEWS_MAX_QUERIES`): the terms as quoted exact phrases joined with OR,
- * as many as fit in `GOOGLE_NEWS_MAX_QUERY_LENGTH`, limited to the last 30 days. Single words are quoted too,
- * so Google never searches a generic word on its own. The Colombia edition is set in the URL.
+ * Every term of every group becomes part of some query: the terms are quoted exact phrases joined with OR and packed,
+ * in order, into as many queries per group as the length limit needs, limited to the last 30 days. Single words are
+ * quoted too, so Google never searches a generic word on its own. The total is capped at `GOOGLE_NEWS_MAX_QUERIES`:
+ * the first query of each group goes first (so no group is starved), then the extra queries share what is left.
  */
 export function buildGoogleNewsSearches(groups: readonly TermGroup[]): GoogleNewsSearch[] {
   const wrap = (phrases: string[]) => `(${phrases.join(" OR ")}) ${GOOGLE_NEWS_RECENCY}`;
-  return groups
-    .map((group) => {
-      const phrases: string[] = [];
-      for (const phrase of group.terms.map((spec) => cleanTerm(termName(spec))).filter((value) => value.length > 0).map((term) => `"${term}"`)) {
-        if (wrap([...phrases, phrase]).length > GOOGLE_NEWS_MAX_QUERY_LENGTH) break;
-        phrases.push(phrase);
+  const pack = (group: TermGroup): string[] => {
+    const queries: string[] = [];
+    let phrases: string[] = [];
+    for (const term of group.terms.map((spec) => cleanTerm(termName(spec))).filter((value) => value.length > 0)) {
+      const phrase = `"${term}"`;
+      if (wrap([phrase]).length > GOOGLE_NEWS_MAX_QUERY_LENGTH) continue;
+      if (phrases.length > 0 && wrap([...phrases, phrase]).length > GOOGLE_NEWS_MAX_QUERY_LENGTH) {
+        queries.push(wrap(phrases));
+        phrases = [];
       }
-      return { groupId: group.id, query: phrases.length > 0 ? wrap(phrases) : "" };
-    })
-    .filter((search) => search.query.length > 0)
-    .slice(0, GOOGLE_NEWS_MAX_QUERIES);
+      phrases.push(phrase);
+    }
+    if (phrases.length > 0) queries.push(wrap(phrases));
+    return queries;
+  };
+  const packed = groups.map((group) => ({ groupId: group.id, queries: pack(group) })).filter((entry) => entry.queries.length > 0);
+  const kept = packed.map(() => 0);
+  let budget = GOOGLE_NEWS_MAX_QUERIES;
+  for (let round = 0; budget > 0; round++) {
+    let added = false;
+    packed.forEach((entry, index) => {
+      if (budget > 0 && round < entry.queries.length) {
+        kept[index] = round + 1;
+        budget--;
+        added = true;
+      }
+    });
+    if (!added) break;
+  }
+  return packed.flatMap((entry, index) => entry.queries.slice(0, kept[index]).map((query) => ({ groupId: entry.groupId, query })));
 }
 
 export function buildGoogleNewsQueries(groups: readonly TermGroup[]): string[] {

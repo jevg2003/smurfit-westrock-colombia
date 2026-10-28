@@ -128,15 +128,19 @@ async function loadGoogleNews(fetcher: Fetcher, enabled: boolean, termGroups: re
   const results = await Promise.all(searches.map((search) => fetchFeed(fetcher, buildGoogleNewsUrl(search.query), parseGoogleNews)));
   // A headline that does not pass its group's context rules (a football sponsorship, news from Spain) is dropped
   // before the per-group cap, so it can never push a Colombian headline out.
-  const headlines = results.flatMap((result, index) =>
-    [...result.items]
-      .filter((item) => isRelevant(item, termGroups.filter((group) => group.id === searches[index]?.groupId)))
+  // A group with many terms spans several queries: their results are deduped by link and capped together.
+  const headlines = [...new Set(searches.map((search) => search.groupId))].flatMap((groupId) => {
+    const seen = new Set<string>();
+    const groupTerms = termGroups.filter((group) => group.id === groupId);
+    return results
+      .flatMap((result, index) => (searches[index]?.groupId === groupId ? result.items : []))
+      .filter((item) => !seen.has(item.url) && seen.add(item.url) && isRelevant(item, groupTerms))
       .sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt))
       .slice(0, perGroup)
       .map(
-      (item): SourcedHeadline => ({ title: item.title, url: item.url, publishedAt: item.publishedAt, outlet: item.outlet, via: "google-news", feedId: GOOGLE_NEWS_ID }),
-    ),
-  );
+        (item): SourcedHeadline => ({ title: item.title, url: item.url, publishedAt: item.publishedAt, outlet: item.outlet, via: "google-news", feedId: GOOGLE_NEWS_ID }),
+      );
+  });
   const failed = results.filter((result) => !result.ok);
   const failedMessage = failed.length > 0 ? `${failed.length} de ${results.length} consultas fallaron.` : undefined;
   const health: FeedHealth = {

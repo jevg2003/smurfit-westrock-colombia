@@ -32,12 +32,30 @@ describe("buildGoogleNewsQueries", () => {
     expect(query).toBe('("celulosa" OR "Itagüí") when:30d');
   });
 
-  it("keeps each query within the length budget, dropping the terms that do not fit", () => {
+  it("packs every term into several queries, each within the length budget and in term order", () => {
     const terms = Array.from({ length: 40 }, (_, index) => `frase número ${index + 1} de prueba`);
-    const [query] = buildGoogleNewsQueries([{ id: "a", label: "A", terms }]);
-    expect(query.length).toBeLessThanOrEqual(GOOGLE_NEWS_MAX_QUERY_LENGTH);
-    expect(query).toContain('"frase número 1 de prueba"');
-    expect(query).not.toContain('"frase número 40 de prueba"');
+    const searches = buildGoogleNewsSearches([{ id: "a", label: "A", terms }]);
+    expect(searches.length).toBeGreaterThan(1);
+    expect(searches.length).toBeLessThanOrEqual(GOOGLE_NEWS_MAX_QUERIES);
+    for (const search of searches) {
+      expect(search.query.length).toBeLessThanOrEqual(GOOGLE_NEWS_MAX_QUERY_LENGTH);
+      expect(search.groupId).toBe("a");
+    }
+    const all = searches.map((search) => search.query).join(" ");
+    expect(all).toContain('"frase número 1 de prueba"');
+    expect(all).toContain('"frase número 40 de prueba"');
+    expect(all.indexOf('"frase número 2 de')).toBeLessThan(all.indexOf('"frase número 30 de'));
+  });
+
+  it("never exceeds the query cap and still gives every group its first query", () => {
+    const big = (id: string) => ({ id, label: id, terms: Array.from({ length: 60 }, (_, i) => `término ${id} largo número ${i}`) });
+    const searches = buildGoogleNewsSearches([big("a"), big("b"), big("c"), big("d")]);
+    expect(searches).toHaveLength(GOOGLE_NEWS_MAX_QUERIES);
+    expect(new Set(searches.map((search) => search.groupId))).toEqual(new Set(["a", "b", "c", "d"]));
+  });
+
+  it("does not split a group that fits in one query", () => {
+    expect(buildGoogleNewsSearches([{ id: "a", label: "A", terms: ["uno", "dos"] }])).toHaveLength(1);
   });
 
   it("skips empty terms and empty groups", () => {

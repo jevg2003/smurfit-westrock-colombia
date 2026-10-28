@@ -171,4 +171,21 @@ describe("loadNews", () => {
     const result = await run(fetchImpl, { feedId: "google-news" });
     expect(result.items.map((i) => `${i.title}|${i.outlet}`)).toEqual(["Empresa Ejemplo compra negocio en Chile|El Tiempo"]);
   });
+
+  it("searches every term of a large group with several queries and dedupes the repeated links", async () => {
+    const terms = ["Empresa Ejemplo", ...Array.from({ length: 30 }, (_, i) => `término de prueba número ${i}`)];
+    const groups = [{ id: "big", label: "Big", terms }];
+    const body = `<?xml version="1.0"?><rss version="2.0"><channel><item><title>Empresa Ejemplo amplía su planta en Itagüí - El Tiempo</title><link>https://example.test/same</link><pubDate>Mon, 19 Oct 2026 10:00:00 GMT</pubDate><source url="https://example.test">El Tiempo</source></item></channel></rss>`;
+    const queried: string[] = [];
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
+      const host = new URL(String(input)).host;
+      if (host === "news.google.com") queried.push(String(input));
+      return host === "news.google.com" ? new Response(body, { status: 200 }) : new Response("nope", { status: 404 });
+    }) as unknown as typeof fetch;
+    const result = await run(fetchImpl, { feedId: "google-news", termGroups: groups });
+    expect(queried.length).toBeGreaterThan(1);
+    const joined = queried.map((url) => new URL(url).searchParams.get("q")).join(" ");
+    expect(joined).toContain("término de prueba número 29");
+    expect(result.items).toHaveLength(1);
+  });
 });
