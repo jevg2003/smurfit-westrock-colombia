@@ -96,7 +96,7 @@ export function RegulacionView() {
   };
 
   const origins = (Object.keys(ORIGIN_LABELS) as Origin[]).filter((origin) => origin !== "curated" || norms.length > 0);
-  const counts = origins.map((origin) => ({ value: origin, label: ORIGIN_LABELS[origin], count: entries.filter((entry) => entry.origin === origin).length }));
+  const counts = origins.map((origin) => ({ value: origin, label: ORIGIN_LABELS[origin], count: entries.filter((entry) => entry.origin === origin).length, icon: REGULATION_ORIGIN_ICONS[origin] }));
   const blocks = [
     { name: "Minambiente", block: data?.minambiente },
     { name: "Presidencia", block: data?.presidencia },

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
@@ -6,6 +7,8 @@ export interface SummaryOption {
   value: string;
   label: string;
   count: number;
+  /** Same icon the rows use for this value; omit for free-text groups. */
+  icon?: LucideIcon;
 }
 
 export interface SummaryGroup {
@@ -58,7 +61,14 @@ export function FeedSummary({ total, totalLabel, groups, facts = [] }: Props) {
                     pressed && "bg-muted font-medium",
                   )}
                 >
-                  <span>{option.label}</span>
+                  {option.icon ? (
+                    <span className="flex items-center gap-2">
+                      <option.icon aria-hidden="true" className="size-3.5 shrink-0 text-muted-foreground" />
+                      {option.label}
+                    </span>
+                  ) : (
+                    <span>{option.label}</span>
+                  )}
                   <span className="text-xs text-muted-foreground tabular-nums">{option.count}</span>
                 </button>
               );

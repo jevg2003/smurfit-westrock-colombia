@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { DIMENSION_ICONS } from "@/components/events/event-icons";
 import { FeedSummary, type SummaryFact } from "@/components/events/feed-summary";
 import { FeedLayout } from "@/components/layouts/feed-layout";
 import { FilterBar } from "@/components/layouts/filter-bar";
@@ -122,7 +123,7 @@ export function RadarView() {
                   title: "Por tema",
                   selected: values.dimension,
                   onSelect: (value) => set("dimension", value),
-                  options: [...counts].map(([dimension, count]) => ({ value: dimension, label: DIMENSION_LABELS[dimension], count })),
+                  options: [...counts].map(([dimension, count]) => ({ value: dimension, label: DIMENSION_LABELS[dimension], count, icon: DIMENSION_ICONS[dimension] })),
                 },
               ]}
               facts={facts}

@@ -90,6 +90,14 @@ describe("RegulacionView", () => {
     expect(decree.querySelector('[data-slot="event-media"] svg')).not.toBeNull();
   });
 
+  it("gives each origin in the summary a leading icon", async () => {
+    renderWithQuery(<RegulacionView />);
+
+    await screen.findByRole("link", { name: /DECRETO No\. 0970/ });
+    const button = screen.getAllByRole("button", { name: /Decretos de Presidencia/ }).find((el) => el.hasAttribute("aria-pressed")) as HTMLElement;
+    expect(button.querySelector("svg[aria-hidden='true']")).not.toBeNull();
+  });
+
   it("hides the curated section when the company has no curated norms", async () => {
     curated.norms = [];
     renderWithQuery(<RegulacionView />);

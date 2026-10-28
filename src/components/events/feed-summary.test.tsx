@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { LandmarkIcon } from "lucide-react";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -38,6 +39,15 @@ describe("FeedSummary", () => {
     expect(screen.getByRole("button", { name: /Mercado/ })).toHaveAttribute("aria-pressed", "true");
     await userEvent.click(screen.getByRole("button", { name: /Mercado/ }));
     expect(onSelect).toHaveBeenLastCalledWith("");
+  });
+
+  it("renders a decorative leading icon only for options that carry one", () => {
+    const groups = [{ ...GROUPS[0], options: [{ ...GROUPS[0].options[0], icon: LandmarkIcon }, GROUPS[0].options[1]] }];
+    render(<FeedSummary total={10} totalLabel="sin revisar" groups={groups} />);
+
+    const withIcon = screen.getByRole("button", { name: /Macroeconomía/ });
+    expect(withIcon.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
+    expect(screen.getByRole("button", { name: /Mercado/ }).querySelector("svg")).toBeNull();
   });
 
   it("lists facts as links when they have an href", () => {

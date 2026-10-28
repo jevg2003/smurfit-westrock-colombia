@@ -106,7 +106,7 @@ export function TimelineView() {
   const kindCounts = useMemo(() => {
     const counts = new Map<string, number>();
     for (const event of events) counts.set(event.kind, (counts.get(event.kind) ?? 0) + 1);
-    return [...counts].map(([value, count]) => ({ value, label: KIND_LABELS[value as TimelineEvent["kind"]], count }));
+    return [...counts].map(([value, count]) => ({ value, label: KIND_LABELS[value as TimelineEvent["kind"]], count, icon: TIMELINE_KIND_ICONS[value as TimelineEvent["kind"]] }));
   }, [events]);
   useRegisterPageContext(timelineContext(filtered, events.length, { "solo lo que sigo": onlyFollowed ? "sí" : undefined }));
 
