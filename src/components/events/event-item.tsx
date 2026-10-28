@@ -29,7 +29,8 @@ export interface EventItemProps {
   title: string;
   /** ISO instant. Omit for an item that has no date yet. */
   at?: string;
-  source?: string;
+  /** Plain outlet name, or a source badge with its own icon. */
+  source?: ReactNode;
   topic?: string;
   /** The one severity or state badge of the row. */
   badge?: EventBadge;

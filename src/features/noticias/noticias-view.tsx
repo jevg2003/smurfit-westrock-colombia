@@ -20,6 +20,7 @@ import type { NewsItem } from "@/core/domain/news";
 import { bogotaDateKey } from "@/core/time/bogota";
 import { useNews } from "@/features/entorno/use-news";
 import { DateRangeFilter, type DayRange } from "@/features/filtros/date-range-filter";
+import { NewsSourceBadge } from "./news-source-badge";
 
 const PAGE_SIZE = 30;
 
@@ -141,10 +142,9 @@ export function NoticiasView() {
                 <EventItem
                   title={item.title}
                   at={item.publishedAt}
-                  source={item.outlet}
                   topic={[...new Set(item.matchedTerms)].slice(0, 3).join(", ") || undefined}
-                  badge={item.via === "google-news" ? { label: "Vía Google News", tone: "neutral" } : undefined}
                   href={item.url}
+                  source={<NewsSourceBadge outlet={item.outlet} via={item.via} />}
                 />
               )}
             />

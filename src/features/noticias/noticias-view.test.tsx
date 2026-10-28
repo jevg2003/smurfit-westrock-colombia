@@ -71,10 +71,10 @@ describe("NoticiasView", () => {
     renderWithQuery(<NoticiasView />);
 
     const row = (await screen.findByRole("link", { name: /Nuevas reglas de economía circular/ })).closest("li") as HTMLElement;
-    expect(within(row).getByText("Vía Google News")).toBeInTheDocument();
-    expect(within(row).getByText(/Valora Analitik/)).toBeInTheDocument();
+    expect(within(row).getByText("vía Google News")).toBeInTheDocument();
+    expect(within(row).getByText("Valora Analitik")).toBeInTheDocument();
     const direct = (await screen.findByRole("link", { name: /Empresa Ejemplo invierte/ })).closest("li") as HTMLElement;
-    expect(within(direct).queryByText("Vía Google News")).not.toBeInTheDocument();
+    expect(within(direct).queryByText("vía Google News")).not.toBeInTheDocument();
   });
 
   it("says how many headlines are relevant out of all of them", async () => {
