@@ -1,4 +1,5 @@
 import type { Pestel } from "../domain/dimension";
+import { normalizeText } from "../text/match";
 
 /**
  * Written criteria: when a signal belongs to each PESTEL factor. The tag is only a label and a
@@ -53,26 +54,36 @@ export function pestelForRule(ruleId: string): Pestel {
 
 export type NewsTermGroupKey = "company" | "sector" | "regulation" | "operations";
 
-const SUSTAINABILITY_TERM = /reciclaj|aprovechamiento|sostenib|ambient|emision|carbono|circular|agua|residuo/i;
-const SOCIAL_OPERATIONS_TERM = /paro|orden p[uú]blico|bloqueo|huelga|seguridad/i;
+/**
+ * Sector-neutral vocabulary, matched on normalized text (no accents, lowercase) at word starts, so
+ * "sostenibilidad" and "sostenible" both match "sostenib" but "separo" does not match "paro".
+ */
+const ENVIRONMENTAL_TERM =
+  /\b(reciclaj|sostenib|ambient|emision|carbono|circular|agua|hidric|residuo|vertimiento|contamin|clima|climatic|biodiversidad|deforest|huella|renovable|reforest|basura|plastic)/;
+const SOCIAL_TERM =
+  /\b(paro|paros|huelga|protesta|manifestacion|manifestaciones|bloqueo|bloqueos|orden publico|seguridad|extorsion|secuestro|sindicat|conflicto laboral|comunidad|comunidades|desplazamiento)/;
+const TECHNOLOGICAL_TERM =
+  /\b(tecnolog|digital|software|inteligencia artificial|automatiz|ciberseguridad|ciberataque|plataforma|innovacion|robot|datos|internet)/;
+const POLITICAL_TERM =
+  /\b(eleccion|elecciones|congreso|gobierno|presidente|ministro|ministerio|alcald|gobernacion|politica publica|reforma|sancion)/;
+
+const matches = (pattern: RegExp, term: string): boolean => pattern.test(normalizeText(term));
 
 /**
- * PESTEL tag of a news item, from the term group it matched and the term itself:
- * regulation terms are legal, sustainability terms of that group are environmental,
- * operational risks are social (people and territory) or economic (prices, gas, exchange rate),
- * company mentions are social (reputation) and sector terms are economic.
+ * PESTEL tag of a news item, from the term group it matched and the term itself. The group sets the
+ * factor when the term says nothing else (regulation is legal, operational risk is economic, the
+ * company or a competitor is a reputation matter and the sector is economic); a term that clearly
+ * belongs to another factor in general vocabulary (environment, people and territory, technology,
+ * the State) moves it there, whatever the sector.
  */
 export function pestelForNewsTerm(group: NewsTermGroupKey, term: string): Pestel {
-  switch (group) {
-    case "regulation":
-      return SUSTAINABILITY_TERM.test(term) ? "environmental" : "legal";
-    case "operations":
-      return SOCIAL_OPERATIONS_TERM.test(term) ? "social" : "economic";
-    case "company":
-      return "social";
-    case "sector":
-      return "economic";
-  }
+  if (group === "company") return "social";
+  if (matches(ENVIRONMENTAL_TERM, term)) return "environmental";
+  if (group === "regulation") return "legal";
+  if (matches(TECHNOLOGICAL_TERM, term)) return "technological";
+  if (matches(SOCIAL_TERM, term)) return "social";
+  if (matches(POLITICAL_TERM, term)) return "political";
+  return "economic";
 }
 
 /** Curated norms, decrees and Minambiente publications are legal by nature. */

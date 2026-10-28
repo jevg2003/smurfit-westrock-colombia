@@ -38,7 +38,7 @@ describe("pestelForNewsTerm", () => {
 
   it("sends sustainability terms of the regulation group to environmental", () => {
     expect(pestelForNewsTerm("regulation", "reciclaje")).toBe("environmental");
-    expect(pestelForNewsTerm("regulation", "aprovechamiento")).toBe("environmental");
+    expect(pestelForNewsTerm("regulation", "sostenibilidad")).toBe("environmental");
   });
 
   it("tags circular economy as environmental, not legal", () => {
@@ -50,6 +50,26 @@ describe("pestelForNewsTerm", () => {
     expect(pestelForNewsTerm("operations", "dólar")).toBe("economic");
     expect(pestelForNewsTerm("operations", "paro camionero")).toBe("social");
     expect(pestelForNewsTerm("operations", "bloqueo de vías")).toBe("social");
+  });
+
+  it("moves a term to the factor its general vocabulary names, in any sector", () => {
+    expect(pestelForNewsTerm("sector", "cambio climático")).toBe("environmental");
+    expect(pestelForNewsTerm("operations", "huelga de trabajadores")).toBe("social");
+    expect(pestelForNewsTerm("sector", "inteligencia artificial")).toBe("technological");
+    expect(pestelForNewsTerm("operations", "ciberseguridad")).toBe("technological");
+    expect(pestelForNewsTerm("sector", "reforma tributaria")).toBe("political");
+  });
+
+  it("keeps the group's factor when the term says nothing else", () => {
+    expect(pestelForNewsTerm("sector", "cultivo de flores")).toBe("economic");
+    expect(pestelForNewsTerm("regulation", "reforma tributaria")).toBe("legal");
+    expect(pestelForNewsTerm("company", "agua")).toBe("social");
+  });
+
+  it("matches at word starts only and ignores accents", () => {
+    expect(pestelForNewsTerm("operations", "separo")).toBe("economic");
+    expect(pestelForNewsTerm("operations", "Paro camionero")).toBe("social");
+    expect(pestelForNewsTerm("regulation", "Sostenibilidad")).toBe("environmental");
   });
 
   it("tags company mentions as social and sector terms as economic", () => {
