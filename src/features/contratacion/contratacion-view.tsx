@@ -27,6 +27,9 @@ import { usePreferencesStore } from "@/stores/preferences.store";
 import { ContractDetail } from "./contract-detail";
 import { contractsToCsv } from "./contracts-csv";
 
+/** Contracts rendered at a time; "Ver más" adds this many. */
+const PAGE_SIZE = 30;
+
 const TONE: Record<ExpiryLevel, EventTone> = { alert: "high", watch: "medium", ok: "positive", neutral: "neutral" };
 const EXPIRY_OPTIONS = [
   { value: "alert", label: "En alerta" },
@@ -43,7 +46,17 @@ export function ContratacionView() {
   const expiry = useMemo(() => ({ watchDays: thresholds.contractExpiryWatchDays, alertDays: thresholds.contractExpiryAlertDays }), [thresholds]);
   const now = getContainer().clock.now();
   const [openId, setOpenId] = useState<string | null>(null);
-  const { values, set, clear, active } = useFilterValues({ expiry: "", status: "" });
+  const { values, set: setFilter, clear: clearFilters, active } = useFilterValues({ expiry: "", status: "" });
+  const [limit, setLimit] = useState(PAGE_SIZE);
+  // A new filter starts from the first page again.
+  const set = (key: "expiry" | "status", value: string) => {
+    setLimit(PAGE_SIZE);
+    setFilter(key, value);
+  };
+  const clear = () => {
+    setLimit(PAGE_SIZE);
+    clearFilters();
+  };
 
   const rows = useMemo(() => (data?.contracts ?? []).filter((contract) => contract.supplierNit === company.nit), [data, company.nit]);
   const statuses = useMemo(() => [...new Set(rows.map((contract) => contract.status))].sort().map((status) => ({ value: status, label: status })), [rows]);
@@ -90,7 +103,7 @@ export function ContratacionView() {
             <>
               <EventList
                 label="Contratos"
-                items={shown.map((contract) => ({ contract, at: contract.signedAt }))}
+                items={shown.slice(0, limit).map((contract) => ({ contract, at: contract.signedAt }))}
                 getKey={({ contract }) => contract.id}
                 renderItem={({ contract }) => {
                   const result = contractExpiry(contract, now, expiry);
@@ -108,6 +121,16 @@ export function ContratacionView() {
                   );
                 }}
               />
+              {shown.length > limit && (
+                <div className="flex items-center justify-between gap-2 px-3 py-2">
+                  <p className="text-xs text-muted-foreground">
+                    Mostrando {limit} de {shown.length}
+                  </p>
+                  <Button variant="outline" size="sm" onClick={() => setLimit((current) => current + PAGE_SIZE)}>
+                    Ver más
+                  </Button>
+                </div>
+              )}
               <div className="px-3 py-2">
                 <ProvenanceNote attribution={SOURCES.secop.attribution} license={SOURCES.secop.license} fetchedAt={view.updatedAt} />
               </div>

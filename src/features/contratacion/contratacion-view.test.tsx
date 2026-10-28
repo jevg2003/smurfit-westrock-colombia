@@ -97,4 +97,19 @@ describe("ContratacionView", () => {
     expect(await screen.findByText("No pudimos consultar SECOP II")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Reintentar" })).toBeInTheDocument();
   });
+
+  it("shows the contracts in pages of 30 with a Ver más button and keeps the CSV complete", async () => {
+    const many = Array.from({ length: 70 }, (_, index): PublicContract => ({ ...CONTRACT, id: `CO1.PCCNTR.${index}`, entity: `Entidad ${index}`, signedAt: `2026-01-${String((index % 28) + 1).padStart(2, "0")}T00:00:00.000-05:00` }));
+    secopFetch.mockResolvedValue(secopOk(many));
+    renderWithQuery(<ContratacionView />);
+    await screen.findAllByRole("button", { name: /Entidad/ });
+    expect(screen.getAllByRole("listitem").filter((item) => /Entidad/.test(item.textContent ?? ""))).toHaveLength(30);
+    expect(screen.getByText("Mostrando 30 de 70")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Ver más" }));
+    expect(screen.getAllByRole("listitem").filter((item) => /Entidad/.test(item.textContent ?? ""))).toHaveLength(60);
+    await userEvent.click(screen.getByRole("button", { name: "Ver más" }));
+    expect(screen.queryByRole("button", { name: "Ver más" })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Exportar CSV" }));
+    expect((downloadCsv.mock.calls[0][1] as string).match(/Entidad/g)).toHaveLength(70);
+  });
 });
