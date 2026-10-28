@@ -122,6 +122,13 @@ export function RegulacionView() {
               <AlertDescription>Esta fuente está apagada en este despliegue. Un administrador puede volver a encenderla.</AlertDescription>
             </Alert>
           )}
+          {(data?.minambiente.unfiltered || data?.presidencia.unfiltered) && (
+            <Alert>
+              <InfoIcon />
+              <AlertTitle>Sin filtrar</AlertTitle>
+              <AlertDescription>Su empresa aún no tiene palabras clave de regulación, así que se muestran todas las publicaciones. Agréguelas en Configuración para ver solo las que le importan.</AlertDescription>
+            </Alert>
+          )}
           {blocks.map(({ name, block }) =>
             block?.status === "disabled" && !data?.off ? (
               <Alert key={name}>

@@ -16,9 +16,11 @@ export interface RegulationBlock {
   items: RegulationItem[];
   httpStatus?: number;
   message?: string;
+  /** The company has no regulation keywords yet: the items are not filtered. */
+  unfiltered?: boolean;
 }
 
-/** The keywords of the active company that make a decree relevant. */
+/** The keywords of the active company that make a publication relevant. */
 export interface RegulationQuery {
   terms: { include: readonly string[]; exclude: readonly string[] };
 }
@@ -87,6 +89,7 @@ export function createRegulationAdapter({
         items: source.items.flatMap((item) => toItem(item, fetchedAt)),
         ...(source.httpStatus ? { httpStatus: source.httpStatus } : {}),
         ...(source.message ? { message: source.message } : {}),
+        ...(source.unfiltered ? { unfiltered: true } : {}),
       });
       const provenance: Provenance = {
         sourceId: "minambiente",

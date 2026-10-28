@@ -8,7 +8,7 @@ import { loadRegulation } from "./service";
 const minambiente = readFileSync(new URL("../rss/fixtures/minambiente.sample.xml", import.meta.url), "utf8");
 const decrees = readFileSync(new URL("./fixtures/decretos.sample.json", import.meta.url), "utf8");
 const NOW = new Date("2026-10-20T15:00:00.000Z");
-const TERMS = { include: TEST_COMPANY.regulationKeywords, exclude: TEST_COMPANY.regulationExcludeKeywords };
+const TERMS = { include: [...TEST_COMPANY.regulationKeywords, "Patria Milagro"], exclude: TEST_COMPANY.regulationExcludeKeywords };
 const FLAGS = { newsRss: true, googleNews: true, minambiente: true, presidencia: true, xm: true };
 
 function fakeFetch(failures: { minambiente?: boolean; presidencia?: boolean } = {}) {
@@ -34,10 +34,33 @@ describe("loadRegulation", () => {
     expect(calls).toContain("https://www.minambiente.gov.co/feed/");
     expect(calls.some((url) => /^https:\/\/www\.datos\.gov\.co\/resource\/88h2-dykw\.json\?/.test(url))).toBe(true);
     expect(result.minambiente).toMatchObject({ status: "ok" });
-    expect(result.minambiente.items).toHaveLength(12);
+    expect(result.minambiente.items.length).toBeGreaterThan(0);
     expect(Object.keys(result.minambiente.items[0]).sort()).toEqual(["id", "kind", "publishedAt", "title", "url"]);
     expect(result.presidencia.status).toBe("ok");
     expect(result.presidencia.items.every((item) => item.kind === "decree")).toBe(true);
+  });
+
+  it("filters Minambiente posts with the company keywords, accents and case ignored", async () => {
+    const result = await run(fakeFetch().fetchImpl, { terms: { include: ["PREVENCION", "licencia"], exclude: [] }, source: "minambiente" });
+    expect(result.minambiente.unfiltered).toBeUndefined();
+    expect(result.minambiente.items.map((item) => item.title).sort()).toEqual([
+      "Después del incendio en Iguaque comienza una nueva etapa de restauración y prevención",
+      "Patria Milagro le cumple a Cartagena: ANLA otorga licencia para recuperación de El Laguito",
+    ]);
+  });
+
+  it("drops Minambiente posts that mention an excluded term", async () => {
+    const result = await run(fakeFetch().fetchImpl, { terms: { include: ["Patria Milagro"], exclude: ["licencia"] }, source: "minambiente" });
+    expect(result.minambiente.items.some((item) => /licencia/i.test(item.title))).toBe(false);
+    expect(result.minambiente.items.length).toBeGreaterThan(0);
+  });
+
+  it("shows everything flagged as unfiltered when the company has no keywords yet", async () => {
+    const result = await run(fakeFetch().fetchImpl, { terms: { include: [], exclude: [] } });
+    expect(result.minambiente).toMatchObject({ status: "ok", unfiltered: true });
+    expect(result.minambiente.items).toHaveLength(12);
+    expect(result.presidencia).toMatchObject({ status: "ok", unfiltered: true });
+    expect(result.presidencia.items.length).toBeGreaterThan(0);
   });
 
   it("isolates a failing source", async () => {
@@ -86,7 +109,7 @@ describe("POST /api/regulacion handler", () => {
     const response = await call();
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe("private, no-store");
-    expect((await response.json()).minambiente.items.length).toBe(12);
+    expect((await response.json()).minambiente.items.length).toBeGreaterThan(0);
   });
 
   it("filters decrees with the keywords the client sent", async () => {

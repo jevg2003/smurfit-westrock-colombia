@@ -14,6 +14,7 @@ const blockSchema = z.object({
   items: z.array(itemSchema),
   httpStatus: z.number().int().optional(),
   message: z.string().optional(),
+  unfiltered: z.boolean().optional(),
 });
 
 /** What `/api/regulacion` answers. Validated again in the browser. */

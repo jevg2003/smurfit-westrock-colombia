@@ -20,6 +20,8 @@ export interface RegulationSourceBlock {
   items: RegulationApiItem[];
   httpStatus?: number;
   message?: string;
+  /** True when the company has no keywords yet, so nothing was filtered. */
+  unfiltered?: boolean;
 }
 
 export interface RegulationResponse {
