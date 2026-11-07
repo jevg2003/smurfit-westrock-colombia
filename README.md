@@ -1,64 +1,43 @@
-# Smart Work Core (SWC)
+# Smart Work Core
 
-Smart Work Core lee el contexto de Colombia para que una empresa decida con datos: tipo de cambio, contratación
-pública, macroeconomía, competidores, noticias, regulación y energía. Junta datos públicos, los convierte en señales
-con reglas visibles y deja un asistente de IA para preguntar sobre ellos.
+## Resumen
 
-Funciona para cualquier empresa. Cada empresa tiene su propio perfil (nombre, NIT opcional, competidores, palabras
-clave, umbrales y objetivos) y todos sus datos se guardan en el navegador, separados por empresa
-(`swc:<idEmpresa>:<nombre>:v1`). **Herramienta independiente:** no tiene relación con las entidades que publican los datos.
+Radar de inteligencia empresarial para Colombia. Combina datos públicos de economía, contratación, noticias, regulación y energía para generar señales y explorar cómo afectan a una empresa.
 
-## Qué hace hoy
+## Qué permite hacer
 
-- **Radar**: resumen del día con las señales más importantes.
-- **Señales**: lo que detectan las reglas (TRM, contratos, competidores, noticias, regulación, energía), con enlace al registro original.
-- **Alertas**: señales guardadas por el usuario. **Línea de tiempo**: lo ocurrido, ordenado por fecha.
-- **PESTEL**: las señales agrupadas por factor político, económico, social, tecnológico, ecológico y legal.
-- **Briefing**: resumen semanal para imprimir o copiar.
-- **Seguimiento**: competidores e indicadores marcados para vigilar.
-- **Macro** (PIB, inflación, exportaciones, TRM con histórico y días atípicos), **Contratación** (SECOP II), **Competidores** (SECOP II y Supersociedades).
-- **Noticias** (medios colombianos y Google News) y **Regulación** (Minambiente, decretos de Presidencia y normas curadas).
-- **Asistente**: chat de IA que lee los datos de la app y, si se activa, busca en internet. Puede equivocarse y cita sus fuentes.
-- **Fuentes**: estado de cada fuente (último dato, último error, licencia, interruptor del servidor) con reintento por fuente.
-- **Preferencias** (umbrales y términos editables) y **Acerca de** (alcance, licencias y privacidad).
+- Consultar el radar, la línea de tiempo y las señales con enlaces a los registros originales.
+- Guardar alertas, seguir competidores e indicadores y agrupar señales por factor PESTEL.
+- Preparar un briefing y consultar los datos con el asistente de IA si está configurado.
+- Crear perfiles de empresa, cambiar de empresa activa y ajustar competidores, palabras clave y umbrales.
 
-Todo lo que guarda el usuario (empresas, alertas, seguimiento, preferencias, chats) vive en su navegador. El servidor no
-guarda perfiles: el navegador envía el contexto mínimo de la empresa activa (nombre, NIT, competidores y palabras
-clave) con cada consulta de noticias, regulación y chat, y el servidor lo valida como dato no confiable.
+## Cómo funciona
 
-Hoy la app muestra un aviso mientras no haya una empresa activa; el selector de empresas y el onboarding con IA
-están en desarrollo (ver `odd/tasks/swc-multiempresa.md`).
+La aplicación usa Next.js, React, TypeScript, Tailwind CSS y el SDK de IA de Vercel. El modelo de empresa y las reglas están en [src/core](src/core). Los adaptadores de fuentes viven en [src/infrastructure](src/infrastructure).
 
-## Cómo correrlo
+Los perfiles y preferencias se guardan en el navegador. Las consultas al servidor incluyen el contexto necesario de la empresa activa. El radar es una herramienta independiente y enlaza a las entidades que publican los datos.
 
-Requiere Node 24 y pnpm.
+## Desarrollo local
+
+Usa Node.js 24 y la versión de pnpm de [package.json](package.json).
 
 ```bash
 pnpm install
-cp .env.example .env.local   # completa las claves del asistente; la app funciona sin ellas
-pnpm dev                     # http://localhost:3000
+cp .env.example .env.local
+pnpm dev
 ```
+
+Abre `http://localhost:3000`. Consulta [docs/deploy.md](docs/deploy.md) para las variables del asistente, el despliegue y el contenedor.
 
 ```bash
-pnpm test        # pruebas unitarias y de componentes (Vitest)
-pnpm test:e2e    # pruebas de extremo a extremo (Playwright); usa el servidor en :3000 o lo levanta
-pnpm lint        # oxlint
-pnpm typecheck   # tsc --noEmit
-pnpm build       # build de producción
+pnpm test
+pnpm typecheck
+pnpm lint
+pnpm build
 ```
 
-Las variables de entorno se leen solo en el servidor. La tabla completa está en [docs/deploy.md](docs/deploy.md).
-La integración continua (`.github/workflows/ci.yml`) corre lint, typecheck, test y build; las pruebas e2e quedan fuera
-porque necesitan un navegador y un servidor en marcha.
+Usa `pnpm test:e2e` para las pruebas de Playwright.
 
-## Despliegue
+## English summary
 
-Vercel hoy y un contenedor (`Dockerfile`, Node 24, usuario sin privilegios) para producción.
-Pasos, variables y lista de revisión: [docs/deploy.md](docs/deploy.md).
-
-## Stack
-
-Next.js 16 (App Router) + React 19 + TypeScript + Tailwind v4. UI con shadcn/ReUI. TanStack Query para datos,
-TanStack Table y Form, Zustand para el estado local, Recharts para los gráficos y Vercel AI SDK para el asistente.
-Las reglas y el modelo de empresa (`CompanyProfile`) viven en `src/core` (sin dependencias de framework), los
-adaptadores de fuentes en `src/infrastructure` y las pantallas en `src/features`.
+A business intelligence dashboard for Colombia. It turns public data on the economy, procurement, news, regulation, and energy into signals that teams can explore in the context of a company.
