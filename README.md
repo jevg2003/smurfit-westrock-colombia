@@ -2,7 +2,7 @@
 
 [English](./README.en.md) | Español
 
-Smart Work Core (SWC) es un radar de inteligencia empresarial para Colombia. Combina datos públicos de economía, contratación, noticias, regulación y energía para generar señales y explorar cómo afectan a una empresa. Nació como un encargo universitario. Jorge Velásquez ([@jevg2003](https://github.com/jevg2003)) escribió el prototipo inicial del monitor de TRM y Nicolas Arbelaez desarrolló la aplicación actual.
+Smart Work Core (SWC) es un radar de inteligencia empresarial para Colombia. Combina datos públicos de economía, contratación, noticias, regulación y energía para generar señales y explorar cómo afectan a una empresa. Nació como un encargo universitario. Jorge Velásquez ([@jevg2003](https://github.com/jevg2003)) creó el repositorio inicial y Nicolas Arbelaez diseñó y desarrolló la aplicación.
 
 ## Qué permite hacer
 
